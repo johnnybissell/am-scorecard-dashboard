@@ -494,7 +494,7 @@ body.read-only .read-only-banner { display: block; }
     }
     return '<div style="background:#fff;border:1px solid #E5E5EE;border-radius:12px;overflow:hidden;margin-bottom:28px">'
       +'<div style="background:linear-gradient(135deg,#5E3DBC,#3B2480);color:white;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'
-      +'<div><div style="font-size:11px;opacity:0.75;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Estimated Commission</div>'
+      +'<div><div style="font-size:11px;opacity:0.75;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Commission</div>'
       +'<div style="font-size:34px;font-weight:800;letter-spacing:-0.02em">'+(total>0?fmtMoney(total):'$0')+'</div></div>'
       +'<div style="text-align:right;font-size:12px;opacity:0.75">'+monthLong(ym)+'</div>'
       +'</div>'
@@ -649,7 +649,7 @@ body.read-only .read-only-banner { display: block; }
     }
     return'<div style="background:#fff;border:1px solid #E5E5EE;border-radius:12px;overflow:hidden;margin-bottom:28px">'
       +'<div style="background:linear-gradient(135deg,#5E3DBC,#3B2480);color:white;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'
-      +'<div><div style="font-size:11px;opacity:0.75;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Estimated Commission — '+monthLong(ym)+'</div>'
+      +'<div><div style="font-size:11px;opacity:0.75;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Commission — '+monthLong(ym)+'</div>'
       +'<div style="font-size:34px;font-weight:800;letter-spacing:-0.02em">'+(c.total>0?fmtMoney(c.total):'$0')+'</div></div></div>'
       +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
       +row('3-Mo Cohort',r3,m.nrr_3mo,m.grr_3mo)
@@ -716,7 +716,10 @@ body.read-only .read-only-banner { display: block; }
     if(lbT&&!document.getElementById('commission-panel')){var d=document.createElement('div');d.id='commission-panel';lbT.parentNode.insertBefore(d,lbT);}
     var origRA=window.renderAll;
     if(origRA){
-      window.renderAll=function(){
+      var __commRendering=false;
+    window.renderAll=function(){
+        if(__commRendering)return;
+        __commRendering=true;
         origRA();
         var ym=window.currentMonth||window.__DASHBOARD_DATA__.default_month;
         if(window.__amViewerAM){
