@@ -433,7 +433,7 @@ body.read-only .read-only-banner { display: block; }
   D.ams = [matchedAM];
   D.read_only = true;
 
-  var PLAN_START = '2025-10';
+  var PLAN_START = '2026-04';
   var MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
   function monthLong(ym){var p=ym.split('-');return MONTHS_FULL[parseInt(p[1])-1]+' '+p[0];}
   function fmtPct(v){return v==null?'&#8212;':(v*100).toFixed(1)+'%';}
@@ -542,6 +542,194 @@ body.read-only .read-only-banner { display: block; }
     // Update header
     var h1 = document.querySelector('h1');
     if(h1) h1.innerHTML = '<span class="accent">'+matchedAM.split(' ')[0]+'&#8217;s Scorecard</span>';
+  });
+})();
+</script>
+
+<script>
+(function() {
+  var PLAN_START = '2026-04';
+  var MONTHS_FULL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function monthLong(ym){var p=ym.split('-');return MONTHS_FULL[parseInt(p[1])-1]+' '+p[0];}
+  function fmtMoney(n){return '$'+Math.round(n).toLocaleString();}
+
+  // Use exclusion-aware dashboard functions when available
+  function getM(am,ym){return typeof metricsForAmMonth==='function'?metricsForAmMonth(am,ym):(((window.__DASHBOARD_DATA__.by_month||{})[ym]||{}).metrics||{})[am]||{};}
+  function getC13MRR(am,ym){var c=typeof filteredCohort==='function'?filteredCohort(am,ym,13):((((window.__DASHBOARD_DATA__.by_month||{})[ym]||{}).drilldowns||{})[am]||{}).cohort&&((((window.__DASHBOARD_DATA__.by_month||{})[ym]||{}).drilldowns||{})[am]||{}).cohort['_13']||[];return(c||[]).reduce(function(s,r){return s+(r.current||0);},0);}
+  function getScores(am,ym){if(typeof filteredCsat==='function'){var fc=filteredCsat(am,ym);if(fc&&fc.scores)return fc.scores;}return((((window.__DASHBOARD_DATA__.by_month||{})[ym]||{}).drilldowns||{})[am]||{}).csat&&((((window.__DASHBOARD_DATA__.by_month||{})[ym]||{}).drilldowns||{})[am]||{}).csat.scores||null;}
+
+  // Team averages (for manager/Clare commission)
+  function teamAvg(ym,key){var D=window.__DASHBOARD_DATA__;var vals=(D.ams||[]).map(function(am){return getM(am,ym)[key];}).filter(function(v){return v!=null;});return vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:null;}
+  function teamCsatScores(ym){var D=window.__DASHBOARD_DATA__;var all=[];(D.ams||[]).forEach(function(am){var s=getScores(am,ym);if(s)all=all.concat(s);});return all.length?all:null;}
+  function teamAvgDays(ym){var D=window.__DASHBOARD_DATA__;var vals=(D.ams||[]).map(function(am){return getM(am,ym).onboarding_time;}).filter(function(v){return v!=null;});return vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:null;}
+
+  // ── Commission calculators ─────────────────────────────────────────────────
+  function calc3mo(nrr,grr,mult){
+    mult=mult||1;
+    if(grr==null||grr<1.0)return{amount:0,reason:'GRR below 100%'};
+    if(nrr==null||nrr<1.001)return{amount:0,reason:'NRR below 100.1%'};
+    var base=nrr<=1.05?200:nrr<=1.10?300:400;
+    return{amount:Math.round(base*mult),reason:'NRR '+(nrr*100).toFixed(1)+'%'+(mult!==1?' ('+mult+'x)':'')};
+  }
+  function calc6mo(nrr,grr,mult){
+    mult=mult||1;
+    if(grr==null||grr<1.0)return{amount:0,reason:'GRR below 100%'};
+    if(nrr==null||nrr<1.0)return{amount:0,reason:'NRR below 100%'};
+    var base=nrr<=1.05?200:nrr<=1.10?275:nrr<=1.15?350:400;
+    return{amount:Math.round(base*mult),reason:'NRR '+(nrr*100).toFixed(1)+'%'+(mult!==1?' ('+mult+'x)':'')};
+  }
+  // AM 13-month: % of cohort ARR matrix
+  function calc13moAM(nrr,grr,mrr13){
+    if(grr==null||grr<0.90)return{amount:0,reason:'GRR below 90%'};
+    if(nrr==null||mrr13<=0)return{amount:0,reason:'No cohort data'};
+    var mx={0.90:{1.00:0.010,1.05:0.015,1.10:0.020,1.15:0.025,1.20:0.030},0.95:{1.00:0.020,1.05:0.025,1.10:0.030,1.15:0.035,1.20:0.040},0.98:{1.00:0.030,1.05:0.035,1.10:0.040,1.15:0.045,1.20:0.050}};
+    var gT=grr>=0.98?0.98:grr>=0.95?0.95:0.90,nT=nrr>=1.20?1.20:nrr>=1.15?1.15:nrr>=1.10?1.10:nrr>=1.05?1.05:1.00;
+    var rate=mx[gT][nT],arr=mrr13*12;
+    return{amount:Math.round(arr*rate),reason:(rate*100).toFixed(1)+'% of ARR ('+fmtMoney(arr)+')'};
+  }
+  // Manager/Clare 13-month: flat scale
+  function calc13moMgr(nrr,grr,mult){
+    mult=mult||1;
+    if(grr==null||grr<0.90)return{amount:0,reason:'GRR below 90%'};
+    if(nrr==null||nrr<1.0)return{amount:0,reason:'NRR below 100%'};
+    var base=nrr<=1.05?450:nrr<=1.10?600:nrr<=1.15?750:nrr<=1.20?900:nrr<=1.25?2250:2700;
+    return{amount:Math.round(base*mult),reason:'NRR '+(nrr*100).toFixed(1)+'%'+(mult!==1?' ('+mult+'x)':'')};
+  }
+  function calcOB(days,scores,mult){
+    mult=mult||1;
+    if(!scores||!scores.length)return{amount:0,avgCsat:null,reason:'No CSAT responses'};
+    var avg=scores.reduce(function(a,b){return a+b;},0)/scores.length;
+    if(avg<4.5)return{amount:0,avgCsat:avg,reason:'CSAT '+avg.toFixed(2)+'/5 below 4.5'};
+    if(days==null)return{amount:0,avgCsat:avg,reason:'No onboarding data'};
+    var base=days<=79?500:days<=89?400:days<=95?300:0;
+    if(!base)return{amount:0,avgCsat:avg,reason:days.toFixed(0)+' days (over 95 max)'};
+    return{amount:Math.round(base*mult),avgCsat:avg,reason:(days<=79?'Tier 3 ≤79d':days<=89?'Tier 2 80-89d':'Tier 1 90-95d')+(mult!==1?' ('+mult+'x)':'')};
+  }
+
+  // ── Per-AM commission (used for AMs + leaderboard) ─────────────────────────
+  window.__amCommission=function(ym,am){
+    if(ym<PLAN_START)return null;
+    var m=getM(am,ym),mrr13=getC13MRR(am,ym),scores=getScores(am,ym);
+    var r3=calc3mo(m.nrr_3mo,m.grr_3mo),r6=calc6mo(m.nrr_6mo,m.grr_6mo);
+    var r13=calc13moAM(m.nrr_13mo,m.grr_13mo,mrr13),rob=calcOB(m.onboarding_time,scores);
+    return{r3:r3,r6:r6,r13:r13,rob:rob,total:r3.amount+r6.amount+r13.amount+rob.amount,m:m};
+  };
+
+  // ── Manager/Clare commission (based on team averages) ──────────────────────
+  window.__mgrCommission=function(ym,name,mult){
+    if(ym<PLAN_START)return null;
+    var nrr3=teamAvg(ym,'nrr_3mo'),grr3=teamAvg(ym,'grr_3mo');
+    var nrr6=teamAvg(ym,'nrr_6mo'),grr6=teamAvg(ym,'grr_6mo');
+    var nrr13=teamAvg(ym,'nrr_13mo'),grr13=teamAvg(ym,'grr_13mo');
+    var scores=teamCsatScores(ym),days=teamAvgDays(ym);
+    var r3=calc3mo(nrr3,grr3,mult),r6=calc6mo(nrr6,grr6,mult);
+    var r13=calc13moMgr(nrr13,grr13,mult),rob=calcOB(days,scores,1);
+    return{r3:r3,r6:r6,r13:r13,rob:rob,total:r3.amount+r6.amount+r13.amount+rob.amount,
+      m:{nrr_3mo:nrr3,grr_3mo:grr3,nrr_6mo:nrr6,grr_6mo:grr6,nrr_13mo:nrr13,grr_13mo:grr13,onboarding_time:days}};
+  };
+
+  // ── HTML builder ───────────────────────────────────────────────────────────
+  window.__buildCommissionHTML=function(ym,am){
+    if(ym<PLAN_START)return'';
+    var c=window.__amCommission(ym,am);
+    if(!c)return'';
+    return buildCard(ym,c);
+  };
+  function buildCard(ym,c){
+    var r3=c.r3,r6=c.r6,r13=c.r13,rob=c.rob,m=c.m;
+    function row(label,r,nrr,grr,extra){
+      var e=r.amount>0;
+      return'<tr style="border-bottom:1px solid #E5E5EE">'
+        +'<td style="padding:11px 20px;color:#8C8AA3;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;width:150px">'+label+'</td>'
+        +'<td style="padding:11px 20px"><span style="font-weight:700;color:'+(e?'#1FB876':'#8C8AA3')+'">'+(e?fmtMoney(r.amount):'$0')+'</span>'
+        +' <span style="color:#8C8AA3;font-size:11px">'+r.reason+'</span>'
+        +(nrr!=null?' <span style="color:#8C8AA3;font-size:11px">· NRR '+(nrr*100).toFixed(1)+'% GRR '+(grr!=null?(grr*100).toFixed(1):'—')+'%</span>':'')
+        +(extra?' <span style="color:#8C8AA3;font-size:11px">'+extra+'</span>':'')
+        +'</td></tr>';
+    }
+    return'<div style="background:#fff;border:1px solid #E5E5EE;border-radius:12px;overflow:hidden;margin-bottom:28px">'
+      +'<div style="background:linear-gradient(135deg,#5E3DBC,#3B2480);color:white;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'
+      +'<div><div style="font-size:11px;opacity:0.75;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Estimated Commission — '+monthLong(ym)+'</div>'
+      +'<div style="font-size:34px;font-weight:800;letter-spacing:-0.02em">'+(c.total>0?fmtMoney(c.total):'$0')+'</div></div></div>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
+      +row('3-Mo Cohort',r3,m.nrr_3mo,m.grr_3mo)
+      +row('6-Mo Cohort',r6,m.nrr_6mo,m.grr_6mo)
+      +row('13-Mo Cohort',r13,m.nrr_13mo,m.grr_13mo)
+      +row('Onboarding',rob,null,null,(rob.avgCsat!=null?'CSAT '+rob.avgCsat.toFixed(2)+'/5':''))
+      +'</table></div>';
+  }
+
+  // ── Master commission panel ────────────────────────────────────────────────
+  window.__renderMasterCommission=function(ym){
+    var el=document.getElementById('commission-panel');
+    if(!el)return;
+    if(ym<PLAN_START){el.innerHTML='';return;}
+    var D=window.__DASHBOARD_DATA__;
+    var teamTotal=0;
+    function cell(n){return'<td style="padding:9px 12px;text-align:right;font-size:12px;color:'+(n>0?'#1FB876':'#8C8AA3')+';font-weight:'+(n>0?'700':'400')+'">'+(n>0?fmtMoney(n):'-')+'</td>';}
+    // AM rows
+    var amRows=D.ams.map(function(am){
+      var c=window.__amCommission(ym,am);if(!c)return'';
+      teamTotal+=c.total;
+      return'<tr style="border-bottom:1px solid #E5E5EE"><td style="padding:9px 14px;font-weight:600;font-size:13px">'+am+'</td>'+cell(c.r3.amount)+cell(c.r6.amount)+cell(c.r13.amount)+cell(c.rob.amount)+'<td style="padding:9px 14px;text-align:right;font-weight:800;font-size:13px;color:'+(c.total>0?'#5E3DBC':'#8C8AA3')+'">'+(c.total>0?fmtMoney(c.total):'-')+'</td></tr>';
+    }).join('');
+    // Manager rows
+    var mgrs=[{name:'Clare Struzzi',mult:1.5},{name:'Johnny Bissell',mult:2}];
+    var mgrRows=mgrs.map(function(mg){
+      var c=window.__mgrCommission(ym,mg.name,mg.mult);if(!c)return'';
+      teamTotal+=c.total;
+      return'<tr style="border-bottom:1px solid #E5E5EE;background:#FAFAFE"><td style="padding:9px 14px;font-weight:600;font-size:13px;color:#5E3DBC">'+mg.name+' <span style="font-size:10px;color:#8C8AA3;font-weight:400">('+mg.mult+'x)</span></td>'+cell(c.r3.amount)+cell(c.r6.amount)+cell(c.r13.amount)+cell(c.rob.amount)+'<td style="padding:9px 14px;text-align:right;font-weight:800;font-size:13px;color:'+(c.total>0?'#5E3DBC':'#8C8AA3')+'">'+(c.total>0?fmtMoney(c.total):'-')+'</td></tr>';
+    }).join('');
+    el.innerHTML='<h2 style="margin:0 0 12px;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8C8AA3">Commission Payout — '+monthLong(ym)+'</h2>'
+      +'<div style="background:#fff;border:1px solid #E5E5EE;border-radius:12px;overflow:hidden;margin-bottom:28px">'
+      +'<div style="background:linear-gradient(135deg,#5E3DBC,#3B2480);color:white;padding:16px 20px;display:flex;align-items:center;justify-content:space-between">'
+      +'<div><div style="font-size:11px;opacity:0.75;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Total Team Payout</div>'
+      +'<div style="font-size:28px;font-weight:800">'+(teamTotal>0?fmtMoney(teamTotal):'$0')+'</div></div>'
+      +'<div style="font-size:12px;opacity:0.7">'+monthLong(ym)+'</div></div>'
+      +'<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#FAFAFE;border-bottom:1px solid #E5E5EE">'
+      +'<th style="padding:8px 14px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#8C8AA3">Person</th>'
+      +'<th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#8C8AA3">3-Mo</th>'
+      +'<th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#8C8AA3">6-Mo</th>'
+      +'<th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#8C8AA3">13-Mo</th>'
+      +'<th style="padding:8px 12px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#8C8AA3">Onboarding</th>'
+      +'<th style="padding:8px 14px;text-align:right;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:#8C8AA3">Total</th>'
+      +'</tr></thead><tbody>'+amRows+'<tr style="height:1px;background:#E5E5EE"><td colspan="6"></td></tr>'+mgrRows+'</tbody></table></div>';
+  };
+
+  // ── AM individual view wiring ──────────────────────────────────────────────
+  var amParam=new URLSearchParams(window.location.search).get('am');
+  if(amParam){
+    var D2=window.__DASHBOARD_DATA__;
+    var mAM=(D2.ams||[]).find(function(a){return a.toLowerCase()===(amParam||'').trim().toLowerCase();});
+    if(!mAM){
+      document.addEventListener('DOMContentLoaded',function(){
+        document.body.innerHTML='<div style="font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#F5F5FA"><div style="text-align:center;padding:40px"><div style="font-size:48px;margin-bottom:16px">&#128274;</div><h2 style="font-size:20px;font-weight:700;margin-bottom:8px;color:#1F1B2E">Personal link required</h2><p style="color:#5C5775;line-height:1.6">Contact your manager for your personal dashboard link.</p></div></div>';
+      });return;
+    }
+    D2.ams=[mAM];D2.read_only=true;
+    document.addEventListener('DOMContentLoaded',function(){var h1=document.querySelector('h1');if(h1)h1.innerHTML='<span class="accent">'+mAM.split(' ')[0]+'’s Scorecard</span>';});
+    window.__amViewerAM=mAM;
+  }
+
+  document.addEventListener('DOMContentLoaded',function(){
+    var lbT=document.getElementById('lb-title');
+    if(lbT&&!document.getElementById('commission-panel')){var d=document.createElement('div');d.id='commission-panel';lbT.parentNode.insertBefore(d,lbT);}
+    var origRA=window.renderAll;
+    if(origRA){
+      window.renderAll=function(){
+        origRA();
+        var ym=window.currentMonth||window.__DASHBOARD_DATA__.default_month;
+        if(window.__amViewerAM){
+          var lbDiv=document.querySelector('.leaderboard');
+          if(lbT)lbT.style.display='none';
+          if(lbDiv)lbDiv.style.display='none';
+          var cp=document.getElementById('commission-panel');
+          if(cp)cp.innerHTML=window.__buildCommissionHTML(ym,window.__amViewerAM);
+        } else {
+          window.__renderMasterCommission(ym);
+        }
+      };
+    }
   });
 })();
 </script>
