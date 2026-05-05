@@ -425,127 +425,130 @@ body.read-only .read-only-banner { display: block; }
 
   if (!matchedAM) {
     document.addEventListener('DOMContentLoaded', function() {
-      document.body.style.display = 'flex';
-      document.body.style.alignItems = 'center';
-      document.body.style.justifyContent = 'center';
-      document.body.style.minHeight = '100vh';
-      document.body.innerHTML = '<div style="text-align:center;font-family:-apple-system,sans-serif;padding:40px"><div style="font-size:48px;margin-bottom:16px">🔒</div><h2 style="font-size:20px;font-weight:700;margin-bottom:8px">Personal link required</h2><p style="color:#5C5775;max-width:300px;line-height:1.6">Contact your manager for your personal dashboard link.</p></div>';
+      document.body.innerHTML = '<div style="font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#F5F5FA"><div style="text-align:center;padding:40px"><div style="font-size:48px;margin-bottom:16px">&#128274;</div><h2 style="font-size:20px;font-weight:700;margin-bottom:8px;color:#1F1B2E">Personal link required</h2><p style="color:#5C5775;line-height:1.6">Contact your manager for your personal dashboard link.</p></div></div>';
     });
     return;
   }
 
-  // Filter to just this AM
   D.ams = [matchedAM];
   D.read_only = true;
 
   var PLAN_START = '2025-10';
-  var MONTHS_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function monthLong(ym){var p=ym.split('-');return MONTHS_FULL[parseInt(p[1])-1]+' '+p[0];}
+  function fmtPct(v){return v==null?'&#8212;':(v*100).toFixed(1)+'%';}
+  function fmtMoney(n){return '$'+Math.round(n).toLocaleString();}
 
-  function monthLong(ym) {
-    var p = ym.split('-');
-    return MONTHS_FULL[parseInt(p[1])-1] + ' ' + p[0];
+  function calc3mo(nrr,grr){
+    if(grr==null||grr<1.0)return{amount:0,reason:'GRR below 100%'};
+    if(nrr==null||nrr<1.001)return{amount:0,reason:'NRR below 100.1%'};
+    if(nrr<=1.05)return{amount:200,reason:'NRR 100.1&#8211;105%'};
+    if(nrr<=1.10)return{amount:300,reason:'NRR 105.1&#8211;110%'};
+    return{amount:400,reason:'NRR 110.1%+'};
   }
-  function fmtPct(v) { return v == null ? '—' : (v*100).toFixed(1)+'%'; }
-  function fmtMoney(n) { return '$' + Math.round(n).toLocaleString(); }
-
-  function calc3mo(nrr, grr) {
-    if (grr == null || grr < 1.0) return {amount:0, reason:'GRR below 100%', met:false};
-    if (nrr == null || nrr < 1.001) return {amount:0, reason:'NRR below 100.1%', met:false};
-    if (nrr <= 1.05) return {amount:200, reason:'NRR 100.1–105%', met:true};
-    if (nrr <= 1.10) return {amount:300, reason:'NRR 105.1–110%', met:true};
-    return {amount:400, reason:'NRR 110.1%+', met:true};
+  function calc6mo(nrr,grr){
+    if(grr==null||grr<1.0)return{amount:0,reason:'GRR below 100%'};
+    if(nrr==null||nrr<1.0)return{amount:0,reason:'NRR below 100%'};
+    if(nrr<=1.05)return{amount:200,reason:'NRR 100&#8211;105%'};
+    if(nrr<=1.10)return{amount:275,reason:'NRR 105.1&#8211;110%'};
+    if(nrr<=1.15)return{amount:350,reason:'NRR 110.1&#8211;115%'};
+    return{amount:400,reason:'NRR 115.1%+'};
   }
-  function calc6mo(nrr, grr) {
-    if (grr == null || grr < 1.0) return {amount:0, reason:'GRR below 100%', met:false};
-    if (nrr == null || nrr < 1.0) return {amount:0, reason:'NRR below 100%', met:false};
-    if (nrr <= 1.05) return {amount:200, reason:'NRR 100–105%', met:true};
-    if (nrr <= 1.10) return {amount:275, reason:'NRR 105.1–110%', met:true};
-    if (nrr <= 1.15) return {amount:350, reason:'NRR 110.1–115%', met:true};
-    return {amount:400, reason:'NRR 115.1%+', met:true};
+  function calc13mo(nrr,grr,mrr13){
+    if(grr==null||grr<0.90)return{amount:0,reason:'GRR below 90% minimum'};
+    if(nrr==null||mrr13<=0)return{amount:0,reason:'No cohort data'};
+    var mx={0.90:{1.00:0.010,1.05:0.015,1.10:0.020,1.15:0.025,1.20:0.030},0.95:{1.00:0.020,1.05:0.025,1.10:0.030,1.15:0.035,1.20:0.040},0.98:{1.00:0.030,1.05:0.035,1.10:0.040,1.15:0.045,1.20:0.050}};
+    var gT=grr>=0.98?0.98:grr>=0.95?0.95:0.90;
+    var nT=nrr>=1.20?1.20:nrr>=1.15?1.15:nrr>=1.10?1.10:nrr>=1.05?1.05:1.00;
+    var rate=mx[gT][nT],arr=mrr13*12;
+    return{amount:Math.round(arr*rate),reason:(rate*100).toFixed(1)+'% of cohort ARR ('+fmtMoney(arr)+')'};
   }
-  function calc13mo(nrr, grr, cohortCurrentMRR) {
-    if (grr == null || grr < 0.90) return {amount:0, rate:0, reason:'GRR below 90% minimum', met:false};
-    if (nrr == null || cohortCurrentMRR <= 0) return {amount:0, rate:0, reason:'No cohort data', met:false};
-    var matrix = {
-      0.90:{1.00:0.010,1.05:0.015,1.10:0.020,1.15:0.025,1.20:0.030},
-      0.95:{1.00:0.020,1.05:0.025,1.10:0.030,1.15:0.035,1.20:0.040},
-      0.98:{1.00:0.030,1.05:0.035,1.10:0.040,1.15:0.045,1.20:0.050}
-    };
-    var gT = grr >= 0.98 ? 0.98 : grr >= 0.95 ? 0.95 : 0.90;
-    var nT = nrr >= 1.20 ? 1.20 : nrr >= 1.15 ? 1.15 : nrr >= 1.10 ? 1.10 : nrr >= 1.05 ? 1.05 : 1.00;
-    var rate = matrix[gT][nT];
-    var arr = cohortCurrentMRR * 12;
-    return {amount:Math.round(arr*rate), rate:rate, arr:arr, reason:((rate*100).toFixed(1))+'% of cohort ARR ('+fmtMoney(arr)+')', met:true};
-  }
-  function calcOnboarding(avgDays, scores) {
-    if (!scores || scores.length === 0) return {amount:0, avgCsat:null, reason:'No CSAT responses', met:false};
-    var avg = scores.reduce(function(a,b){return a+b;},0) / scores.length;
-    if (avg < 4.5) return {amount:0, avgCsat:avg, reason:'CSAT avg '+avg.toFixed(2)+'/5 — below 4.5 minimum', met:false};
-    if (avgDays == null) return {amount:0, avgCsat:avg, reason:'No onboarding data', met:false};
-    if (avgDays >= 70 && avgDays <= 79) return {amount:500, avgCsat:avg, reason:'Tier 3 — 70–79 days', met:true};
-    if (avgDays >= 80 && avgDays <= 89) return {amount:400, avgCsat:avg, reason:'Tier 2 — 80–89 days', met:true};
-    if (avgDays >= 90 && avgDays <= 95) return {amount:300, avgCsat:avg, reason:'Tier 1 — 90–95 days', met:true};
-    return {amount:0, avgCsat:avg, reason:avgDays.toFixed(0)+' days (outside 70–95 tier range)', met:false};
+  function calcOB(days,scores){
+    if(!scores||!scores.length)return{amount:0,avgCsat:null,reason:'No CSAT responses'};
+    var avg=scores.reduce(function(a,b){return a+b;},0)/scores.length;
+    if(avg<4.5)return{amount:0,avgCsat:avg,reason:'CSAT '+avg.toFixed(2)+'/5 below 4.5'};
+    if(days==null)return{amount:0,avgCsat:avg,reason:'No onboarding data'};
+    if(days>=70&&days<=79)return{amount:500,avgCsat:avg,reason:'Tier 3 &#8212; 70&#8211;79 days'};
+    if(days>=80&&days<=89)return{amount:400,avgCsat:avg,reason:'Tier 2 &#8212; 80&#8211;89 days'};
+    if(days>=90&&days<=95)return{amount:300,avgCsat:avg,reason:'Tier 1 &#8212; 90&#8211;95 days'};
+    return{amount:0,avgCsat:avg,reason:days.toFixed(0)+' days (outside 70&#8211;95 tier range)'};
   }
 
-  window.__getCommission = function(ym, am) {
-    var md = D.by_month[ym] || {};
-    var m  = (md.metrics || {})[am] || {};
-    var dr = (md.drilldowns || {})[am] || {};
-    var c13 = ((dr.cohort || {})['_13']) || [];
-    var mRR13 = c13.reduce(function(s,r){return s+(r.current||0);}, 0);
-    var scores = (dr.csat || {}).scores || null;
-    var r3  = calc3mo(m.nrr_3mo,  m.grr_3mo);
-    var r6  = calc6mo(m.nrr_6mo,  m.grr_6mo);
-    var r13 = calc13mo(m.nrr_13mo, m.grr_13mo, mRR13);
-    var rob = calcOnboarding(m.onboarding_time, scores);
-    return {r3:r3, r6:r6, r13:r13, rob:rob, total:r3.amount+r6.amount+r13.amount+rob.amount, m:m};
-  };
-
-  window.__renderCommission = function(ym) {
-    var el = document.getElementById('commission-section');
-    if (!el) return;
-    var am = matchedAM;
-    var eligible = ym >= PLAN_START;
-    if (!eligible) { el.innerHTML=''; return; }
-    var c = window.__getCommission(ym, am);
-    var r3=c.r3, r6=c.r6, r13=c.r13, rob=c.rob, m=c.m;
-
-    function commPill(r) {
-      return r.amount > 0
-        ? '<span style="color:#1FB876;font-weight:700">'+fmtMoney(r.amount)+'</span>'
-        : '<span style="color:#8C8AA3">$0 <span style="font-weight:400;font-size:11px">— '+r.reason+'</span></span>';
+  window.__buildCommissionHTML = function(ym) {
+    if(ym < PLAN_START) return '';
+    var am=matchedAM, md=D.by_month[ym]||{}, m=(md.metrics||{})[am]||{}, dr=(md.drilldowns||{})[am]||{};
+    var mrr13=((dr.cohort||{})['_13']||[]).reduce(function(s,r){return s+(r.current||0);},0);
+    var scores=(dr.csat||{}).scores||null;
+    var r3=calc3mo(m.nrr_3mo,m.grr_3mo), r6=calc6mo(m.nrr_6mo,m.grr_6mo);
+    var r13=calc13mo(m.nrr_13mo,m.grr_13mo,mrr13), rob=calcOB(m.onboarding_time,scores);
+    var total=r3.amount+r6.amount+r13.amount+rob.amount;
+    function row(label,r,nrr,grr,extra){
+      var earned=r.amount>0;
+      return '<tr style="border-bottom:1px solid #E5E5EE">'
+        +'<td style="padding:11px 20px;color:#8C8AA3;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;width:150px;white-space:nowrap">'+label+'</td>'
+        +'<td style="padding:11px 20px"><span style="font-weight:700;color:'+(earned?'#1FB876':'#8C8AA3')+'">'+(earned?fmtMoney(r.amount):'$0')+'</span>'
+        +'<span style="color:#8C8AA3;font-size:11px;margin-left:8px">'+r.reason+'</span>'
+        +'<span style="color:#8C8AA3;font-size:11px;margin-left:8px">&#183; NRR '+fmtPct(nrr)+' · GRR '+fmtPct(grr)+'</span>'
+        +(extra?'<span style="color:#8C8AA3;font-size:11px;margin-left:8px">'+extra+'</span>':'')
+        +'</td></tr>';
     }
-
-    el.innerHTML = '<h2 style="margin:0 0 14px;font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#8C8AA3">'+monthLong(ym)+' Commission Estimate</h2>'
-      + '<div style="background:#fff;border:1px solid #E5E5EE;border-radius:12px;overflow:hidden;margin-bottom:28px">'
-      + '<div style="background:linear-gradient(135deg,#5E3DBC,#3B2480);color:white;padding:20px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'
-      + '<div><div style="font-size:12px;opacity:0.75;margin-bottom:4px">ESTIMATED TOTAL</div><div style="font-size:36px;font-weight:800;letter-spacing:-0.02em">'+(c.total>0?fmtMoney(c.total):'$0')+'</div></div>'
-      + '<div style="text-align:right;font-size:12px;opacity:0.7">'+monthLong(ym)+'<br>NRR + Onboarding Plan</div>'
-      + '</div>'
-      + '<table style="width:100%;border-collapse:collapse;font-size:13px">'
-      + '<tr style="border-bottom:1px solid #E5E5EE"><td style="padding:12px 20px;color:#8C8AA3;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;width:140px">3-Month Cohort</td><td style="padding:12px 20px">'+commPill(r3)+'<br><span style="font-size:11px;color:#8C8AA3">NRR '+fmtPct(m.nrr_3mo)+' · GRR '+fmtPct(m.grr_3mo)+'</span></td></tr>'
-      + '<tr style="border-bottom:1px solid #E5E5EE"><td style="padding:12px 20px;color:#8C8AA3;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">6-Month Cohort</td><td style="padding:12px 20px">'+commPill(r6)+'<br><span style="font-size:11px;color:#8C8AA3">NRR '+fmtPct(m.nrr_6mo)+' · GRR '+fmtPct(m.grr_6mo)+'</span></td></tr>'
-      + '<tr style="border-bottom:1px solid #E5E5EE"><td style="padding:12px 20px;color:#8C8AA3;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">13-Month Cohort</td><td style="padding:12px 20px">'+commPill(r13)+'<br><span style="font-size:11px;color:#8C8AA3">NRR '+fmtPct(m.nrr_13mo)+' · GRR '+fmtPct(m.grr_13mo)+'</span></td></tr>'
-      + '<tr><td style="padding:12px 20px;color:#8C8AA3;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em">Onboarding</td><td style="padding:12px 20px">'+commPill(rob)+'<br><span style="font-size:11px;color:#8C8AA3">'+m.onboarding_time+'d avg · CSAT '+(rob.avgCsat!=null?rob.avgCsat.toFixed(2)+'/5':'—')+'</span></td></tr>'
-      + '</table></div>';
+    return '<div style="background:#fff;border:1px solid #E5E5EE;border-radius:12px;overflow:hidden;margin-bottom:28px">'
+      +'<div style="background:linear-gradient(135deg,#5E3DBC,#3B2480);color:white;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">'
+      +'<div><div style="font-size:11px;opacity:0.75;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px">Estimated Commission</div>'
+      +'<div style="font-size:34px;font-weight:800;letter-spacing:-0.02em">'+(total>0?fmtMoney(total):'$0')+'</div></div>'
+      +'<div style="text-align:right;font-size:12px;opacity:0.75">'+monthLong(ym)+'</div>'
+      +'</div>'
+      +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
+      +row('3-Mo Cohort',r3,m.nrr_3mo,m.grr_3mo)
+      +row('6-Mo Cohort',r6,m.nrr_6mo,m.grr_6mo)
+      +row('13-Mo Cohort',r13,m.nrr_13mo,m.grr_13mo)
+      +row('Onboarding',rob,null,null,(rob.avgCsat!=null?'CSAT '+rob.avgCsat.toFixed(2)+'/5':''))
+      +'</table></div>';
   };
 
-  // Patch the dashboard title
+  // Override renderLeaderboard once the dashboard script defines it
   document.addEventListener('DOMContentLoaded', function() {
-    var h1 = document.querySelector('h1');
-    if (h1) {
-      h1.innerHTML = '<span class="accent">'+matchedAM.split(' ')[0]+'&rsquo;s Scorecard</span>';
+    var orig = window.renderLeaderboard;
+    window.renderLeaderboard = function() {
+      var lbTitle = document.getElementById('lb-title');
+      var lbTable = document.querySelector('.leaderboard');
+      var currentMonth = window.__currentMonthForAM || D.default_month;
+      if(lbTitle) lbTitle.style.display='none';
+      if(lbTable) {
+        lbTable.style.display='none';
+        // Insert commission card before the leaderboard
+        if(!document.getElementById('comm-injected')) {
+          var div=document.createElement('div');
+          div.id='comm-injected';
+          lbTable.parentNode.insertBefore(div, lbTable);
+        }
+        document.getElementById('comm-injected').innerHTML = window.__buildCommissionHTML(currentMonth);
+      }
+    };
+    // Also patch selectMonth / renderAll to update commission on month change
+    var origRenderAll = window.renderAll;
+    if(origRenderAll) {
+      window.renderAll = function() {
+        origRenderAll();
+        var lbTitle = document.getElementById('lb-title');
+        var lbTable = document.querySelector('.leaderboard');
+        if(lbTitle) lbTitle.style.display='none';
+        if(lbTable) lbTable.style.display='none';
+        if(document.getElementById('comm-injected')) {
+          document.getElementById('comm-injected').innerHTML = window.__buildCommissionHTML(window.currentMonth||D.default_month);
+        }
+      };
     }
+    // Update header
+    var h1 = document.querySelector('h1');
+    if(h1) h1.innerHTML = '<span class="accent">'+matchedAM.split(' ')[0]+'&#8217;s Scorecard</span>';
   });
-
 })();
 </script>
 
 <script>
 const D = window.__DASHBOARD_DATA__;
-let currentMonth = D.default_month;
+let currentMonth = D.default_month; window.currentMonth = currentMonth;
 
 // Stash a pristine copy of the page so the Publish button can produce a
 // self-contained HTML with new data baked in without inheriting any DOM
@@ -1112,7 +1115,7 @@ function renderTabs() {
   tabs.innerHTML = html;
   tabs.querySelectorAll('.month-tab').forEach(btn => {
     btn.addEventListener('click', () => {
-      currentMonth = btn.dataset.month;
+      currentMonth = btn.dataset.month; window.currentMonth = currentMonth;
       renderAll();
       btn.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
     });
@@ -1126,10 +1129,11 @@ function renderManageButton() {
 
 function renderAll() {
   renderTabs();
-  if(window.__renderCommission) window.__renderCommission(currentMonth);
+  renderLeaderboard();
   renderCards();
   renderManageButton();
-  document.getElementById('hdr-sub').textContent = monthLabelLong(currentMonth) + ' · click any tile to drill in';
+  document.getElementById('hdr-sub').textContent =
+    monthLabelLong(currentMonth) + ' · ' + D.ams.length + ' Account Managers · click any tile to drill in';
 }
 
 // ----- Manage Exclusions modal -----
