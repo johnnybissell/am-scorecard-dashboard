@@ -363,7 +363,36 @@ body.read-only .read-only-banner { display: block; }
 }
 </style>
 </head>
-<body id="artifacts-component-root-html">
+<body id="artifacts-component-root-html"><style>
+#pw-gate{position:fixed;inset:0;background:#F5F5FA;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+#pw-box{background:#fff;border:1px solid #E5E5EE;border-radius:16px;padding:40px 36px;width:340px;text-align:center;box-shadow:0 8px 32px rgba(31,27,46,0.12)}
+#pw-box h2{font-size:20px;font-weight:700;margin-bottom:6px;color:#1F1B2E}
+#pw-box p{color:#5C5775;font-size:13px;margin-bottom:24px;line-height:1.5}
+#pw-input{width:100%;padding:11px 14px;border:1px solid #E5E5EE;border-radius:8px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:12px}
+#pw-input:focus{border-color:#5E3DBC;box-shadow:0 0 0 3px rgba(94,61,188,0.12)}
+#pw-btn{width:100%;padding:11px;background:linear-gradient(135deg,#5E3DBC,#3B2480);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+#pw-btn:hover{opacity:0.92}
+#pw-err{color:#EF4444;font-size:12px;margin-top:8px;display:none}
+</style>
+<div id="pw-gate"><div id="pw-box">
+  <div style="font-size:36px;margin-bottom:16px">📊</div>
+  <h2>Manager Dashboard</h2>
+  <p>Enter the access password to view commission and scorecard data.</p>
+  <input id="pw-input" type="password" placeholder="Password" autocomplete="off">
+  <button id="pw-btn" onclick="checkPw()">Access Dashboard</button>
+  <div id="pw-err">Incorrect password. Please try again.</div>
+</div></div>
+<script>
+document.getElementById('pw-input').addEventListener('keydown',function(e){if(e.key==='Enter')checkPw();});
+async function checkPw(){
+  var pw=document.getElementById('pw-input').value;
+  var buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
+  var hex=Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  if(hex==='2ebc05b208a9acfa656f20116c7cab579e1d1e6050c2c6fa37482162b310d234'){sessionStorage.setItem('mgr_auth','1');document.getElementById('pw-gate').style.display='none';}
+  else{document.getElementById('pw-err').style.display='block';document.getElementById('pw-input').value='';document.getElementById('pw-input').focus();}
+}
+if(sessionStorage.getItem('mgr_auth')==='1'){document.addEventListener('DOMContentLoaded',function(){var g=document.getElementById('pw-gate');if(g)g.style.display='none';});}
+</script>
   <div class="page">
     <div class="hdr">
       <div class="hdr-title">
