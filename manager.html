@@ -365,16 +365,15 @@ body.read-only .read-only-banner { display: block; }
 </head>
 <body id="artifacts-component-root-html"><style>
 #pw-gate{position:fixed;inset:0;background:#F5F5FA;display:flex;align-items:center;justify-content:center;z-index:9999;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
-#pw-box{background:#fff;border:1px solid #E5E5EE;border-radius:16px;padding:40px 36px;width:340px;text-align:center;box-shadow:0 8px 32px rgba(31,27,46,0.12)}
+#pw-box{background:#fff;border:1px solid #E5E5EE;border-radius:16px;padding:40px 36px;width:340px;text-align:center;box-shadow:0 8px 32px rgba(31,27,46,.12)}
 #pw-box h2{font-size:20px;font-weight:700;margin-bottom:6px;color:#1F1B2E}
 #pw-box p{color:#5C5775;font-size:13px;margin-bottom:24px;line-height:1.5}
 #pw-input{width:100%;padding:11px 14px;border:1px solid #E5E5EE;border-radius:8px;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;margin-bottom:12px}
-#pw-input:focus{border-color:#5E3DBC;box-shadow:0 0 0 3px rgba(94,61,188,0.12)}
+#pw-input:focus{border-color:#5E3DBC;box-shadow:0 0 0 3px rgba(94,61,188,.12)}
 #pw-btn{width:100%;padding:11px;background:linear-gradient(135deg,#5E3DBC,#3B2480);color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
 #pw-btn:hover{opacity:.92}#pw-err{color:#EF4444;font-size:12px;margin-top:8px;display:none}
-/* Show manage-exclusions button even in read-only mode */
-body.read-only .manage-btn{ display:inline-flex !important }
-body.read-only .publish-btn{ display:none !important }
+body.read-only .manage-btn{display:inline-flex !important}
+body.read-only .publish-btn{display:none !important}
 </style>
 <div id="pw-gate"><div id="pw-box">
   <div style="font-size:36px;margin-bottom:16px">📊</div>
@@ -462,94 +461,102 @@ if(sessionStorage.getItem('mgr_auth')==='1'){document.addEventListener('DOMConte
   function c3(n,g,x){x=x||1;if(g==null||g<1)return{a:0,r:'GRR below 100%'};if(n==null||n<1.001)return{a:0,r:'NRR below 100.1%'};return{a:Math.round((n<=1.05?200:n<=1.10?300:400)*x),r:'NRR '+(n*100).toFixed(1)+'%'};}
   function c6(n,g,x){x=x||1;if(g==null||g<1)return{a:0,r:'GRR below 100%'};if(n==null||n<1)return{a:0,r:'NRR below 100%'};return{a:Math.round((n<=1.05?200:n<=1.10?275:n<=1.15?350:400)*x),r:'NRR '+(n*100).toFixed(1)+'%'};}
   function c13AM(n,g,mrr){if(g==null||g<0.9)return{a:0,r:'GRR below 90%'};if(n==null||mrr<=0)return{a:0,r:'No cohort data'};var mx={0.90:{1:0.01,1.05:0.015,1.10:0.02,1.15:0.025,1.20:0.03},0.95:{1:0.02,1.05:0.025,1.10:0.03,1.15:0.035,1.20:0.04},0.98:{1:0.03,1.05:0.035,1.10:0.04,1.15:0.045,1.20:0.05}};var gT=g>=0.98?0.98:g>=0.95?0.95:0.90,nT=n>=1.2?1.20:n>=1.15?1.15:n>=1.1?1.10:n>=1.05?1.05:1;var arr=mrr*12;return{a:Math.round(arr*mx[gT][nT]),r:(mx[gT][nT]*100).toFixed(1)+'% of ARR ('+$$(arr)+')'};}
-  function c13M(n,g,x){x=x||1;if(g==null||g<0.9)return{a:0,r:'GRR below 90%'};if(n==null||n<1)return{a:0,r:'NRR below 100%'};var b=n<=1.05?450:n<=1.10?600:n<=1.15?750:n<=1.20?900:n<=1.25?2250:2700;return{a:Math.round(b*x),r:'NRR '+(n*100).toFixed(1)+'%'};}
+  // 13mo for mgr: GRR >= 90% required, then flat scale x multiplier
+  function c13M(n,g,x){x=x||1;
+    if(g==null||g<0.9)return{a:0,r:'GRR '+(g!=null?(g*100).toFixed(1)+'%':'—')+' below 90% minimum'};
+    if(n==null||n<1)return{a:0,r:'NRR below 100%'};
+    var b=n<=1.05?450:n<=1.10?600:n<=1.15?750:n<=1.20?900:n<=1.25?2250:2700;
+    return{a:Math.round(b*x),r:'NRR '+(n*100).toFixed(1)+'% → $'+b+' × '+x};}
   function cOB(d,sc){if(!sc||!sc.length)return{a:0,ac:null,r:'No CSAT responses'};var avg=sc.reduce(function(a,b){return a+b;},0)/sc.length;if(avg<4.5)return{a:0,ac:avg,r:'CSAT '+avg.toFixed(2)+' below 4.5'};if(d==null)return{a:0,ac:avg,r:'No onboarding data'};if(d>95)return{a:0,ac:avg,r:d.toFixed(0)+'d over 95 max'};var b=d<=79?500:d<=89?400:300;return{a:b,ac:avg,r:(d<=79?'Tier 3 ≤79d':d<=89?'Tier 2 80–89d':'Tier 1 90–95d')};}
+  function amC(am,ym){if(ym<PS)return null;var m=gM(am,ym),mrr=gC(am,ym),sc=gS(am,ym);var r3=c3(m.nrr_3mo,m.grr_3mo),r6=c6(m.nrr_6mo,m.grr_6mo),r13=c13AM(m.nrr_13mo,m.grr_13mo,mrr),rob=cOB(m.onboarding_time,sc);return{r3:r3,r6:r6,r13:r13,rob:rob,t:r3.a+r6.a+r13.a+rob.a};}
   function mgrC(ym,x){if(ym<PS)return null;var n3=tA(ym,'nrr_3mo'),g3=tA(ym,'grr_3mo'),n6=tA(ym,'nrr_6mo'),g6=tA(ym,'grr_6mo'),n13=tA(ym,'nrr_13mo'),g13=tA(ym,'grr_13mo'),sc=tS(ym),d=tD(ym);var r3=c3(n3,g3,x),r6=c6(n6,g6,x),r13=c13M(n13,g13,x),rob=cOB(d,sc);return{r3:r3,r6:r6,r13:r13,rob:rob,t:r3.a+r6.a+r13.a+rob.a,n3:n3,g3:g3,n6:n6,g6:g6,n13:n13,g13:g13,d:d,sc:sc};}
 
-  // ── Manager commission cards (rendered after AM cards) ─────────────────────
-  var MGR_OPEN = {};
   function pct(v){return v!=null?(v*100).toFixed(1)+'%':'—';}
+  var MGR_OPEN={};
 
-  function renderMgrCards(ym) {
-    var el = document.getElementById('mgr-cards-container');
-    if(!el) return;
-    if(ym < PS){el.innerHTML='';return;}
-    var mgrs = [['Clare Struzzi',1.5,'CS'],['Johnny Bissell',2,'JB']];
-    var html = mgrs.map(function(mg) {
-      var c = mgrC(ym, mg[1]);
-      if(!c) return '';
-      var id = 'mgr-'+mg[2];
-      var open = MGR_OPEN[id];
-      function tile(lbl, amt, top, bot, key) {
-        var earned = amt>0;
-        var cls = earned?'green':'none';
-        return '<button class="metric'+(open===key?' active':'')
-          +'" onclick="mgrDrill(\''+id+'\',\''+key+'\')" type="button">'
+  function renderAll_comm(ym){
+    var el=document.getElementById('comm-panel');
+    if(!el)return;
+    if(ym<PS){el.innerHTML='';return;}
+    // ── Team commission table ──────────────────────────────────────────────
+    var tot=0;
+    function cell(n){return'<td style="padding:8px 10px;text-align:right;font-size:12px;color:'+(n>0?'#1FB876':'#8C8AA3')+';font-weight:'+(n>0?'700':'400')+'">'+(n>0?$$(n):'–')+'</td>';}
+    var amRows=(D.ams||[]).map(function(am){var c=amC(am,ym);if(!c)return'';tot+=c.t;return'<tr style="border-bottom:1px solid #E5E5EE"><td style="padding:8px 12px;font-weight:600;font-size:13px">'+am+'</td>'+cell(c.r3.a)+cell(c.r6.a)+cell(c.r13.a)+cell(c.rob.a)+'<td style="padding:8px 12px;text-align:right;font-weight:700;font-size:13px;color:'+(c.t>0?'#5E3DBC':'#8C8AA3')+'">'+(c.t>0?$$(c.t):'–')+'</td></tr>';}).join('');
+    // ── Manager commission cards ───────────────────────────────────────────
+    var mgrCardsHTML = ['Clare Struzzi|1.5|CS','Johnny Bissell|2|JB'].map(function(s){
+      var p=s.split('|'),name=p[0],x=parseFloat(p[1]),id='mc-'+p[2];
+      var c=mgrC(ym,x);if(!c)return'';
+      tot+=c.t;
+      function tile(lbl,amt,nrr,grr,key){
+        var e=amt>0,cls=e?'green':'none';
+        return'<button class="metric'+(MGR_OPEN[id]===key?' active':'')+'" onclick="window.__mgrDrill(\''+id+'\',\''+key+'\')" type="button">'
           +'<div class="metric-label-row"><span class="metric-label">'+lbl+'</span>'
-          +'<span class="score-badge '+cls+'">'+(earned?$$(amt):'$0')+'</span></div>'
-          +'<div class="metric-row"><span class="metric-value" style="font-size:14px">'+top+'</span>'
-          +'<span class="metric-goal">'+bot+'</span></div>'
-          +'<div class="metric-status-bar '+cls+'"></div></button>';
+          +'<span class="score-badge '+cls+'">'+(e?$$(amt):'$0')+'</span></div>'
+          +'<div class="metric-row"><span class="metric-value" style="font-size:13px">NRR '+pct(nrr)+'</span>'
+          +'<span class="metric-goal">GRR '+pct(grr)+'</span></div>'
+          +'<div class="metric-status-bar '+cls+'"></div></button>';}
+      var drill='';
+      if(MGR_OPEN[id]){
+        var info={
+          '3mo': {title:'3-Month',r:c.r3,note:'Requires NRR ≥100.1% AND GRR 100%. Team avg: NRR '+pct(c.n3)+' · GRR '+pct(c.g3)+'. Multiplier: '+x+'x.'},
+          '6mo': {title:'6-Month',r:c.r6,note:'Requires NRR ≥100% AND GRR 100%. Team avg: NRR '+pct(c.n6)+' · GRR '+pct(c.g6)+'. Multiplier: '+x+'x.'},
+          '13mo':{title:'13-Month',r:c.r13,note:'Requires GRR ≥90%. Team avg: NRR '+pct(c.n13)+' · GRR '+pct(c.g13)+'. Flat scale × '+x+'x.'},
+          'ob':  {title:'Onboarding',r:c.rob,note:'Standard tier (no multiplier). Team avg: '+(c.d!=null?c.d.toFixed(1)+'d':'—')+' · CSAT: '+(c.sc&&c.sc.length?(c.sc.reduce(function(a,b){return a+b;},0)/c.sc.length).toFixed(2)+'/5':'—')+'.'}
+        }[MGR_OPEN[id]];
+        if(info){drill='<div class="drill open"><div class="drill-hdr"><span class="title">'+info.title+' Commission</span><button class="drill-close" onclick="window.__mgrDrill(\''+id+'\',\''+MGR_OPEN[id]+'\')" type="button">×</button></div>'
+          +'<div class="drill-body"><div style="padding:12px 16px;background:#FAFAFE;border-radius:8px;font-size:13px">'
+          +'<div style="font-weight:700;color:'+(info.r.a>0?'#1FB876':'#5C5775')+';margin-bottom:6px">'+(info.r.a>0?$$(info.r.a)+' earned':'$0 — '+info.r.r)+'</div>'
+          +'<div style="color:#5C5775;font-size:12px;line-height:1.6">'+info.note+'</div>'
+          +'<div style="color:#8C8AA3;font-size:11px;margin-top:6px;font-style:italic">Based on team average across all 8 AMs.</div>'
+          +'</div></div></div>';}
       }
-      var drillHTML = '';
-      if(open) {
-        var rows = {
-          '3mo': ['3-Month Cohort','Team avg NRR: '+pct(c.n3)+' · GRR: '+pct(c.g3),'Requires NRR ≥100.1% and GRR 100%',c.r3],
-          '6mo': ['6-Month Cohort','Team avg NRR: '+pct(c.n6)+' · GRR: '+pct(c.g6),'Requires NRR ≥100% and GRR 100%',c.r6],
-          '13mo':['13-Month Cohort','Team avg NRR: '+pct(c.n13)+' · GRR: '+pct(c.g13),'Requires GRR ≥90%, flat scale × '+mg[1]+'x',c.r13],
-          'ob':  ['Onboarding','Team avg: '+(c.d!=null?c.d.toFixed(1)+'d':'—')+' · CSAT: '+(c.sc&&c.sc.length?(c.sc.reduce(function(a,b){return a+b;},0)/c.sc.length).toFixed(2)+'/5':'—'),'Standard tier, no multiplier',c.rob]
-        };
-        var row = rows[open];
-        if(row) {
-          drillHTML = '<div class="drill open"><div class="drill-hdr">'
-            +'<span class="title">'+row[0]+'</span>'
-            +'<button class="drill-close" onclick="mgrDrill(\''+id+'\',\''+open+'\')" type="button">×</button>'
-            +'</div><div class="drill-body">'
-            +'<div style="padding:12px 16px;background:#FAFAFE;border-radius:8px;margin-bottom:12px;font-size:13px">'
-            +'<div style="font-weight:600;margin-bottom:6px;color:'+(row[3].a>0?'#1FB876':'#5C5775')+'">'+(row[3].a>0?$$(row[3].a)+' earned':'$0 — '+row[3].r)+'</div>'
-            +'<div style="color:#5C5775;font-size:12px">'+row[1]+'</div>'
-            +'<div style="color:#8C8AA3;font-size:11px;margin-top:4px">'+row[2]+'</div>'
-            +'<div style="color:#8C8AA3;font-size:11px;margin-top:4px;font-style:italic">Based on team average across all 8 AMs, not individual accounts.</div>'
-            +'</div></div></div>';
-        }
-      }
-      return '<div class="card">'
-        +'<div class="card-hdr"><span class="name">'+mg[0]+'</span>'
-        +'<span class="score" style="background:linear-gradient(90deg,#5E3DBC,#00B6E5);color:white">'+(c.t>0?$$(c.t):'$0')+'<em>commission</em></span></div>'
-        +'<div style="padding:8px 12px 4px;font-size:11px;color:#8C8AA3;border-bottom:1px solid #E5E5EE">Based on team average NRR/GRR · '+mg[1]+'x multiplier on NRR windows · standard onboarding tier</div>'
+      return'<div class="card"><div class="card-hdr"><span class="name">'+name+'</span>'
+        +'<span class="score" style="background:linear-gradient(90deg,#5E3DBC,#00B6E5);color:white">'+(c.t>0?$$(c.t):'$0')+'<em style="color:rgba(255,255,255,.7)">comm.</em></span></div>'
+        +'<div style="padding:6px 14px;font-size:11px;color:#8C8AA3;border-bottom:1px solid #E5E5EE">Team avg NRR/GRR · '+x+'× on NRR windows · standard onboarding tier</div>'
         +'<div class="card-grid">'
-        +tile('3-Mo Commission',c.r3.a,'NRR '+pct(c.n3),'GRR '+pct(c.g3),'3mo')
-        +tile('6-Mo Commission',c.r6.a,'NRR '+pct(c.n6),'GRR '+pct(c.g6),'6mo')
-        +tile('13-Mo Commission',c.r13.a,'NRR '+pct(c.n13),'GRR '+pct(c.g13),'13mo')
-        +tile('Onboarding',c.rob.a,(c.d!=null?c.d.toFixed(1)+'d avg':'—'),(c.sc&&c.sc.length?'CSAT '+(c.sc.reduce(function(a,b){return a+b;},0)/c.sc.length).toFixed(2)+'/5':'no responses'),'ob')
-        +'</div>'+drillHTML+'</div>';
+        +tile('3-Mo',c.r3.a,c.n3,c.g3,'3mo')
+        +tile('6-Mo',c.r6.a,c.n6,c.g6,'6mo')
+        +tile('13-Mo',c.r13.a,c.n13,c.g13,'13mo')
+        +'<button class="metric'+(MGR_OPEN[id]==='ob'?' active':'')+'" onclick="window.__mgrDrill(\''+id+'\',\'ob\')" type="button">'
+        +'<div class="metric-label-row"><span class="metric-label">Onboarding</span>'
+        +'<span class="score-badge '+(c.rob.a>0?'green':'none')+'">'+(c.rob.a>0?$$(c.rob.a):'$0')+'</span></div>'
+        +'<div class="metric-row"><span class="metric-value" style="font-size:13px">'+(c.d!=null?c.d.toFixed(1)+'d':'—')+'</span>'
+        +'<span class="metric-goal">'+(c.rob.ac!=null?'CSAT '+c.rob.ac.toFixed(2)+'/5':'no responses')+'</span></div>'
+        +'<div class="metric-status-bar '+(c.rob.a>0?'green':'none')+'"></div></button>'
+        +'</div>'+drill+'</div>';
     }).join('');
-    el.innerHTML = html;
-  }
+    el.innerHTML =
+      '<h2 style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8C8AA3">Commission — '+mL(ym)+'</h2>'
+      // Team table
+      +'<div style="background:#fff;border:1px solid #E5E5EE;border-radius:12px;overflow:hidden;margin-bottom:20px">'
+      +'<div style="background:linear-gradient(135deg,#5E3DBC,#3B2480);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center">'
+      +'<div><div style="font-size:11px;opacity:.75;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Team Payout</div>'
+      +'<div style="font-size:24px;font-weight:800">'+(tot>0?$$(tot):'$0')+'</div></div>'
+      +'<div style="font-size:12px;opacity:.7">'+mL(ym)+'</div></div>'
+      +'<table style="width:100%;border-collapse:collapse"><thead><tr style="background:#FAFAFE;border-bottom:1px solid #E5E5EE">'
+      +'<th style="padding:7px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;color:#8C8AA3">Rep</th>'
+      +'<th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#8C8AA3">3-Mo</th>'
+      +'<th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#8C8AA3">6-Mo</th>'
+      +'<th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#8C8AA3">13-Mo</th>'
+      +'<th style="padding:7px 10px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#8C8AA3">Onboarding</th>'
+      +'<th style="padding:7px 12px;text-align:right;font-size:10px;font-weight:700;text-transform:uppercase;color:#8C8AA3">Total</th>'
+      +'</tr></thead><tbody>'+amRows+'</tbody></table></div>'
+      // Manager cards right below the table
+      +'<h2 style="margin:0 0 12px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8C8AA3">Manager Commission — click any tile to drill in</h2>'
+      +'<div class="cards" style="margin-bottom:8px">'+mgrCardsHTML+'</div>';}
 
-  window.mgrDrill = function(id, key) {
-    if(MGR_OPEN[id]===key) delete MGR_OPEN[id]; else MGR_OPEN[id]=key;
-    renderMgrCards(window.currentMonth||D.default_month);
-  };
+  window.__mgrDrill=function(id,key){
+    if(MGR_OPEN[id]===key)delete MGR_OPEN[id];else MGR_OPEN[id]=key;
+    renderAll_comm(window.currentMonth||D.default_month);};
 
   document.addEventListener('DOMContentLoaded',function(){
-    // Insert mgr section after the #cards div
-    var cardsDiv = document.getElementById('cards');
-    if(cardsDiv && !document.getElementById('mgr-cards-container')) {
-      var sec = document.createElement('div');
-      sec.innerHTML = '<h2 id="mgr-cards-title" style="display:none"></h2><div class="cards" id="mgr-cards-container"></div>';
-      cardsDiv.parentNode.insertBefore(sec, cardsDiv.nextSibling);
-    }
-    var orig=window.renderAll, ran=false;
+    var lbT=document.getElementById('lb-title');
+    if(lbT&&!document.getElementById('comm-panel')){
+      var d=document.createElement('div');d.id='comm-panel';
+      lbT.parentNode.insertBefore(d,lbT);}
+    var orig=window.renderAll,ran=false;
     if(!orig)return;
-    window.renderAll=function(){
-      if(ran)return; ran=true;
-      orig();
-      var ym=window.currentMonth||D.default_month;
-      var t=document.getElementById('mgr-cards-title');
-      if(t){t.style.display='block';t.textContent='Manager Commission — click any tile to drill in';}
-      renderMgrCards(ym);
-      ran=false;};
+    window.renderAll=function(){if(ran)return;ran=true;orig();renderAll_comm(window.currentMonth||D.default_month);ran=false;};
     var tabs=document.getElementById('month-tabs');
     if(tabs){tabs.addEventListener('click',function(e){var btn=e.target.closest('.month-tab');if(btn)window.currentMonth=btn.dataset.month;});}
   });
