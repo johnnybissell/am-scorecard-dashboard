@@ -557,6 +557,9 @@ if(sessionStorage.getItem('mgr_auth')==='1'){document.addEventListener('DOMConte
     var orig=window.renderAll,ran=false;
     if(!orig)return;
     window.renderAll=function(){if(ran)return;ran=true;orig();renderAll_comm(window.currentMonth||D.default_month);ran=false;};
+    // Wire up manage-exclusions button (hidden in read-only by default)
+    var mb=document.getElementById('manage-btn');
+    if(mb)mb.addEventListener('click',function(){if(typeof openManageModal==='function')openManageModal();});
     var tabs=document.getElementById('month-tabs');
     if(tabs){tabs.addEventListener('click',function(e){var btn=e.target.closest('.month-tab');if(btn)window.currentMonth=btn.dataset.month;});}
   });
