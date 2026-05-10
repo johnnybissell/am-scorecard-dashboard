@@ -194,34 +194,9 @@ td.negative { color: var(--negative); }
     </div>
   </div>
 
-  <div class="subsection-header">Including new business</div>
-
-  <div class="scorecards">
-    <div class="card scorecard">
-      <h2>This month — full net</h2>
-      <div class="value" id="scThisMonth">—</div>
-      <div class="sub" id="scThisMonthSub"></div>
-    </div>
-    <div class="card scorecard">
-      <h2>Next month projected</h2>
-      <div class="value" id="scNextMonth">—</div>
-      <div class="sub" id="scNextMonthSub"></div>
-    </div>
-    <div class="card scorecard">
-      <h2>Trailing 3-mo avg net</h2>
-      <div class="value" id="scTrailing">—</div>
-      <div class="sub">Last 3 complete months</div>
-    </div>
-    <div class="card scorecard">
-      <h2>Committed churn (next 6mo)</h2>
-      <div class="value" id="scCommitted">—</div>
-      <div class="sub" id="scCommittedSub"></div>
-    </div>
-  </div>
-
   <div class="section">
     <div class="card">
-      <h2>Top firms scheduled to churn (next 90 days)</h2>
+      <h2>Committed customer churn — next 90 days</h2>
       <div id="churnTableContainer">
         <div class="loading">Loading…</div>
       </div>
@@ -230,7 +205,10 @@ td.negative { color: var(--negative); }
 
   <div class="section">
     <div class="card">
-      <h2>Net MRR by Account Manager — last 90 days</h2>
+      <h2>Net customer movement by Account Manager — last 90 days</h2>
+      <div style="font-size:12px;color:var(--text-muted);padding:0 0 12px;">
+        Existing-customer movement only (upgrades + reactivations minus downgrades + cancellations). Excludes new business.
+      </div>
       <div class="chart-container" style="height:380px;">
         <canvas id="amChart"></canvas>
       </div>
@@ -332,22 +310,23 @@ async function loadAll() {
   document.getElementById('lastRefreshed').textContent = 'Refreshing…';
 
   try {
-    const [proj, churn, mrr] = await Promise.all([
-      fetchCsv(CSV_URLS.projections, 'Projections'),
+    // We fetch only what the CS-focused dashboard renders. Projections CSV is
+    // intentionally not loaded — it's a new-business-aware artifact and this
+    // dashboard is existing-customer movement only.
+    const [churn, mrr] = await Promise.all([
       fetchCsv(CSV_URLS.scheduledChurn, 'Scheduled Churn'),
       fetchCsv(CSV_URLS.monthlyMrrImpact, 'MonthlyMRRImpact'),
     ]);
 
     // Aggregate the raw event data into per-month, per-category buckets.
-    // This is the fundamental shape that drives the new dashboard.
     const movements = aggregateMovements(mrr);
 
     renderHero(movements);
     renderCategoryCards(movements);
     renderMovementChart(movements);
-    renderIncludingNewScorecards(proj, churn);
     renderChurnTable(churn);
     renderAmBreakdown(mrr);
+    renderDataDiagnostic(movements);
 
     const now = new Date();
     document.getElementById('lastRefreshed').textContent =
@@ -470,13 +449,32 @@ function renderHero(movements) {
   heroVal.textContent = (net >= 0 ? '+' : '') + fmtMoney(net);
   heroVal.className = 'value ' + (net > 0 ? 'positive' : net < 0 ? 'negative' : '');
 
+  // Trailing 3-month average net customer movement (last 3 complete months,
+  // excluding the partial current month). This is the apples-to-apples
+  // comparison for the hero — same metric, prior 3-month baseline.
+  const allYms = Object.keys(movements).sort();
+  const idxCurrent = allYms.indexOf(ym);
+  const trailingYms = idxCurrent > 0
+    ? allYms.slice(Math.max(0, idxCurrent - 3), idxCurrent)
+    : allYms.slice(-3);
+  let trailingSum = 0;
+  let trailingCount = 0;
+  for (const tym of trailingYms) {
+    if (movements[tym]) {
+      trailingSum += movements[tym].net;
+      trailingCount++;
+    }
+  }
+  const trailingAvg = trailingCount > 0 ? trailingSum / trailingCount : 0;
+  const trailStr = (trailingAvg >= 0 ? '+' : '') + fmtMoney(trailingAvg);
+
   const today = new Date();
   const day = today.getDate();
   const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-  const movementSub = document.getElementById('heroSub');
-  movementSub.textContent = 'Day ' + day + ' of ' + lastDay + '. ' +
-    'Upgrades + reactivations minus downgrades + cancellations from existing customers. ' +
-    'Excludes new business.';
+  document.getElementById('heroSub').innerHTML =
+    'Day ' + day + ' of ' + lastDay + '. ' +
+    'Trailing 3-month avg: <strong>' + escapeHtml(trailStr) + '/month</strong>. ' +
+    'Excludes new business — only upgrades + reactivations minus downgrades + cancellations from existing customers.';
 }
 
 // ----------------------------------------------------------------------------
@@ -570,55 +568,44 @@ function renderMovementChart(movements) {
 // Including-new-business scorecards (the old projection-driven readouts,
 // moved below the hero into their own clearly-labeled section)
 // ----------------------------------------------------------------------------
-function renderIncludingNewScorecards(projRows, churnRows) {
-  const projected = projRows.filter(r => r.Type === 'Projected');
-  const historical = projRows.filter(r => r.Type === 'Historical');
-  const current = projRows.find(r => r.Type === 'Current');
+/**
+ * Diagnostic line at the bottom of the page so an empty current month is
+ * obvious to debug — shows date range of underlying data and event counts.
+ */
+function renderDataDiagnostic(movements) {
+  const yms = Object.keys(movements).sort();
+  if (yms.length === 0) return;
+  const first = yms[0];
+  const last = yms[yms.length - 1];
+  const ymCurrent = currentYm();
+  const m = movements[ymCurrent];
+  const eventsThisMonth = m
+    ? (m.upgrades.count + m.reactivations.count + m.downgrades.count + m.cancellations.count)
+    : 0;
 
-  // This month — full net (incl. new business).
-  const tmEl = document.getElementById('scThisMonth');
-  if (current) {
-    const tmNet = parseMoney(current['Net MRR Change']);
-    tmEl.textContent = fmtMoney(tmNet);
-    tmEl.className = 'value ' + (tmNet > 0 ? 'positive' : tmNet < 0 ? 'negative' : '');
-    document.getElementById('scThisMonthSub').textContent =
-      current.Month + ' • includes NEW + FREE_TO_PAID';
+  let html = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:24px 0;">'
+    + 'Data spans ' + escapeHtml(first) + ' → ' + escapeHtml(last) + '. ';
+  if (eventsThisMonth === 0 && last !== ymCurrent) {
+    html += '<strong style="color:var(--negative);">No events tagged ' + escapeHtml(ymCurrent)
+         +  ' in the underlying CSV — the Apps Script sheet may be stale.</strong> '
+         +  'Latest data: ' + escapeHtml(last) + '. '
+         +  'Re-run <code>runDailySync</code> in Apps Script and wait ~1 min for Google\'s CSV cache to flush.';
+  } else if (eventsThisMonth === 0) {
+    html += 'Current month (' + escapeHtml(ymCurrent) + ') has zero existing-customer events so far. '
+         +  '(Renewals at the same MRR are not counted — only upgrades, downgrades, reactivations, cancellations.)';
   } else {
-    tmEl.textContent = '—';
-    document.getElementById('scThisMonthSub').textContent = 'No data this month yet';
+    html += escapeHtml(ymCurrent) + ' has ' + eventsThisMonth + ' existing-customer events so far.';
   }
+  html += '</div>';
 
-  // Next month projection.
-  const next = projected[0];
-  const nextNet = next ? parseMoney(next['Net MRR Change']) : 0;
-  const nextEl = document.getElementById('scNextMonth');
-  nextEl.textContent = fmtMoney(nextNet);
-  nextEl.className = 'value ' + (nextNet > 0 ? 'positive' : nextNet < 0 ? 'negative' : '');
-  document.getElementById('scNextMonthSub').textContent = next ? (next.Month + ' • trailing-3-mo trend') : '';
-
-  // Trailing 3-month avg net.
-  const lastHist = historical[historical.length - 1];
-  const trailing = lastHist ? parseMoney(lastHist['Trailing 3-mo Avg Net']) : 0;
-  const trEl = document.getElementById('scTrailing');
-  trEl.textContent = fmtMoney(trailing);
-  trEl.className = 'value ' + (trailing > 0 ? 'positive' : trailing < 0 ? 'negative' : '');
-
-  // Committed churn next 6 months.
-  let committed = 0;
-  for (const r of projected) committed += parseMoney(r['Scheduled Churn']);
-  const cEl = document.getElementById('scCommitted');
-  cEl.textContent = '-' + fmtMoney(Math.abs(committed));
-  cEl.className = 'value negative';
-
-  const now = new Date();
-  const cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() + 6);
-  let firmCount = 0;
-  for (const r of churnRows) {
-    const d = parseDateTime(r['Cancellation Date']);
-    if (d && d >= now && d <= cutoff) firmCount++;
+  // Append to the bottom of <main>.
+  let host = document.getElementById('dataDiagnostic');
+  if (!host) {
+    host = document.createElement('div');
+    host.id = 'dataDiagnostic';
+    document.querySelector('main').appendChild(host);
   }
-  document.getElementById('scCommittedSub').textContent =
-    firmCount + ' firm' + (firmCount === 1 ? '' : 's') + ' scheduled to cancel';
+  host.innerHTML = html;
 }
 
 function renderChurnTable(rows) {
@@ -669,10 +656,14 @@ function renderChurnTable(rows) {
 }
 
 function renderAmBreakdown(rows) {
-  // Sum Impact Numeric by Customers.Account Manager for last 90 days.
+  // Sum existing-customer movement by Customers.Account Manager for last 90 days.
+  // Excludes NEW / FREE_TO_PAID / FUTURE — AMs aren't responsible for new business.
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
   const byAm = {};
   for (const r of rows) {
+    const status = r['Impact Sub status'];
+    const cat = categoryFor(status);
+    if (!cat || cat === 'newBusiness') continue;
     const d = parseChangeDate(r['Change Date']);
     if (!d || d < cutoff) continue;
     const am = (r['Customers.Account Manager'] || '').trim() || '— Unassigned —';
