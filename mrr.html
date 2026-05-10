@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Lawmatics MRR</title>
+
+<!-- Chart.js + PapaParse from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+<style>
+:root {
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --text-muted: #6b7280;
+  --positive: #10b981;
+  --positive-soft: #d1fae5;
+  --negative: #ef4444;
+  --negative-soft: #fee2e2;
+  --primary: #1f2937;
+  --projected: #6366f1;
+  --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+header {
+  padding: 24px 32px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+}
+header h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
+header .meta { font-size: 13px; color: var(--text-muted); }
+header .meta a { color: var(--text-muted); }
+main { padding: 24px 32px; max-width: 1280px; margin: 0 auto; }
+.scorecards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+@media (max-width: 1100px) { .scorecards { grid-template-columns: repeat(2, 1fr); } }
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.card h2 { margin: 0 0 16px 0; font-size: 14px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.scorecard .label { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; }
+.scorecard .value { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; }
+.scorecard .value.positive { color: var(--positive); }
+.scorecard .value.negative { color: var(--negative); }
+.scorecard .sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+.chart-container { position: relative; height: 360px; }
+.section { margin-bottom: 24px; }
+.section .card { padding-bottom: 8px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+th { font-weight: 600; color: var(--text-muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+td.numeric, th.numeric { text-align: right; font-variant-numeric: tabular-nums; }
+td.positive { color: var(--positive); }
+td.negative { color: var(--negative); }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+.dot.positive { background: var(--positive); }
+.dot.negative { background: var(--negative); }
+.dot.projected { background: var(--projected); }
+.dot.current { background: linear-gradient(135deg, var(--positive) 50%, transparent 50%); border: 1px solid var(--positive); }
+.error { background: var(--negative-soft); color: var(--negative); padding: 12px 16px; border-radius: 8px; margin: 16px 0; font-size: 14px; }
+.loading { color: var(--text-muted); font-size: 14px; padding: 24px; text-align: center; }
+.refresh-btn { background: var(--primary); color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; }
+.refresh-btn:hover { opacity: 0.9; }
+@media (max-width: 800px) {
+  .scorecards { grid-template-columns: 1fr; }
+  main, header { padding: 16px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>Lawmatics MRR</h1>
+  <div class="meta">
+    <span id="lastRefreshed">Loading…</span>
+    &nbsp;·&nbsp;
+    <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">Refresh now</button>
+  </div>
+</header>
+
+<main>
+  <div id="errorBox"></div>
+
+  <div class="scorecards">
+    <div class="card scorecard">
+      <h2>This month so far</h2>
+      <div class="value" id="scThisMonth">—</div>
+      <div class="sub" id="scThisMonthSub"></div>
+    </div>
+    <div class="card scorecard">
+      <h2>Next month projected</h2>
+      <div class="value" id="scNextMonth">—</div>
+      <div class="sub" id="scNextMonthSub"></div>
+    </div>
+    <div class="card scorecard">
+      <h2>Trailing 3-mo avg net</h2>
+      <div class="value" id="scTrailing">—</div>
+      <div class="sub">Last 3 complete months</div>
+    </div>
+    <div class="card scorecard">
+      <h2>Committed churn (next 6mo)</h2>
+      <div class="value" id="scCommitted">—</div>
+      <div class="sub" id="scCommittedSub"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="card">
+      <h2>Net MRR — last 12 months + next 6 projected</h2>
+      <div class="chart-container">
+        <canvas id="waterfallChart"></canvas>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);padding:12px 4px 4px;">
+        <span class="dot positive"></span>Historical (positive)
+        <span class="dot negative" style="margin-left:16px;"></span>Historical (negative)
+        <span class="dot current" style="margin-left:16px;"></span>Current month (in progress)
+        <span class="dot projected" style="margin-left:16px;"></span>Projected (hashed)
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="card">
+      <h2>Top firms scheduled to churn (next 90 days)</h2>
+      <div id="churnTableContainer">
+        <div class="loading">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="card">
+      <h2>Net MRR by Account Manager — last 90 days</h2>
+      <div class="chart-container" style="height:380px;">
+        <canvas id="amChart"></canvas>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ============================================================================
+// CONFIG — set these to the published-to-web CSV URLs from your Google Sheets.
+// ============================================================================
+//
+// In each Google Sheet:  File → Share → Publish to web → choose the specific
+// tab → CSV format → publish. Copy the URL it gives you. Paste below.
+//
+// You need three published URLs, one per tab.
+//
+const CSV_URLS = {
+  monthlyMrrImpact: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=1854593398&single=true&output=csv',
+  projections:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=1080619629&single=true&output=csv',
+  scheduledChurn:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vTZpH-iI5I5GDTtVH3chEYss8cMh4y8zxXQSwsp1_Lm8nAJ8TmnZHhvnj2d_V8snUjO5Dfxde_q1Jvr/pub?gid=0&single=true&output=csv',
+};
+
+// Auto-refresh every N minutes (set to 0 to disable).
+const AUTO_REFRESH_MINUTES = 5;
+
+// ============================================================================
+// PARSING HELPERS
+// ============================================================================
+
+function parseMoney(s) {
+  if (s === null || s === undefined) return 0;
+  const str = String(s).trim();
+  if (!str) return 0;
+  // Handle "($123.45)" parens-as-negative format too.
+  const isNeg = str.startsWith('-') || (str.startsWith('(') && str.endsWith(')'));
+  const cleaned = str.replace(/[\$,\(\)\s]/g, '').replace(/^-/, '');
+  const n = parseFloat(cleaned);
+  if (isNaN(n)) return 0;
+  return isNeg ? -n : n;
+}
+
+function fmtMoney(n) {
+  const sign = n < 0 ? '-' : '';
+  return sign + '$' + Math.abs(Math.round(n)).toLocaleString();
+}
+
+function fmtMoneyShort(n) {
+  const abs = Math.abs(n);
+  const sign = n < 0 ? '-' : '';
+  if (abs >= 1000000) return sign + '$' + (abs / 1000000).toFixed(1) + 'M';
+  if (abs >= 1000) return sign + '$' + (abs / 1000).toFixed(1) + 'k';
+  return sign + '$' + Math.round(abs);
+}
+
+function parseChangeDate(s) {
+  // "Jul-24" → Date(2024, 6, 1).  Two-digit year assumed 20xx.
+  if (!s) return null;
+  const m = String(s).match(/^(\w{3})-(\d{2})$/);
+  if (!m) return null;
+  const months = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
+  const mo = months[m[1]];
+  if (mo === undefined) return null;
+  return new Date(2000 + parseInt(m[2], 10), mo, 1);
+}
+
+function parseDateTime(s) {
+  if (!s) return null;
+  // "2026-05-21 00:00:00"
+  const d = new Date(String(s).replace(' ', 'T') + 'Z');
+  return isNaN(d.getTime()) ? null : d;
+}
+
+async function fetchCsv(url, label) {
+  if (!url || url.startsWith('PASTE_')) {
+    throw new Error('CSV URL not configured for ' + label + '. Edit CSV_URLS at top of this file.');
+  }
+  const resp = await fetch(url, { cache: 'no-cache' });
+  if (!resp.ok) throw new Error(label + ' fetch failed: HTTP ' + resp.status);
+  const text = await resp.text();
+  return new Promise(function (resolve, reject) {
+    Papa.parse(text, {
+      header: true,
+      skipEmptyLines: true,
+      complete: function (res) { resolve(res.data); },
+      error: function (err) { reject(err); },
+    });
+  });
+}
+
+// ============================================================================
+// LOADERS — pull each CSV, normalize into useful shapes.
+// ============================================================================
+
+let charts = { waterfall: null, am: null };
+
+async function loadAll() {
+  showError(null);
+  document.getElementById('lastRefreshed').textContent = 'Refreshing…';
+
+  try {
+    const [proj, churn, mrr] = await Promise.all([
+      fetchCsv(CSV_URLS.projections, 'Projections'),
+      fetchCsv(CSV_URLS.scheduledChurn, 'Scheduled Churn'),
+      fetchCsv(CSV_URLS.monthlyMrrImpact, 'MonthlyMRRImpact'),
+    ]);
+
+    renderScorecards(proj, churn);
+    renderWaterfall(proj);
+    renderChurnTable(churn);
+    renderAmBreakdown(mrr);
+
+    const now = new Date();
+    document.getElementById('lastRefreshed').textContent =
+      'Last refreshed ' + now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  } catch (e) {
+    console.error(e);
+    showError(e.message || String(e));
+    document.getElementById('lastRefreshed').textContent = 'Refresh failed';
+  }
+}
+
+function showError(msg) {
+  const box = document.getElementById('errorBox');
+  if (!msg) { box.innerHTML = ''; return; }
+  box.innerHTML = '<div class="error"><strong>Couldn\'t load data:</strong> ' + escapeHtml(msg) + '</div>';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+  });
+}
+
+// ============================================================================
+// RENDERERS
+// ============================================================================
+
+function renderScorecards(projRows, churnRows) {
+  const projected = projRows.filter(r => r.Type === 'Projected');
+  const historical = projRows.filter(r => r.Type === 'Historical');
+  const current = projRows.find(r => r.Type === 'Current');
+
+  // This month so far (Current row from the Projections tab — partial month).
+  const tmEl = document.getElementById('scThisMonth');
+  if (current) {
+    const tmNet = parseMoney(current['Net MRR Change']);
+    tmEl.textContent = fmtMoney(tmNet);
+    tmEl.className = 'value ' + (tmNet > 0 ? 'positive' : tmNet < 0 ? 'negative' : '');
+    const today = new Date();
+    const dayOfMonth = today.getDate();
+    const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    document.getElementById('scThisMonthSub').textContent =
+      current.Month + ' • day ' + dayOfMonth + ' of ' + lastDay;
+  } else {
+    tmEl.textContent = '—';
+    document.getElementById('scThisMonthSub').textContent = 'No data this month yet';
+  }
+
+  // Next month = first projected row (sorted by Month asc by Apps Script).
+  const next = projected[0];
+  const nextNet = next ? parseMoney(next['Net MRR Change']) : 0;
+  const nextEl = document.getElementById('scNextMonth');
+  nextEl.textContent = fmtMoney(nextNet);
+  nextEl.className = 'value ' + (nextNet > 0 ? 'positive' : nextNet < 0 ? 'negative' : '');
+  document.getElementById('scNextMonthSub').textContent = next ? next.Month : '';
+
+  // Trailing 3-month avg net (read from last *historical* row — Current is partial).
+  const lastHist = historical[historical.length - 1];
+  const trailing = lastHist ? parseMoney(lastHist['Trailing 3-mo Avg Net']) : 0;
+  const trEl = document.getElementById('scTrailing');
+  trEl.textContent = fmtMoney(trailing);
+  trEl.className = 'value ' + (trailing > 0 ? 'positive' : trailing < 0 ? 'negative' : '');
+
+  // Committed churn next 6 months — sum of Scheduled Churn column on projected rows.
+  let committed = 0;
+  for (const r of projected) committed += parseMoney(r['Scheduled Churn']);
+  const cEl = document.getElementById('scCommitted');
+  cEl.textContent = '-' + fmtMoney(Math.abs(committed));
+  cEl.className = 'value negative';
+
+  // Count specific firms involved.
+  const now = new Date();
+  const cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() + 6);
+  let firmCount = 0;
+  for (const r of churnRows) {
+    const d = parseDateTime(r['Cancellation Date']);
+    if (d && d >= now && d <= cutoff) firmCount++;
+  }
+  document.getElementById('scCommittedSub').textContent =
+    firmCount + ' firm' + (firmCount === 1 ? '' : 's') + ' scheduled to cancel';
+}
+
+function renderWaterfall(projRows) {
+  // Show last 12 historical + the current month + all projected rows.
+  const historical = projRows.filter(r => r.Type === 'Historical');
+  const current = projRows.filter(r => r.Type === 'Current');
+  const projected = projRows.filter(r => r.Type === 'Projected');
+  const visibleHist = historical.slice(-12);
+  const all = visibleHist.concat(current).concat(projected);
+
+  const labels = all.map(r => r.Month);
+  const values = all.map(r => parseMoney(r['Net MRR Change']));
+  const types = all.map(r => r.Type);
+
+  const colors = values.map((v, i) => {
+    if (types[i] === 'Projected') return v >= 0 ? 'rgba(99,102,241,0.7)' : 'rgba(239,68,68,0.7)';
+    if (types[i] === 'Current') return v >= 0 ? 'rgba(16,185,129,0.4)' : 'rgba(239,68,68,0.4)';
+    return v >= 0 ? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)';
+  });
+  const borderColors = values.map((v, i) => {
+    if (types[i] === 'Projected') return v >= 0 ? '#6366f1' : '#ef4444';
+    return v >= 0 ? '#10b981' : '#ef4444';
+  });
+
+  if (charts.waterfall) charts.waterfall.destroy();
+  const ctx = document.getElementById('waterfallChart').getContext('2d');
+
+  // Build a striped pattern for projected bars.
+  const pattern = makeHashPattern(ctx, '#6366f1');
+
+  charts.waterfall = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Net MRR change',
+        data: values,
+        backgroundColor: colors.map((c, i) => types[i] === 'Projected' ? pattern : c),
+        borderColor: borderColors,
+        borderWidth: 1.5,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function (ctx) {
+              const t = types[ctx.dataIndex];
+              const prefix = t === 'Projected' ? 'Projected: '
+                           : t === 'Current'   ? 'This month so far: '
+                                               : 'Actual: ';
+              return prefix + fmtMoney(ctx.parsed.y);
+            },
+          },
+        },
+      },
+      scales: {
+        y: {
+          ticks: { callback: function (v) { return fmtMoneyShort(v); } },
+          grid: { color: '#f3f4f6' },
+        },
+        x: { grid: { display: false } },
+      },
+    },
+  });
+}
+
+function makeHashPattern(ctx, color) {
+  // Diagonal hash on a small offscreen canvas, returned as a CanvasPattern.
+  const c = document.createElement('canvas');
+  c.width = 8; c.height = 8;
+  const cc = c.getContext('2d');
+  cc.fillStyle = color; cc.globalAlpha = 0.25;
+  cc.fillRect(0, 0, 8, 8);
+  cc.globalAlpha = 1; cc.strokeStyle = color; cc.lineWidth = 1.5;
+  cc.beginPath(); cc.moveTo(0, 8); cc.lineTo(8, 0); cc.stroke();
+  return ctx.createPattern(c, 'repeat');
+}
+
+function renderChurnTable(rows) {
+  const now = new Date();
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 90);
+
+  const upcoming = rows
+    .map(r => {
+      const d = parseDateTime(r['Cancellation Date']);
+      return { row: r, date: d, mrr: parseMoney(r['Current MRR']) };
+    })
+    .filter(x => x.date && x.date >= now && x.date <= cutoff)
+    .sort((a, b) => a.date - b.date)
+    .slice(0, 20);
+
+  const total = upcoming.reduce((s, x) => s + x.mrr, 0);
+
+  if (upcoming.length === 0) {
+    document.getElementById('churnTableContainer').innerHTML =
+      '<p style="padding:16px;color:var(--text-muted);">No firms scheduled to cancel in the next 90 days.</p>';
+    return;
+  }
+
+  let html = '<table><thead><tr>'
+    + '<th>Cancel date</th>'
+    + '<th>Company</th>'
+    + '<th>Owner</th>'
+    + '<th>Onboarder</th>'
+    + '<th class="numeric">MRR</th>'
+    + '</tr></thead><tbody>';
+
+  for (const x of upcoming) {
+    html += '<tr>'
+      + '<td>' + escapeHtml(x.date.toISOString().slice(0, 10)) + '</td>'
+      + '<td>' + escapeHtml(x.row.Company || '') + '</td>'
+      + '<td>' + escapeHtml(x.row['Customers.Owner'] || '') + '</td>'
+      + '<td>' + escapeHtml(x.row['Customers.Onboarder'] || '') + '</td>'
+      + '<td class="numeric negative">' + fmtMoney(-x.mrr) + '</td>'
+      + '</tr>';
+  }
+  html += '<tr style="font-weight:600;background:#fafafa;">'
+    + '<td colspan="4">Total ' + upcoming.length + ' firm' + (upcoming.length === 1 ? '' : 's') + '</td>'
+    + '<td class="numeric negative">' + fmtMoney(-total) + '</td>'
+    + '</tr>';
+  html += '</tbody></table>';
+
+  document.getElementById('churnTableContainer').innerHTML = html;
+}
+
+function renderAmBreakdown(rows) {
+  // Sum Impact Numeric by Customers.Account Manager for last 90 days.
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+  const byAm = {};
+  for (const r of rows) {
+    const d = parseChangeDate(r['Change Date']);
+    if (!d || d < cutoff) continue;
+    const am = (r['Customers.Account Manager'] || '').trim() || '— Unassigned —';
+    const impact = parseMoney(r['MRR Impact']);
+    byAm[am] = (byAm[am] || 0) + impact;
+  }
+
+  const entries = Object.entries(byAm).sort((a, b) => b[1] - a[1]);
+  const labels = entries.map(e => e[0]);
+  const values = entries.map(e => e[1]);
+  const colors = values.map(v => v >= 0 ? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)');
+  const borders = values.map(v => v >= 0 ? '#10b981' : '#ef4444');
+
+  if (charts.am) charts.am.destroy();
+  const ctx = document.getElementById('amChart').getContext('2d');
+  charts.am = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Net MRR change (last 90 days)',
+        data: values,
+        backgroundColor: colors,
+        borderColor: borders,
+        borderWidth: 1.5,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => fmtMoney(c.parsed.x) } },
+      },
+      scales: {
+        x: {
+          ticks: { callback: v => fmtMoneyShort(v) },
+          grid: { color: '#f3f4f6' },
+        },
+        y: { grid: { display: false } },
+      },
+    },
+  });
+}
+
+// ============================================================================
+// BOOT
+// ============================================================================
+
+loadAll();
+if (AUTO_REFRESH_MINUTES > 0) {
+  setInterval(loadAll, AUTO_REFRESH_MINUTES * 60 * 1000);
+}
+</script>
+
+</body>
+</html>
