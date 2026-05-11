@@ -656,9 +656,11 @@ function augmentCurrentMonthWithScheduledChurn(movements, churnRows) {
     if (d < now) continue;
     if (d < monthStart || d >= monthEnd) continue;
     const mrr = parseMoney(r['Current MRR']);
-    if (!mrr) continue;
-    // Cancellations are recorded as negative dollars in movements.
-    addedDollars += -mrr;
+    // Count every scheduled non-renewing firm, even if its Current MRR is
+    // $0 (paused/zeroed before the scheduled cancel date). The firm count
+    // matters more than the dollar impact for these — Chargebee's
+    // UpcomingChurn report counts them, so we count them.
+    addedDollars += -mrr;  // -0 = 0 for $0 firms, no effect
     addedCount += 1;
   }
   if (addedCount === 0) return;
@@ -717,7 +719,8 @@ function appendScheduledChurnAsDrillRows(rows, churnRows) {
     const d = parseDateTime(r['Cancellation Date']);
     if (!d || d < now) continue;
     const mrr = parseMoney(r['Current MRR']);
-    if (!mrr) continue;
+    // Include even $0 MRR scheduled cancellations — they still count as a
+    // firm leaving.
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const changeDate = months[d.getMonth()] + '-' + String(d.getFullYear()).slice(2);
     rows.push({
