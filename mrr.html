@@ -130,6 +130,104 @@ td.negative { color: var(--negative); }
   .hero { padding: 20px; }
   .hero .value { font-size: 40px; }
 }
+
+/* Drill-down modal — opens when user clicks a category card, leaderboard
+   row, or chart bar to inspect the underlying firms. */
+.drill-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 9999;
+  padding: 40px 20px 20px;
+  overflow-y: auto;
+}
+.drill-overlay.open { display: flex; }
+.drill-panel {
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+  width: 100%;
+  max-width: 1080px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 80px);
+}
+.drill-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-shrink: 0;
+}
+.drill-header h3 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.drill-header .sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+.drill-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+.drill-close:hover { background: var(--bg); color: var(--text); }
+.drill-body {
+  overflow-y: auto;
+  padding: 0;
+}
+.drill-body table { width: 100%; }
+.drill-body th {
+  position: sticky;
+  top: 0;
+  background: var(--card);
+  z-index: 1;
+  cursor: pointer;
+  user-select: none;
+}
+.drill-body th:hover { background: #f9fafb; }
+.drill-body th .sort-ind { color: var(--text-muted); margin-left: 4px; font-size: 10px; }
+.drill-body tr:hover td { background: #fafafa; }
+.drill-empty { padding: 48px 24px; text-align: center; color: var(--text-muted); }
+.drill-footer {
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.drill-footer strong { color: var(--text); }
+.drill-source-badge {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: 6px;
+}
+/* Tiny visual cue that an element is drillable */
+.clickable {
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.clickable:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+.clickable:active { transform: translateY(0); }
+.clickable-row { cursor: pointer; }
+.clickable-row:hover td { background: #fafafa; }
 </style>
 </head>
 
@@ -157,26 +255,29 @@ td.negative { color: var(--negative); }
   </div>
 
   <div class="categories">
-    <div class="category-card">
+    <div class="category-card clickable" onclick="drillCategory('upgrades', currentYm())">
       <div class="cat-label">Upgrades</div>
       <div class="cat-value positive" id="catUpgrades">—</div>
       <div class="cat-count" id="catUpgradesCount"></div>
     </div>
-    <div class="category-card">
+    <div class="category-card clickable" onclick="drillCategory('reactivations', currentYm())">
       <div class="cat-label">Reactivations</div>
       <div class="cat-value positive" id="catReactivations">—</div>
       <div class="cat-count" id="catReactivationsCount"></div>
     </div>
-    <div class="category-card">
+    <div class="category-card clickable" onclick="drillCategory('downgrades', currentYm())">
       <div class="cat-label">Downgrades</div>
       <div class="cat-value negative" id="catDowngrades">—</div>
       <div class="cat-count" id="catDowngradesCount"></div>
     </div>
-    <div class="category-card">
+    <div class="category-card clickable" onclick="drillCategory('cancellations', currentYm())">
       <div class="cat-label">Cancellations</div>
       <div class="cat-value negative" id="catCancellations">—</div>
       <div class="cat-count" id="catCancellationsCount"></div>
     </div>
+  </div>
+  <div style="font-size:11px;color:var(--text-muted);margin:-12px 0 24px 4px;">
+    Click any card, leaderboard row, or chart bar to drill into the underlying firms.
   </div>
 
   <div class="section">
@@ -212,6 +313,23 @@ td.negative { color: var(--negative); }
       <div id="churnTableContainer">
         <div class="loading">Loading…</div>
       </div>
+    </div>
+  </div>
+
+  <!-- Drill-down modal. Hidden by default; openDrill() shows it. -->
+  <div class="drill-overlay" id="drillOverlay" onclick="if(event.target===this) closeDrill()">
+    <div class="drill-panel">
+      <div class="drill-header">
+        <div>
+          <h3 id="drillTitle">—</h3>
+          <div class="sub" id="drillSub"></div>
+        </div>
+        <button class="drill-close" onclick="closeDrill()" aria-label="Close">×</button>
+      </div>
+      <div class="drill-body" id="drillBody">
+        <div class="drill-empty">Loading…</div>
+      </div>
+      <div class="drill-footer" id="drillFooter"></div>
     </div>
   </div>
 
@@ -341,6 +459,13 @@ async function fetchCsv(url, label) {
 
 let charts = { movement: null, am: null };
 
+// Drill-down dataset — kept around so click handlers can filter without
+// re-fetching. Each row is tagged with its source feed so the modal can
+// show whether a row came from the live tab or the historical backfill.
+let drillRows = [];
+// Drill-down sort state — persisted across reopens so the user's preference sticks.
+let drillSort = { col: 'date', dir: 'desc' };
+
 async function loadAll() {
   showError(null);
   document.getElementById('lastRefreshed').textContent = 'Refreshing…';
@@ -393,6 +518,26 @@ async function loadAll() {
     // forward-looking by intent: we want the full picture of what's leaving
     // this month, including what's still scheduled.
     augmentCurrentMonthWithScheduledChurn(movements, churn);
+
+    // Build the merged row-level dataset used by drill-down click handlers.
+    // We tag each row with its source so the modal can label it (live vs
+    // historical), and we apply the same "live wins per month" rule so the
+    // drill numbers reconcile with the aggregated cards/charts.
+    drillRows = [];
+    for (const r of mrr) {
+      drillRows.push(Object.assign({}, r, { _source: 'live' }));
+    }
+    for (const r of historical) {
+      const d = parseChangeDate(r['Change Date']);
+      if (!d) continue;
+      const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      if (!earliestLiveYm || ym < earliestLiveYm) {
+        drillRows.push(Object.assign({}, r, { _source: 'historical' }));
+      }
+    }
+    // Augment with scheduled-but-not-yet-cancelled rows so the Cancellations
+    // drill matches the augmented card total.
+    appendScheduledChurnAsDrillRows(drillRows, churn);
 
     renderHero(movements);
     renderCategoryCards(movements);
@@ -556,6 +701,235 @@ function escapeHtml(s) {
 }
 
 // ============================================================================
+// DRILL-DOWN — modal showing the firms behind any aggregate number.
+// ============================================================================
+
+/**
+ * Synthesize drill-down rows from the Scheduled Churn feed so the
+ * Cancellations card's drill matches the augmented total. We mirror the
+ * MonthlyMRRImpact schema so the renderer doesn't have to special-case
+ * scheduled rows.
+ */
+function appendScheduledChurnAsDrillRows(rows, churnRows) {
+  if (!Array.isArray(churnRows)) return;
+  const now = new Date();
+  for (const r of churnRows) {
+    const d = parseDateTime(r['Cancellation Date']);
+    if (!d || d < now) continue;
+    const mrr = parseMoney(r['Current MRR']);
+    if (!mrr) continue;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const changeDate = months[d.getMonth()] + '-' + String(d.getFullYear()).slice(2);
+    rows.push({
+      'MRR Impact':                '-$' + Math.abs(mrr).toFixed(2),
+      'Impact Sub status':         'CANCEL_FROM_PAID',
+      'Change Date':               changeDate,
+      'Company':                   r['Company'] || '',
+      'Customers.Owner':           r['Customers.Owner'] || '',
+      'Customers.Onboarder':       r['Customers.Onboarder'] || '',
+      'Customers.Account Manager': r['Customers.Account Manager'] || '',
+      'Cancellation Date':         r['Cancellation Date'] || '',
+      'Subscription Status':       'NON_RENEWING',
+      'Cancel Reason':             r['Cancel Reason'] || '',
+      '_source':                   'scheduled',
+    });
+  }
+}
+
+/** Click handler — category card click. */
+function drillCategory(category, ym) {
+  const labels = {
+    upgrades:      { title: 'Upgrades',      sub: 'Firms that increased MRR' },
+    reactivations: { title: 'Reactivations', sub: 'Firms that came back from pause or cancellation' },
+    downgrades:    { title: 'Downgrades',    sub: 'Firms that decreased MRR' },
+    cancellations: { title: 'Cancellations', sub: 'Firms that cancelled or are scheduled to non-renew' },
+  };
+  const info = labels[category] || { title: category, sub: '' };
+  const filtered = drillRows.filter(function (r) {
+    const cat = categoryFor(r['Impact Sub status']);
+    if (cat !== category) return false;
+    const d = parseChangeDate(r['Change Date']);
+    if (!d) return false;
+    const rowYm = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    return rowYm === ym;
+  });
+  openDrill(info.title + ' — ' + monthLabel(ym), info.sub, filtered);
+}
+
+/** Click handler — leaderboard row (current month, specific AM). */
+function drillAm(amName, ym) {
+  const filtered = drillRows.filter(function (r) {
+    const cat = categoryFor(r['Impact Sub status']);
+    if (!cat || cat === 'newBusiness') return false;
+    const d = parseChangeDate(r['Change Date']);
+    if (!d) return false;
+    const rowYm = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    if (rowYm !== ym) return false;
+    const am = (r['Customers.Account Manager'] || '').trim() || '— Unassigned —';
+    return am === amName;
+  });
+  openDrill(amName + ' — ' + monthLabel(ym),
+            'All existing-customer movement attributed to this AM this month',
+            filtered);
+}
+
+/** Click handler — bar in the 13-month movement chart. */
+function drillMonth(ym) {
+  const filtered = drillRows.filter(function (r) {
+    const cat = categoryFor(r['Impact Sub status']);
+    if (!cat || cat === 'newBusiness') return false;
+    const d = parseChangeDate(r['Change Date']);
+    if (!d) return false;
+    const rowYm = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    return rowYm === ym;
+  });
+  openDrill(monthLabel(ym),
+            'All existing-customer movement this month (upgrades, reactivations, downgrades, cancellations)',
+            filtered);
+}
+
+/** Click handler — bar in the AM 90-day chart. */
+function drillAm90(amName) {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+  const filtered = drillRows.filter(function (r) {
+    const cat = categoryFor(r['Impact Sub status']);
+    if (!cat || cat === 'newBusiness') return false;
+    const d = parseChangeDate(r['Change Date']);
+    if (!d || d < cutoff) return false;
+    const am = (r['Customers.Account Manager'] || '').trim() || '— Unassigned —';
+    return am === amName;
+  });
+  openDrill(amName + ' — last 90 days',
+            'All existing-customer movement attributed to this AM in the past 90 days',
+            filtered);
+}
+
+function openDrill(title, sub, rows) {
+  document.getElementById('drillTitle').textContent = title;
+  document.getElementById('drillSub').textContent = sub || '';
+  renderDrillTable(rows);
+  document.getElementById('drillOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrill() {
+  document.getElementById('drillOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Esc to close.
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') closeDrill();
+});
+
+/** Render the table inside the modal. Sortable by column header. */
+function renderDrillTable(rows) {
+  // Cache the row set for re-sorting (when the user clicks a column header,
+  // we re-invoke this with the same rows, just sorted differently).
+  window.__drillRowsCache = rows;
+  const body = document.getElementById('drillBody');
+  const footer = document.getElementById('drillFooter');
+
+  if (rows.length === 0) {
+    body.innerHTML = '<div class="drill-empty">No firms match this slice.</div>';
+    footer.textContent = '';
+    return;
+  }
+
+  // Normalize each row to a flat shape the table understands.
+  const items = rows.map(function (r) {
+    return {
+      company: r['Company'] || '(no company)',
+      status:  r['Impact Sub status'] || '',
+      am:      (r['Customers.Account Manager'] || '').trim() || '—',
+      owner:   (r['Customers.Owner'] || '').trim() || '—',
+      onboarder: (r['Customers.Onboarder'] || '').trim() || '—',
+      date:    parseChangeDate(r['Change Date']),
+      dateStr: r['Change Date'] || '',
+      cancelDateStr: r['Cancellation Date'] || '',
+      mrr:     parseMoney(r['MRR Impact']),
+      source:  r._source || 'live',
+    };
+  });
+
+  // Apply current sort.
+  sortDrillItems(items, drillSort.col, drillSort.dir);
+
+  const totalMrr = items.reduce(function (s, i) { return s + i.mrr; }, 0);
+  const totalCount = items.length;
+
+  function arrow(col) {
+    if (drillSort.col !== col) return '<span class="sort-ind">▾</span>';
+    return '<span class="sort-ind">' + (drillSort.dir === 'asc' ? '↑' : '↓') + '</span>';
+  }
+
+  let html = '<table><thead><tr>'
+    + '<th onclick="changeDrillSort(\'company\')">Company' + arrow('company') + '</th>'
+    + '<th onclick="changeDrillSort(\'status\')">Status' + arrow('status') + '</th>'
+    + '<th onclick="changeDrillSort(\'am\')">Account Manager' + arrow('am') + '</th>'
+    + '<th onclick="changeDrillSort(\'date\')">Change date' + arrow('date') + '</th>'
+    + '<th class="numeric" onclick="changeDrillSort(\'mrr\')">MRR Impact' + arrow('mrr') + '</th>'
+    + '</tr></thead><tbody>';
+
+  for (const it of items) {
+    const cls = it.mrr > 0 ? 'positive' : it.mrr < 0 ? 'negative' : '';
+    const sourceBadge = it.source !== 'live'
+      ? '<span class="drill-source-badge">' + escapeHtml(it.source) + '</span>'
+      : '';
+    html += '<tr>'
+      + '<td><strong>' + escapeHtml(it.company) + '</strong>' + sourceBadge + '</td>'
+      + '<td><span style="font-family:ui-monospace,SFMono-Regular,monospace;font-size:12px;color:var(--text-muted);">'
+        + escapeHtml(it.status) + '</span></td>'
+      + '<td>' + escapeHtml(it.am) + '</td>'
+      + '<td>' + escapeHtml(it.dateStr) + (it.source === 'scheduled' && it.cancelDateStr ?
+          ' <span style="color:var(--text-muted);font-size:11px;">(' + escapeHtml(it.cancelDateStr.slice(0,10)) + ')</span>' : '') + '</td>'
+      + '<td class="numeric ' + cls + '">' + (it.mrr >= 0 ? '+' : '') + fmtMoney(it.mrr) + '</td>'
+      + '</tr>';
+  }
+  html += '</tbody></table>';
+  body.innerHTML = html;
+
+  const totalCls = totalMrr > 0 ? 'positive' : totalMrr < 0 ? 'negative' : '';
+  footer.innerHTML = '<span><strong>' + totalCount + '</strong> '
+    + (totalCount === 1 ? 'firm' : 'firms') + '</span>'
+    + '<span>Total: <strong class="' + totalCls + '">'
+    + (totalMrr >= 0 ? '+' : '') + fmtMoney(totalMrr) + '</strong></span>';
+}
+
+function sortDrillItems(items, col, dir) {
+  const mult = dir === 'asc' ? 1 : -1;
+  items.sort(function (a, b) {
+    let av = a[col], bv = b[col];
+    if (col === 'date') {
+      av = av ? av.getTime() : 0;
+      bv = bv ? bv.getTime() : 0;
+    } else if (typeof av === 'string') {
+      av = av.toLowerCase(); bv = (bv || '').toLowerCase();
+    }
+    if (av < bv) return -1 * mult;
+    if (av > bv) return  1 * mult;
+    return 0;
+  });
+}
+
+function changeDrillSort(col) {
+  if (drillSort.col === col) {
+    drillSort.dir = drillSort.dir === 'asc' ? 'desc' : 'asc';
+  } else {
+    drillSort.col = col;
+    // Sensible defaults — money/date descending, strings ascending.
+    drillSort.dir = (col === 'mrr' || col === 'date') ? 'desc' : 'asc';
+  }
+  // Re-render with the same row set (re-read from current modal contents).
+  // Simpler: just call openDrill again with the cached title — but we don't
+  // have the row set here. Use the existing tbody rows to re-read sort state
+  // and trigger a render via the last cached drillRows + filter? Cleanest is
+  // to remember the last filter — store it on the body element.
+  const cached = window.__drillRowsCache;
+  if (cached) renderDrillTable(cached);
+}
+
+// ============================================================================
 // RENDERERS
 // ============================================================================
 
@@ -668,6 +1042,17 @@ function renderMovementChart(movements) {
     },
     options: {
       maintainAspectRatio: false,
+      onClick: function (evt, items) {
+        // Click on any segment of a stacked bar drills into that month.
+        if (items.length === 0) return;
+        const idx = items[0].index;
+        if (idx == null || idx < 0 || idx >= ymsToShow.length) return;
+        drillMonth(ymsToShow[idx]);
+      },
+      onHover: function (evt, items) {
+        // Show pointer cursor when hovering over bars.
+        evt.native.target.style.cursor = items.length ? 'pointer' : 'default';
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -677,7 +1062,7 @@ function renderMovementChart(movements) {
             footer: function (items) {
               if (items.length === 0) return '';
               const total = items.reduce((s, it) => s + (it.parsed.y || 0), 0);
-              return 'Net: ' + (total >= 0 ? '+' : '') + fmtMoney(total);
+              return 'Net: ' + (total >= 0 ? '+' : '') + fmtMoney(total) + '  — click to drill';
             },
           },
         },
@@ -856,9 +1241,11 @@ function renderAmLeaderboard(rows) {
         + ' <span style="color:var(--text-muted);font-size:11px;">(' + c.count + ')</span>'
         + '</td>';
     }
-    html += '<tr>'
+    const escapedName = escapeHtml(name);
+    const safeName = name.replace(/'/g, "\\'");
+    html += '<tr class="clickable-row" onclick="drillAm(\'' + safeName + '\', \'' + ym + '\')">'
       + '<td style="font-weight:600;color:var(--text-muted);">' + medal + '</td>'
-      + '<td style="font-weight:500;">' + escapeHtml(name) + '</td>'
+      + '<td style="font-weight:500;">' + escapedName + '</td>'
       + '<td class="numeric ' + netCls + '" style="font-weight:600;">'
         + (v.net >= 0 ? '+' : '') + fmtMoney(v.net) + '</td>'
       + cell('pos', v.upgrades)
@@ -943,9 +1330,23 @@ function renderAmBreakdown(rows) {
     options: {
       indexAxis: 'y',
       maintainAspectRatio: false,
+      onClick: function (evt, items) {
+        if (items.length === 0) return;
+        const idx = items[0].index;
+        if (idx == null || idx < 0 || idx >= labels.length) return;
+        drillAm90(labels[idx]);
+      },
+      onHover: function (evt, items) {
+        evt.native.target.style.cursor = items.length ? 'pointer' : 'default';
+      },
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: c => fmtMoney(c.parsed.x) } },
+        tooltip: {
+          callbacks: {
+            label: c => fmtMoney(c.parsed.x),
+            footer: () => 'Click to drill into this AM',
+          },
+        },
       },
       scales: {
         x: {
