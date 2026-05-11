@@ -230,6 +230,9 @@ const CSV_URLS = {
   monthlyMrrImpact: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=1854593398&single=true&output=csv',
   projections:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=1080619629&single=true&output=csv',
   scheduledChurn:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vTZpH-iI5I5GDTtVH3chEYss8cMh4y8zxXQSwsp1_Lm8nAJ8TmnZHhvnj2d_V8snUjO5Dfxde_q1Jvr/pub?gid=0&single=true&output=csv',
+  // Historical backfill from Chargebee RevenueStory — one-time export covering
+  // months older than Chargebee's 90-day API window. Set to '' to disable.
+  historical:       'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=306369859&single=true&output=csv',
 };
 
 // Auto-refresh every N minutes (set to 0 to disable).
@@ -265,14 +268,24 @@ function fmtMoneyShort(n) {
 }
 
 function parseChangeDate(s) {
-  // "Jul-24" → Date(2024, 6, 1).  Two-digit year assumed 20xx.
+  // Handles two formats:
+  //   "Jul-24"   — written by the Apps Script (live MonthlyMRRImpact tab)
+  //   "Jul 2024" — written by Chargebee RevenueStory exports (Historical tab)
   if (!s) return null;
-  const m = String(s).match(/^(\w{3})-(\d{2})$/);
-  if (!m) return null;
   const months = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
-  const mo = months[m[1]];
-  if (mo === undefined) return null;
-  return new Date(2000 + parseInt(m[2], 10), mo, 1);
+  const str = String(s).trim();
+  let mo, year;
+
+  let m = str.match(/^(\w{3})-(\d{2})$/);                // "Jul-24"
+  if (m) { mo = months[m[1]]; year = 2000 + parseInt(m[2], 10); }
+
+  if (mo === undefined) {
+    m = str.match(/^(\w{3})\s+(\d{4})$/);                // "Jul 2024"
+    if (m) { mo = months[m[1]]; year = parseInt(m[2], 10); }
+  }
+
+  if (mo === undefined || isNaN(year)) return null;
+  return new Date(year, mo, 1);
 }
 
 function parseDateTime(s) {
@@ -286,7 +299,11 @@ async function fetchCsv(url, label) {
   if (!url || url.startsWith('PASTE_')) {
     throw new Error('CSV URL not configured for ' + label + '. Edit CSV_URLS at top of this file.');
   }
-  const resp = await fetch(url, { cache: 'no-cache' });
+  // Append a unique query param to bypass Google's edge-side CSV cache. Without
+  // this, Sheets' published-to-web CSV can serve a stale snapshot for up to
+  // ~5 minutes after the underlying sheet is updated.
+  const cacheBuster = (url.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
+  const resp = await fetch(url + cacheBuster, { cache: 'no-store' });
   if (!resp.ok) throw new Error(label + ' fetch failed: HTTP ' + resp.status);
   const text = await resp.text();
   return new Promise(function (resolve, reject) {
@@ -313,13 +330,28 @@ async function loadAll() {
     // We fetch only what the CS-focused dashboard renders. Projections CSV is
     // intentionally not loaded — it's a new-business-aware artifact and this
     // dashboard is existing-customer movement only.
-    const [churn, mrr] = await Promise.all([
+    //
+    // Historical CSV is optional. If configured, it's used to fill months
+    // older than Chargebee's 90-day API window (which is what feeds
+    // MonthlyMRRImpact). Live data wins for any month that exists in both.
+    const fetches = [
       fetchCsv(CSV_URLS.scheduledChurn, 'Scheduled Churn'),
       fetchCsv(CSV_URLS.monthlyMrrImpact, 'MonthlyMRRImpact'),
-    ]);
+    ];
+    if (CSV_URLS.historical) {
+      fetches.push(fetchCsv(CSV_URLS.historical, 'Historical'));
+    }
+    const results = await Promise.all(fetches);
+    const churn = results[0];
+    const mrr = results[1];
+    const historical = results[2] || [];
 
-    // Aggregate the raw event data into per-month, per-category buckets.
-    const movements = aggregateMovements(mrr);
+    // Aggregate each source separately, then merge — live wins per month.
+    const movementsLive = aggregateMovements(mrr);
+    const movementsHistorical = aggregateMovements(historical);
+    const movements = {};
+    for (const ym in movementsHistorical) movements[ym] = movementsHistorical[ym];
+    for (const ym in movementsLive)       movements[ym] = movementsLive[ym]; // overwrites historical
 
     renderHero(movements);
     renderCategoryCards(movements);
