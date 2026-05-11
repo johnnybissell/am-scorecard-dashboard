@@ -181,6 +181,18 @@ td.negative { color: var(--negative); }
 
   <div class="section">
     <div class="card">
+      <h2 id="leaderboardTitle">Account Manager leaderboard — this month</h2>
+      <div style="font-size:12px;color:var(--text-muted);padding:0 0 8px;">
+        Net existing-customer movement for the current month. Upgrades + reactivations minus downgrades + cancellations. Excludes new business.
+      </div>
+      <div id="leaderboardContainer">
+        <div class="loading">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="card">
       <h2>Net customer movement by month — last 12 months</h2>
       <div class="chart-container">
         <canvas id="movementChart"></canvas>
@@ -297,21 +309,28 @@ function parseDateTime(s) {
 
 async function fetchCsv(url, label) {
   if (!url || url.startsWith('PASTE_')) {
-    throw new Error('CSV URL not configured for ' + label + '. Edit CSV_URLS at top of this file.');
+    throw new Error('[' + label + '] CSV URL not configured. Edit CSV_URLS at top of this file.');
   }
   // Append a unique query param to bypass Google's edge-side CSV cache. Without
   // this, Sheets' published-to-web CSV can serve a stale snapshot for up to
   // ~5 minutes after the underlying sheet is updated.
   const cacheBuster = (url.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
-  const resp = await fetch(url + cacheBuster, { cache: 'no-store' });
-  if (!resp.ok) throw new Error(label + ' fetch failed: HTTP ' + resp.status);
+  let resp;
+  try {
+    resp = await fetch(url + cacheBuster, { cache: 'no-store' });
+  } catch (e) {
+    // Network-level error (CORS, DNS, offline, sheet stopped publishing, etc.)
+    // Surface the label so we know which feed went wrong.
+    throw new Error('[' + label + '] network error: ' + (e && e.message ? e.message : String(e)));
+  }
+  if (!resp.ok) throw new Error('[' + label + '] HTTP ' + resp.status);
   const text = await resp.text();
   return new Promise(function (resolve, reject) {
     Papa.parse(text, {
       header: true,
       skipEmptyLines: true,
       complete: function (res) { resolve(res.data); },
-      error: function (err) { reject(err); },
+      error: function (err) { reject(new Error('[' + label + '] parse error: ' + (err && err.message ? err.message : String(err)))); },
     });
   });
 }
@@ -346,15 +365,38 @@ async function loadAll() {
     const mrr = results[1];
     const historical = results[2] || [];
 
-    // Aggregate each source separately, then merge — live wins per month.
+    // Aggregate each source separately, then merge.
+    //
+    // Historical is used ONLY to backfill months strictly older than the
+    // oldest month present in the live tab. This prevents double-counting
+    // when the historical export overlaps with months Chargebee's 90-day
+    // API window also covers (e.g. May 2026 showing in both feeds).
     const movementsLive = aggregateMovements(mrr);
     const movementsHistorical = aggregateMovements(historical);
+    const liveYms = Object.keys(movementsLive).sort();
+    const earliestLiveYm = liveYms[0] || null;
+
     const movements = {};
-    for (const ym in movementsHistorical) movements[ym] = movementsHistorical[ym];
-    for (const ym in movementsLive)       movements[ym] = movementsLive[ym]; // overwrites historical
+    for (const ym in movementsHistorical) {
+      if (!earliestLiveYm || ym < earliestLiveYm) {
+        movements[ym] = movementsHistorical[ym];
+      }
+    }
+    for (const ym in movementsLive) {
+      movements[ym] = movementsLive[ym];
+    }
+
+    // Fold scheduled non-renewing cancellations into the current-month
+    // cancellations bucket. These are firms that have a future cancel date
+    // but haven't actually fired yet — the live MonthlyMRRImpact won't show
+    // them as CANCEL_FROM_* until the date hits. The Cancellations card is
+    // forward-looking by intent: we want the full picture of what's leaving
+    // this month, including what's still scheduled.
+    augmentCurrentMonthWithScheduledChurn(movements, churn);
 
     renderHero(movements);
     renderCategoryCards(movements);
+    renderAmLeaderboard(mrr);
     renderMovementChart(movements);
     renderChurnTable(churn);
     renderAmBreakdown(mrr);
@@ -438,6 +480,62 @@ function aggregateMovements(mrrRows) {
 function currentYm() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+/**
+ * Fold scheduled non-renewing cancellations dated in the current month into
+ * movements[currentYm].cancellations. These are firms whose subscription is
+ * set to cancel on a future date inside this month — they haven't fired yet,
+ * so the live MonthlyMRRImpact won't show them as CANCEL_FROM_* until the
+ * date hits.
+ *
+ * To avoid double-counting with cancellations that already fired earlier in
+ * the month (those already appear in MonthlyMRRImpact as CANCEL_FROM_*), we
+ * only fold in scheduled rows where the Cancellation Date is in the future
+ * (strictly later than "now").
+ */
+function augmentCurrentMonthWithScheduledChurn(movements, churnRows) {
+  if (!Array.isArray(churnRows) || churnRows.length === 0) return;
+  const ym = currentYm();
+  const now = new Date();
+  const [yr, mo] = ym.split('-').map(Number);
+  const monthStart = new Date(yr, mo - 1, 1);
+  const monthEnd   = new Date(yr, mo, 1);
+
+  let addedDollars = 0;
+  let addedCount = 0;
+  for (const r of churnRows) {
+    const d = parseDateTime(r['Cancellation Date']);
+    if (!d) continue;
+    // Only future-dated cancellations inside the current month.
+    if (d < now) continue;
+    if (d < monthStart || d >= monthEnd) continue;
+    const mrr = parseMoney(r['Current MRR']);
+    if (!mrr) continue;
+    // Cancellations are recorded as negative dollars in movements.
+    addedDollars += -mrr;
+    addedCount += 1;
+  }
+  if (addedCount === 0) return;
+
+  if (!movements[ym]) {
+    movements[ym] = {
+      ym: ym,
+      upgrades:      { dollars: 0, count: 0 },
+      reactivations: { dollars: 0, count: 0 },
+      downgrades:    { dollars: 0, count: 0 },
+      cancellations: { dollars: 0, count: 0 },
+      newBusiness:   { dollars: 0, count: 0 },
+      net: 0,
+      totalNet: 0,
+    };
+  }
+  movements[ym].cancellations.dollars += addedDollars;
+  movements[ym].cancellations.count   += addedCount;
+  // Re-derive net so the hero/chart pick up the augmented total.
+  const m = movements[ym];
+  m.net = m.upgrades.dollars + m.reactivations.dollars + m.downgrades.dollars + m.cancellations.dollars;
+  m.totalNet = m.net + m.newBusiness.dollars;
 }
 
 function monthLabel(ym) {
@@ -685,6 +783,125 @@ function renderChurnTable(rows) {
   html += '</tbody></table>';
 
   document.getElementById('churnTableContainer').innerHTML = html;
+}
+
+// ----------------------------------------------------------------------------
+// Account Manager leaderboard — current month, ranked by net customer movement.
+// ----------------------------------------------------------------------------
+//
+// Aggregates rows whose Change Date falls in the current month by
+// Customers.Account Manager, summing across the four CS categories. Excludes
+// new business (NEW / FREE_TO_PAID / FUTURE). Output is a ranked table with
+// rank, AM name, net dollars, and a per-category breakdown.
+function renderAmLeaderboard(rows) {
+  const ym = currentYm();
+  const [yr, mo] = ym.split('-').map(Number);
+  const monthStart = new Date(yr, mo - 1, 1);
+  const monthEnd   = new Date(yr, mo, 1);
+
+  const byAm = {};
+  for (const r of rows) {
+    const status = r['Impact Sub status'];
+    const cat = categoryFor(status);
+    if (!cat || cat === 'newBusiness') continue;
+    const d = parseChangeDate(r['Change Date']);
+    if (!d || d < monthStart || d >= monthEnd) continue;
+    const am = (r['Customers.Account Manager'] || '').trim() || '— Unassigned —';
+    const impact = parseMoney(r['MRR Impact']);
+    if (!byAm[am]) {
+      byAm[am] = {
+        net: 0,
+        upgrades:      { dollars: 0, count: 0 },
+        reactivations: { dollars: 0, count: 0 },
+        downgrades:    { dollars: 0, count: 0 },
+        cancellations: { dollars: 0, count: 0 },
+      };
+    }
+    byAm[am][cat].dollars += impact;
+    byAm[am][cat].count += 1;
+    byAm[am].net += impact;
+  }
+
+  const entries = Object.entries(byAm).sort((a, b) => b[1].net - a[1].net);
+  const host = document.getElementById('leaderboardContainer');
+  document.getElementById('leaderboardTitle').textContent =
+    'Account Manager leaderboard — ' + monthLabel(ym);
+
+  if (entries.length === 0) {
+    host.innerHTML = '<p style="padding:16px;color:var(--text-muted);">No existing-customer movement yet this month.</p>';
+    return;
+  }
+
+  let html = '<table><thead><tr>'
+    + '<th style="width:48px;">Rank</th>'
+    + '<th>Account Manager</th>'
+    + '<th class="numeric">Net MRR</th>'
+    + '<th class="numeric" style="color:var(--positive);">Upgrades</th>'
+    + '<th class="numeric" style="color:var(--positive);">Reactivations</th>'
+    + '<th class="numeric" style="color:var(--negative);">Downgrades</th>'
+    + '<th class="numeric" style="color:var(--negative);">Cancellations</th>'
+    + '</tr></thead><tbody>';
+
+  entries.forEach(function (e, i) {
+    const name = e[0];
+    const v = e[1];
+    const rank = i + 1;
+    const netCls = v.net > 0 ? 'positive' : v.net < 0 ? 'negative' : '';
+    const medal = rank === 1 ? '1' : rank === 2 ? '2' : rank === 3 ? '3' : String(rank);
+    function cell(side, c) {
+      if (c.count === 0) return '<td class="numeric" style="color:var(--text-muted);">—</td>';
+      const cls = side === 'pos' ? 'positive' : 'negative';
+      return '<td class="numeric ' + cls + '">'
+        + (c.dollars >= 0 ? '+' : '') + fmtMoney(c.dollars)
+        + ' <span style="color:var(--text-muted);font-size:11px;">(' + c.count + ')</span>'
+        + '</td>';
+    }
+    html += '<tr>'
+      + '<td style="font-weight:600;color:var(--text-muted);">' + medal + '</td>'
+      + '<td style="font-weight:500;">' + escapeHtml(name) + '</td>'
+      + '<td class="numeric ' + netCls + '" style="font-weight:600;">'
+        + (v.net >= 0 ? '+' : '') + fmtMoney(v.net) + '</td>'
+      + cell('pos', v.upgrades)
+      + cell('pos', v.reactivations)
+      + cell('neg', v.downgrades)
+      + cell('neg', v.cancellations)
+      + '</tr>';
+  });
+
+  // Total row
+  const totals = entries.reduce(function (acc, e) {
+    acc.net += e[1].net;
+    acc.up.dollars += e[1].upgrades.dollars;       acc.up.count += e[1].upgrades.count;
+    acc.re.dollars += e[1].reactivations.dollars;  acc.re.count += e[1].reactivations.count;
+    acc.dn.dollars += e[1].downgrades.dollars;     acc.dn.count += e[1].downgrades.count;
+    acc.ca.dollars += e[1].cancellations.dollars;  acc.ca.count += e[1].cancellations.count;
+    return acc;
+  }, { net: 0,
+       up: { dollars: 0, count: 0 },
+       re: { dollars: 0, count: 0 },
+       dn: { dollars: 0, count: 0 },
+       ca: { dollars: 0, count: 0 } });
+  const totalNetCls = totals.net > 0 ? 'positive' : totals.net < 0 ? 'negative' : '';
+  function totalCell(side, c) {
+    if (c.count === 0) return '<td class="numeric" style="color:var(--text-muted);">—</td>';
+    const cls = side === 'pos' ? 'positive' : 'negative';
+    return '<td class="numeric ' + cls + '">'
+      + (c.dollars >= 0 ? '+' : '') + fmtMoney(c.dollars)
+      + ' <span style="color:var(--text-muted);font-size:11px;">(' + c.count + ')</span>'
+      + '</td>';
+  }
+  html += '<tr style="font-weight:600;background:#fafafa;">'
+    + '<td></td>'
+    + '<td>Team total</td>'
+    + '<td class="numeric ' + totalNetCls + '">' + (totals.net >= 0 ? '+' : '') + fmtMoney(totals.net) + '</td>'
+    + totalCell('pos', totals.up)
+    + totalCell('pos', totals.re)
+    + totalCell('neg', totals.dn)
+    + totalCell('neg', totals.ca)
+    + '</tr>';
+  html += '</tbody></table>';
+
+  host.innerHTML = html;
 }
 
 function renderAmBreakdown(rows) {
