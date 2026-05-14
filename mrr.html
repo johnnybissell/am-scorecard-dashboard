@@ -488,9 +488,45 @@ function parseChangeDate(s) {
 
 function parseDateTime(s) {
   if (!s) return null;
-  // "2026-05-21 00:00:00"
-  const d = new Date(String(s).replace(' ', 'T') + 'Z');
-  return isNaN(d.getTime()) ? null : d;
+  const str = String(s).trim();
+  if (!str) return null;
+
+  // Format 1 (the format the Apps Script writes via UTC formatDate):
+  //   "2026-05-18 07:00:00"  ←  YYYY-MM-DD HH:MM:SS (UTC)
+  //   "2026-05-18"           ←  YYYY-MM-DD (date only, used by some CSV
+  //                              exports for midnight-time cells)
+  let m = str.match(/^(\d{4})-(\d{1,2})-(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (m) {
+    const yr = parseInt(m[1], 10);
+    const mo = parseInt(m[2], 10) - 1;
+    const day = parseInt(m[3], 10);
+    const hh = m[4] ? parseInt(m[4], 10) : 0;
+    const mm = m[5] ? parseInt(m[5], 10) : 0;
+    const ss = m[6] ? parseInt(m[6], 10) : 0;
+    return new Date(Date.UTC(yr, mo, day, hh, mm, ss));
+  }
+
+  // Format 2: US date format Google Sheets may auto-export when a cell is
+  // formatted as a date in a Pacific-locale sheet:
+  //   "5/18/2026"            ←  M/D/YYYY (date only)
+  //   "5/18/2026 7:00:00"    ←  M/D/YYYY H:MM:SS
+  //   "5/18/2026 0:00:00"
+  m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if (m) {
+    const mo = parseInt(m[1], 10) - 1;
+    const day = parseInt(m[2], 10);
+    const yr = parseInt(m[3], 10);
+    const hh = m[4] ? parseInt(m[4], 10) : 0;
+    const mm = m[5] ? parseInt(m[5], 10) : 0;
+    const ss = m[6] ? parseInt(m[6], 10) : 0;
+    // Assume UTC — matches how the Apps Script wrote the original value.
+    return new Date(Date.UTC(yr, mo, day, hh, mm, ss));
+  }
+
+  // Last resort — let the Date constructor try. Adds Z if it looks like
+  // an ISO-shaped string missing one.
+  const fallback = new Date(str.indexOf('T') >= 0 || str.indexOf('Z') >= 0 ? str : str + 'Z');
+  return isNaN(fallback.getTime()) ? null : fallback;
 }
 
 async function fetchCsv(url, label) {
