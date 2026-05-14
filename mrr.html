@@ -378,7 +378,7 @@ td.negative { color: var(--negative); }
   <div class="section">
     <div class="card">
       <h2>Committed customer churn — next 90 days</h2>
-      <div id="churnTableContainer">
+      <div id="churnTableContainer" style="max-height:520px; overflow-y:auto;">
         <div class="loading">Loading…</div>
       </div>
     </div>
@@ -1549,8 +1549,7 @@ function renderChurnTable(rows) {
       return { row: r, date: d, mrr: parseMoney(r['Current MRR']) };
     })
     .filter(x => x.date && x.date >= now && x.date <= cutoff)
-    .sort((a, b) => a.date - b.date)
-    .slice(0, 20);
+    .sort((a, b) => a.date - b.date);
 
   const total = upcoming.reduce((s, x) => s + x.mrr, 0);
 
@@ -1561,11 +1560,11 @@ function renderChurnTable(rows) {
   }
 
   let html = '<table><thead><tr>'
-    + '<th>Cancel date</th>'
-    + '<th>Company</th>'
-    + '<th>Owner</th>'
-    + '<th>Onboarder</th>'
-    + '<th class="numeric">MRR</th>'
+    + '<th style="position:sticky;top:0;background:var(--card);">Cancel date</th>'
+    + '<th style="position:sticky;top:0;background:var(--card);">Company</th>'
+    + '<th style="position:sticky;top:0;background:var(--card);">Owner</th>'
+    + '<th style="position:sticky;top:0;background:var(--card);">Onboarder</th>'
+    + '<th class="numeric" style="position:sticky;top:0;background:var(--card);">MRR</th>'
     + '</tr></thead><tbody>';
 
   for (const x of upcoming) {
