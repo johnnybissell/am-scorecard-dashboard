@@ -131,6 +131,60 @@ td.negative { color: var(--negative); }
   .hero .value { font-size: 40px; }
 }
 
+/* Month-end projection card. */
+.projection {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px 28px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--projected);
+}
+.projection .top { display: flex; align-items: baseline; justify-content: space-between; gap: 24px; }
+.projection .top-left { flex: 1; min-width: 0; }
+.projection .label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.projection .value { font-size: 36px; font-weight: 700; letter-spacing: -0.02em; margin-top: 4px; }
+.projection .value.positive { color: var(--positive); }
+.projection .value.negative { color: var(--negative); }
+.projection .basis { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+.projection-toggle {
+  background: transparent;
+  color: var(--projected);
+  border: 1px solid #c7d2fe;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.projection-toggle:hover { background: #eef2ff; }
+.projection-detail { margin-top: 20px; display: none; }
+.projection-detail.open { display: block; }
+.projection-detail table { width: 100%; font-size: 13px; }
+.projection-detail th { font-size: 11px; }
+.projection-detail .total-row { font-weight: 600; background: #f9fafb; }
+.projection-detail .methodology {
+  margin-top: 18px;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: #fafbfc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  line-height: 1.65;
+}
+.projection-detail .methodology strong { color: var(--text); }
+.projection-detail .methodology code {
+  background: white;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
 /* Drill-down modal — opens when user clicks a category card, leaderboard
    row, or chart bar to inspect the underlying firms. */
 .drill-overlay {
@@ -252,6 +306,20 @@ td.negative { color: var(--negative); }
       Upgrades + reactivations minus downgrades + cancellations from existing customers.
       Excludes new business.
     </div>
+  </div>
+
+  <div class="projection" id="projectionCard">
+    <div class="top">
+      <div class="top-left">
+        <div class="label" id="projLabel">Projected month-end net customer movement</div>
+        <div class="value" id="projValue">—</div>
+        <div class="basis" id="projBasis"></div>
+      </div>
+      <button class="projection-toggle" id="projToggle" onclick="toggleProjectionDetail()">
+        Show how this is calculated ▾
+      </button>
+    </div>
+    <div class="projection-detail" id="projectionDetail"></div>
   </div>
 
   <div class="categories">
@@ -487,8 +555,15 @@ async function loadAll() {
     }
     const results = await Promise.all(fetches);
     const churn = results[0];
-    const mrr = results[1];
-    const historical = results[2] || [];
+    const mrrRaw = results[1];
+    const historicalRaw = results[2] || [];
+
+    // Collapse cancel+reactivate pairs within the same month. A firm that
+    // leaves and comes back the same month is a wash — neither event
+    // should count in the cancellation or reactivation tallies.
+    const mrr        = dropSameMonthCancelReactivatePairs(mrrRaw);
+    const historical = dropSameMonthCancelReactivatePairs(historicalRaw);
+    const pairsCollapsed = (mrr.__pairsCollapsed || 0) + (historical.__pairsCollapsed || 0);
 
     // Aggregate each source separately, then merge.
     //
@@ -540,12 +615,13 @@ async function loadAll() {
     appendScheduledChurnAsDrillRows(drillRows, churn);
 
     renderHero(movements);
+    renderProjection(movements, mrr, historical);
     renderCategoryCards(movements);
     renderAmLeaderboard(mrr);
     renderMovementChart(movements);
     renderChurnTable(churn);
     renderAmBreakdown(mrr);
-    renderDataDiagnostic(movements);
+    renderDataDiagnostic(movements, pairsCollapsed);
 
     const now = new Date();
     document.getElementById('lastRefreshed').textContent =
@@ -581,6 +657,62 @@ function categoryFor(status) {
   // NEW / FREE_TO_PAID / FUTURE all fall through to "new business".
   if (status === 'NEW' || status === 'FREE_TO_PAID' || status === 'FUTURE') return 'newBusiness';
   return null;
+}
+
+/**
+ * Drop CANCEL_FROM_* and REACTIVE/PAUSE_TO_PAID rows whose Subscription ID
+ * has BOTH a cancel event and a reactivate event in the same month. A firm
+ * that leaves and comes back in the same calendar month is a wash — we
+ * shouldn't count the cancellation in the negative column or the
+ * reactivation in the positive column. The downgrade/upgrade in MRR (if
+ * any) is captured by other event types so the dollar movement isn't lost.
+ *
+ * Returns a new array; doesn't mutate the input. Also returns the count of
+ * pairs that were collapsed, for diagnostic display.
+ */
+function dropSameMonthCancelReactivatePairs(rows) {
+  // First pass — find sub+month combos that have both event types.
+  const presence = {};   // key 'ym|subId' → { cancel: bool, reactive: bool }
+  for (const r of rows) {
+    const subId = r['Subscription ID'];
+    if (!subId) continue;
+    const status = r['Impact Sub status'];
+    if (!status) continue;
+    const d = parseChangeDate(r['Change Date']);
+    if (!d) continue;
+    const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const key = ym + '|' + subId;
+    if (!presence[key]) presence[key] = { cancel: false, reactive: false };
+    if (status.indexOf('CANCEL_FROM_') === 0) presence[key].cancel = true;
+    if (status === 'REACTIVE' || status === 'PAUSE_TO_PAID') presence[key].reactive = true;
+  }
+  const excludeKey = {};
+  let pairCount = 0;
+  for (const key in presence) {
+    if (presence[key].cancel && presence[key].reactive) {
+      excludeKey[key] = true;
+      pairCount++;
+    }
+  }
+
+  // Second pass — return all rows except the cancel/reactivate ones inside
+  // a matched key. Non-cancel/reactivate rows are always kept.
+  const out = rows.filter(function (r) {
+    const subId = r['Subscription ID'];
+    if (!subId) return true;
+    const status = r['Impact Sub status'];
+    const d = parseChangeDate(r['Change Date']);
+    if (!d) return true;
+    const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const key = ym + '|' + subId;
+    if (!excludeKey[key]) return true;
+    if (status && status.indexOf('CANCEL_FROM_') === 0) return false;
+    if (status === 'REACTIVE' || status === 'PAUSE_TO_PAID')   return false;
+    return true;
+  });
+  // Stash on the result for diagnostic.
+  out.__pairsCollapsed = pairCount;
+  return out;
 }
 
 function aggregateMovements(mrrRows) {
@@ -679,6 +811,9 @@ function augmentCurrentMonthWithScheduledChurn(movements, churnRows) {
   }
   movements[ym].cancellations.dollars += addedDollars;
   movements[ym].cancellations.count   += addedCount;
+  // Tag the scheduled-only portion so the projection logic can separate
+  // "already-fired this month" from "scheduled-but-not-yet-fired".
+  movements[ym].scheduledCancellations = { dollars: addedDollars, count: addedCount };
   // Re-derive net so the hero/chart pick up the augmented total.
   const m = movements[ym];
   m.net = m.upgrades.dollars + m.reactivations.dollars + m.downgrades.dollars + m.cancellations.dollars;
@@ -985,6 +1120,242 @@ function renderHero(movements) {
 }
 
 // ----------------------------------------------------------------------------
+// Month-end projection
+// ----------------------------------------------------------------------------
+//
+// Method (kept simple so the user can audit it):
+//   For each category (upgrades, reactivations, downgrades):
+//     projected_end = MTD + trailing_3mo_avg × (days_remaining / days_in_month)
+//
+//   For cancellations:
+//     Lawmatics requires 30-day notice for voluntary cancellation, so all
+//     voluntary churn for the rest of the month is already in Scheduled
+//     Churn. The only unscheduled cancellations that can still happen mid-
+//     month are involuntary NOT_PAID ones. So we project only the non-
+//     payment slice of the trailing average for the remainder.
+//
+//     projected_end = past_fired + scheduled_for_rest_of_month + (trailing_3mo_avg_NOT_PAID_only × days_remaining / days_in_month)
+//
+// The scheduled-non-renewing portion is a known fact (from Chargebee Scheduled
+// Churn), not a guess. The non-payment-only trailing-avg term is the guess.
+// Splitting them makes the breakdown easier to audit.
+//
+function computeProjection(movements, rawRows) {
+  const ym = currentYm();
+  const today = new Date();
+  const day = today.getDate();
+  const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+  const remainingFraction = Math.max(0, (lastDay - day) / lastDay);
+
+  const m = movements[ym] || {
+    upgrades:      { dollars: 0, count: 0 },
+    reactivations: { dollars: 0, count: 0 },
+    downgrades:    { dollars: 0, count: 0 },
+    cancellations: { dollars: 0, count: 0 },
+    scheduledCancellations: { dollars: 0, count: 0 },
+  };
+  const scheduledOnly = m.scheduledCancellations || { dollars: 0, count: 0 };
+  // Past-fired cancellations = total card value minus the scheduled-future
+  // portion we augmented in.
+  const cancellationsPastFired = m.cancellations.dollars - scheduledOnly.dollars;
+
+  // Trailing 3 complete months (excluding the current partial month).
+  const allYms = Object.keys(movements).sort();
+  const idx = allYms.indexOf(ym);
+  const trailingYms = idx > 0
+    ? allYms.slice(Math.max(0, idx - 3), idx)
+    : allYms.slice(-3);
+
+  let trailSum = { upgrades: 0, reactivations: 0, downgrades: 0, cancellations: 0 };
+  let trailN = 0;
+  for (const tym of trailingYms) {
+    if (movements[tym]) {
+      trailSum.upgrades      += movements[tym].upgrades.dollars;
+      trailSum.reactivations += movements[tym].reactivations.dollars;
+      trailSum.downgrades    += movements[tym].downgrades.dollars;
+      trailSum.cancellations += movements[tym].cancellations.dollars;
+      trailN++;
+    }
+  }
+  const trailAvg = {
+    upgrades:      trailN > 0 ? trailSum.upgrades      / trailN : 0,
+    reactivations: trailN > 0 ? trailSum.reactivations / trailN : 0,
+    downgrades:    trailN > 0 ? trailSum.downgrades    / trailN : 0,
+    cancellations: trailN > 0 ? trailSum.cancellations / trailN : 0,
+  };
+
+  // ---- Non-payment-only trailing average for cancellations ----
+  // Lawmatics requires 30-day notice for voluntary churn, so voluntary
+  // cancellations don't surprise us mid-month — they're already in Scheduled
+  // Churn. Only NOT_PAID involuntary cancellations can newly appear within
+  // the month. Compute their per-month average from the trailing window.
+  const trailingYmSet = {};
+  for (const t of trailingYms) trailingYmSet[t] = true;
+  let nonPaymentTotal = 0;
+  if (Array.isArray(rawRows)) {
+    for (const r of rawRows) {
+      const status = r['Impact Sub status'] || '';
+      if (status.indexOf('CANCEL_FROM_') !== 0) continue;
+      // NOT_PAID is the Chargebee involuntary cancel reason. Anything else
+      // is voluntary (and therefore would have come through scheduled
+      // non-renewing).
+      const reason = (r['Cancel Reason'] || '').toUpperCase();
+      if (reason !== 'NOT_PAID') continue;
+      const d = parseChangeDate(r['Change Date']);
+      if (!d) continue;
+      const ymKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      if (!trailingYmSet[ymKey]) continue;
+      nonPaymentTotal += parseMoney(r['MRR Impact']);
+    }
+  }
+  const trailAvgNonPayment = trailN > 0 ? nonPaymentTotal / trailN : 0;
+
+  // Projected remainders (for each category — the trailing avg, scaled).
+  // For cancellations we use ONLY the non-payment slice — voluntary
+  // cancellations require 30-day notice and so are already known via the
+  // Scheduled Churn feed.
+  const remainder = {
+    upgrades:      trailAvg.upgrades      * remainingFraction,
+    reactivations: trailAvg.reactivations * remainingFraction,
+    downgrades:    trailAvg.downgrades    * remainingFraction,
+    cancellations: trailAvgNonPayment     * remainingFraction,
+  };
+
+  // End-of-month projection per category.
+  const end = {
+    upgrades:      m.upgrades.dollars      + remainder.upgrades,
+    reactivations: m.reactivations.dollars + remainder.reactivations,
+    downgrades:    m.downgrades.dollars    + remainder.downgrades,
+    // Cancellations end = past-fired + scheduled future + trailing-avg remainder
+    cancellations: cancellationsPastFired + scheduledOnly.dollars + remainder.cancellations,
+  };
+  const projectedNet = end.upgrades + end.reactivations + end.downgrades + end.cancellations;
+
+  return {
+    ym: ym,
+    day: day, lastDay: lastDay, remainingFraction: remainingFraction,
+    mtd: {
+      upgrades:      m.upgrades.dollars,
+      reactivations: m.reactivations.dollars,
+      downgrades:    m.downgrades.dollars,
+      cancellationsPastFired: cancellationsPastFired,
+      cancellationsScheduledFuture: scheduledOnly.dollars,
+      cancellationsTotal: m.cancellations.dollars,
+    },
+    trailAvg: trailAvg, trailAvgNonPayment: trailAvgNonPayment,
+    trailingYms: trailingYms, trailN: trailN,
+    remainder: remainder,
+    end: end,
+    projectedNet: projectedNet,
+  };
+}
+
+function renderProjection(movements, mrrRows, historicalRows) {
+  // Pass both live and historical raw rows so the trailing months' non-
+  // payment cancellations can be computed regardless of which feed they
+  // came from.
+  const combinedRows = (mrrRows || []).concat(historicalRows || []);
+  const p = computeProjection(movements, combinedRows);
+  document.getElementById('projLabel').textContent =
+    'Projected ' + monthLabel(p.ym) + ' month-end net customer movement';
+  const valEl = document.getElementById('projValue');
+  valEl.textContent = (p.projectedNet >= 0 ? '+' : '') + fmtMoney(p.projectedNet);
+  valEl.className = 'value ' + (p.projectedNet > 0 ? 'positive' : p.projectedNet < 0 ? 'negative' : '');
+  const trailLabel = p.trailingYms.map(monthLabel).join(', ') || 'no prior months';
+  document.getElementById('projBasis').textContent =
+    'Day ' + p.day + ' of ' + p.lastDay + ' actuals + trailing ' + p.trailN
+    + '-month average (' + trailLabel + ').';
+
+  // Build detail table.
+  function row(label, mtd, scheduled, remainder, end, hint) {
+    function fmt(n, neg) {
+      if (n === 0 && !neg) return '<td class="numeric" style="color:var(--text-muted);">—</td>';
+      const cls = n > 0 ? 'positive' : n < 0 ? 'negative' : '';
+      return '<td class="numeric ' + cls + '">' + (n >= 0 ? '+' : '') + fmtMoney(n) + '</td>';
+    }
+    return '<tr>'
+      + '<td><strong>' + label + '</strong>'
+        + (hint ? '<div style="font-size:11px;color:var(--text-muted);">' + hint + '</div>' : '')
+        + '</td>'
+      + fmt(mtd)
+      + fmt(scheduled)
+      + fmt(remainder)
+      + fmt(end)
+      + '</tr>';
+  }
+
+  const trailLabelDetail = p.trailingYms.length > 0
+    ? p.trailingYms.map(function (ym) { return ym; }).join(', ')
+    : '—';
+  const formula = '<code>MTD + (' + (p.trailN || 3) + '-mo avg × '
+    + (p.lastDay - p.day) + '/' + p.lastDay + ')</code>';
+
+  let html = ''
+    + '<table>'
+    + '<thead><tr>'
+    +   '<th>Category</th>'
+    +   '<th class="numeric">MTD (day ' + p.day + '/' + p.lastDay + ')</th>'
+    +   '<th class="numeric">Scheduled for rest of month</th>'
+    +   '<th class="numeric">Projected remainder<br><span style="font-weight:normal;font-size:10px;text-transform:none;">trailing avg × ' + (p.lastDay - p.day) + '/' + p.lastDay + '</span></th>'
+    +   '<th class="numeric">Projected month-end</th>'
+    + '</tr></thead>'
+    + '<tbody>'
+    + row('Upgrades',      p.mtd.upgrades,      0,                                  p.remainder.upgrades,      p.end.upgrades)
+    + row('Reactivations', p.mtd.reactivations, 0,                                  p.remainder.reactivations, p.end.reactivations)
+    + row('Downgrades',    p.mtd.downgrades,    0,                                  p.remainder.downgrades,    p.end.downgrades)
+    + row('Cancellations', p.mtd.cancellationsPastFired,
+                            p.mtd.cancellationsScheduledFuture,
+                            p.remainder.cancellations,
+                            p.end.cancellations,
+                            'Past-fired only; scheduled column shown separately')
+    + '<tr class="total-row"><td><strong>Net</strong></td>'
+    +   '<td class="numeric"><strong>'
+    +     (p.mtd.upgrades + p.mtd.reactivations + p.mtd.downgrades + p.mtd.cancellationsTotal >= 0 ? '+' : '')
+    +     fmtMoney(p.mtd.upgrades + p.mtd.reactivations + p.mtd.downgrades + p.mtd.cancellationsTotal)
+    +   '</strong></td>'
+    +   '<td class="numeric" style="color:var(--text-muted);">included →</td>'
+    +   '<td class="numeric"><strong>'
+    +     (p.remainder.upgrades + p.remainder.reactivations + p.remainder.downgrades + p.remainder.cancellations >= 0 ? '+' : '')
+    +     fmtMoney(p.remainder.upgrades + p.remainder.reactivations + p.remainder.downgrades + p.remainder.cancellations)
+    +   '</strong></td>'
+    +   '<td class="numeric"><strong class="' + (p.projectedNet > 0 ? 'positive' : p.projectedNet < 0 ? 'negative' : '') + '">'
+    +     (p.projectedNet >= 0 ? '+' : '') + fmtMoney(p.projectedNet)
+    +   '</strong></td>'
+    + '</tr>'
+    + '</tbody></table>'
+    + '<div class="methodology">'
+    +   '<strong>Formula.</strong> For upgrades / reactivations / downgrades: '
+    +   formula + '.<br>'
+    +   '<strong>For cancellations:</strong> <code>past-fired + scheduled non-renewing + (trailing avg <em>NOT_PAID-only</em> × ' + (p.lastDay - p.day) + '/' + p.lastDay + ')</code>'
+    +   '<br><br>'
+    +   '<strong>Why different formulas?</strong> Lawmatics requires 30-day cancellation notice, so every voluntary cancellation for the rest of this month is already in the Scheduled Churn feed. The only cancellations that can newly appear mid-month are involuntary non-payment ones — so we project only those for the remainder, not the full cancellation pattern.'
+    +   '<br><br>'
+    +   '<strong>MTD</strong> = events that have already fired this month (existing customers only).'
+    +   ' <strong>Scheduled</strong> = firms with a future-dated cancel inside this month, taken from Chargebee Scheduled Churn (only Cancellations).'
+    +   ' <strong>Projected remainder</strong> = trailing ' + (p.trailN || 3) + '-month average × ' + Math.round(p.remainingFraction * 100) + '% of month remaining.'
+    +   '<br><br>'
+    +   '<strong>Trailing baseline.</strong> Months used for the average: '
+    +   escapeHtml(trailLabelDetail) + '.'
+    +   ' Per-month averages: '
+    +   'upgrades '       + fmtMoney(p.trailAvg.upgrades) + ', '
+    +   'reactivations '  + fmtMoney(p.trailAvg.reactivations) + ', '
+    +   'downgrades '     + fmtMoney(p.trailAvg.downgrades) + ', '
+    +   'cancellations (total) ' + fmtMoney(p.trailAvg.cancellations) + ', '
+    +   '<strong>cancellations (NOT_PAID only)</strong> ' + fmtMoney(p.trailAvgNonPayment) + '.'
+    +   '<br><br>'
+    +   '<strong>Caveats.</strong> Linear pacing — assumes the remaining days of the month produce non-payment churn at the trailing baseline rate. No seasonality. If a voluntary cancellation slipped through without the 30-day notice (rare exception), it would show up as an MTD surprise rather than being predicted.'
+    + '</div>';
+  document.getElementById('projectionDetail').innerHTML = html;
+}
+
+function toggleProjectionDetail() {
+  const el = document.getElementById('projectionDetail');
+  const btn = document.getElementById('projToggle');
+  const open = el.classList.toggle('open');
+  btn.textContent = open ? 'Hide calculation ▴' : 'Show how this is calculated ▾';
+}
+
+// ----------------------------------------------------------------------------
 // Four category cards
 // ----------------------------------------------------------------------------
 function renderCategoryCards(movements) {
@@ -1090,7 +1461,7 @@ function renderMovementChart(movements) {
  * Diagnostic line at the bottom of the page so an empty current month is
  * obvious to debug — shows date range of underlying data and event counts.
  */
-function renderDataDiagnostic(movements) {
+function renderDataDiagnostic(movements, pairsCollapsed) {
   const yms = Object.keys(movements).sort();
   if (yms.length === 0) return;
   const first = yms[0];
@@ -1103,6 +1474,12 @@ function renderDataDiagnostic(movements) {
 
   let html = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:24px 0;">'
     + 'Data spans ' + escapeHtml(first) + ' → ' + escapeHtml(last) + '. ';
+  if (pairsCollapsed && pairsCollapsed > 0) {
+    html += '<br>'
+      + escapeHtml(String(pairsCollapsed)) + ' cancel+reactivate pair'
+      + (pairsCollapsed === 1 ? '' : 's')
+      + ' in the same month collapsed to a wash (excluded from both columns). ';
+  }
   if (eventsThisMonth === 0 && last !== ymCurrent) {
     html += '<strong style="color:var(--negative);">No events tagged ' + escapeHtml(ymCurrent)
          +  ' in the underlying CSV — the Apps Script sheet may be stale.</strong> '
