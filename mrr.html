@@ -377,7 +377,7 @@ td.negative { color: var(--negative); }
 
   <div class="section">
     <div class="card">
-      <h2>Committed customer churn — next 90 days</h2>
+      <h2>Committed customer churn — next 120 days</h2>
       <div id="churnTableContainer" style="max-height:520px; overflow-y:auto;">
         <div class="loading">Loading…</div>
       </div>
@@ -1541,7 +1541,7 @@ function renderDataDiagnostic(movements, pairsCollapsed) {
 
 function renderChurnTable(rows) {
   const now = new Date();
-  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 90);
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 120);
 
   const upcoming = rows
     .map(r => {
