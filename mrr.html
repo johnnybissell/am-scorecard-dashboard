@@ -1563,7 +1563,7 @@ function renderChurnTable(rows) {
     + '<th style="position:sticky;top:0;background:var(--card);">Cancel date</th>'
     + '<th style="position:sticky;top:0;background:var(--card);">Company</th>'
     + '<th style="position:sticky;top:0;background:var(--card);">Owner</th>'
-    + '<th style="position:sticky;top:0;background:var(--card);">Onboarder</th>'
+    + '<th style="position:sticky;top:0;background:var(--card);">Account Manager</th>'
     + '<th class="numeric" style="position:sticky;top:0;background:var(--card);">MRR</th>'
     + '</tr></thead><tbody>';
 
@@ -1572,7 +1572,7 @@ function renderChurnTable(rows) {
       + '<td>' + escapeHtml(x.date.toISOString().slice(0, 10)) + '</td>'
       + '<td>' + escapeHtml(x.row.Company || '') + '</td>'
       + '<td>' + escapeHtml(x.row['Customers.Owner'] || '') + '</td>'
-      + '<td>' + escapeHtml(x.row['Customers.Onboarder'] || '') + '</td>'
+      + '<td>' + escapeHtml(x.row['Customers.Account Manager'] || '') + '</td>'
       + '<td class="numeric negative">' + fmtMoney(-x.mrr) + '</td>'
       + '</tr>';
   }
