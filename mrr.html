@@ -378,6 +378,9 @@ td.negative { color: var(--negative); }
   <div class="section">
     <div class="card">
       <h2>Committed customer churn — next 120 days</h2>
+      <div class="chart-container" style="height:260px; margin-bottom:16px;">
+        <canvas id="churnChart"></canvas>
+      </div>
       <div id="churnTableContainer" style="max-height:520px; overflow-y:auto;">
         <div class="loading">Loading…</div>
       </div>
@@ -431,6 +434,13 @@ const CSV_URLS = {
   // Historical backfill from Chargebee RevenueStory — one-time export covering
   // months older than Chargebee's 90-day API window. Set to '' to disable.
   historical:       'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=306369859&single=true&output=csv',
+  // MRR Snapshot tab — required for the "% of beginning ARR" displays.
+  // After running runDailySync, publish the MRR Snapshot tab to web as CSV
+  // and paste the URL here. Until then, leave as '' and the percentages
+  // simply won't render.
+  // (AM Retention is computed client-side from MonthlyMRRImpact — no
+  // separate CSV is needed for it.)
+  mrrSnapshot:      '',
 };
 
 // Auto-refresh every N minutes (set to 0 to disable).
@@ -561,7 +571,7 @@ async function fetchCsv(url, label) {
 // LOADERS — pull each CSV, normalize into useful shapes.
 // ============================================================================
 
-let charts = { movement: null, am: null };
+let charts = { movement: null, am: null, churn: null };
 
 // Drill-down dataset — kept around so click handlers can filter without
 // re-fetching. Each row is tagged with its source feed so the modal can
@@ -582,17 +592,29 @@ async function loadAll() {
     // Historical CSV is optional. If configured, it's used to fill months
     // older than Chargebee's 90-day API window (which is what feeds
     // MonthlyMRRImpact). Live data wins for any month that exists in both.
-    const fetches = [
-      fetchCsv(CSV_URLS.scheduledChurn, 'Scheduled Churn'),
-      fetchCsv(CSV_URLS.monthlyMrrImpact, 'MonthlyMRRImpact'),
-    ];
-    if (CSV_URLS.historical) {
-      fetches.push(fetchCsv(CSV_URLS.historical, 'Historical'));
+    // Index each fetch so we can pull results by name regardless of which
+    // optional CSVs are configured.
+    const fetches = [];
+    const fetchIndex = {};
+    function push(name, url) {
+      if (!url) { fetchIndex[name] = -1; return; }
+      fetchIndex[name] = fetches.length;
+      fetches.push(fetchCsv(url, name));
     }
+    push('scheduledChurn',   CSV_URLS.scheduledChurn);
+    push('monthlyMrrImpact', CSV_URLS.monthlyMrrImpact);
+    push('historical',       CSV_URLS.historical);
+    push('mrrSnapshot',      CSV_URLS.mrrSnapshot);
+
     const results = await Promise.all(fetches);
-    const churn = results[0];
-    const mrrRaw = results[1];
-    const historicalRaw = results[2] || [];
+    function get(name) {
+      const i = fetchIndex[name];
+      return i >= 0 ? results[i] : [];
+    }
+    const churn          = get('scheduledChurn');
+    const mrrRaw         = get('monthlyMrrImpact');
+    const historicalRaw  = get('historical');
+    const mrrSnapshot    = get('mrrSnapshot');
 
     // Collapse cancel+reactivate pairs within the same month. A firm that
     // leaves and comes back the same month is a wash — neither event
@@ -650,14 +672,24 @@ async function loadAll() {
     // drill matches the augmented card total.
     appendScheduledChurnAsDrillRows(drillRows, churn);
 
-    renderHero(movements);
+    // Derive beginning-of-month MRR baselines from the snapshot tab. Used
+    // to render movement metrics as % of beginning ARR. Empty {} when
+    // the MRR Snapshot CSV isn't configured/populated — renderers handle that.
+    const beginningByYm = computeBeginningMrrByMonth(movements, mrrSnapshot);
+
+    // Compute AM 12-month renewal rate from the MonthlyMRRImpact + historical
+    // rows we already have. Uses Creation Date + Subscription Status fields.
+    const amRetention = computeAmRetention(mrr.concat(historical));
+
+    renderHero(movements, beginningByYm);
     renderProjection(movements, mrr, historical);
     renderCategoryCards(movements);
-    renderAmLeaderboard(mrr);
-    renderMovementChart(movements);
+    renderAmLeaderboard(mrr, amRetention);
+    renderMovementChart(movements, beginningByYm);
+    renderChurnChart(churn);
     renderChurnTable(churn);
     renderAmBreakdown(mrr);
-    renderDataDiagnostic(movements, pairsCollapsed);
+    renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm);
 
     const now = new Date();
     document.getElementById('lastRefreshed').textContent =
@@ -790,9 +822,137 @@ function aggregateMovements(mrrRows) {
   return byMonth;
 }
 
+/**
+ * Compute Month-12 renewal rate per Account Manager from existing rows.
+ *
+ *   Cohort = unique subscriptions whose Creation Date is 11–13 months ago.
+ *   Retained = cohort members whose latest event's Subscription Status is
+ *              anything except CANCELLED.
+ *   Lost = cohort members whose latest event's Subscription Status is CANCELLED.
+ *
+ * Returns a list of objects matching the shape renderAmLeaderboard expects:
+ *   [{ "Account Manager", "Cohort Size", "Retained", "Lost", "Renewal %" }, ...]
+ *
+ * Note: a subscription that hasn't had any event in the available data window
+ * (live ~90 days + historical backfill) won't be visible here. That's a
+ * limitation of working only from existing tabs — in practice almost every
+ * 12-month-old subscription has at least one event (renewal, change, cancel)
+ * in the window, so coverage is high.
+ */
+function computeAmRetention(allRows) {
+  if (!Array.isArray(allRows) || allRows.length === 0) return [];
+
+  // Dedupe by Subscription ID, keeping the LATEST row per sub (so the
+  // Subscription Status reflects the most recent state).
+  const bySub = {};
+  for (const r of allRows) {
+    const subId = r['Subscription ID'];
+    if (!subId) continue;
+    const changeDate = parseChangeDate(r['Change Date']);
+    if (!changeDate) continue;
+    if (!bySub[subId] || changeDate > bySub[subId].latestChange) {
+      bySub[subId] = {
+        subId: subId,
+        creationDate: parseDateTime(r['Creation Date']),
+        latestChange: changeDate,
+        status: (r['Subscription Status'] || '').toUpperCase(),
+        am: (r['Customers.Account Manager'] || '').trim() || '— Unassigned —',
+      };
+    }
+  }
+
+  // Cohort window: Creation Date 11–13 months ago.
+  const now = new Date();
+  const cohortNewest = new Date(now); cohortNewest.setMonth(now.getMonth() - 11);
+  const cohortOldest = new Date(now); cohortOldest.setMonth(now.getMonth() - 13);
+
+  const byAm = {};
+  for (const subId in bySub) {
+    const s = bySub[subId];
+    if (!s.creationDate) continue;
+    if (s.creationDate >= cohortNewest || s.creationDate < cohortOldest) continue;
+    if (!byAm[s.am]) byAm[s.am] = { cohort: 0, retained: 0, lost: 0 };
+    byAm[s.am].cohort += 1;
+    if (s.status === 'CANCELLED') {
+      byAm[s.am].lost += 1;
+    } else {
+      byAm[s.am].retained += 1;
+    }
+  }
+
+  const rows = [];
+  for (const am in byAm) {
+    const v = byAm[am];
+    const pct = v.cohort > 0 ? (v.retained / v.cohort * 100) : 0;
+    rows.push({
+      'Account Manager': am,
+      'Cohort Size':     String(v.cohort),
+      'Retained':        String(v.retained),
+      'Lost':            String(v.lost),
+      'Renewal %':       pct.toFixed(1) + '%',
+    });
+  }
+  return rows;
+}
+
 function currentYm() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+/**
+ * Compute beginning-of-month MRR for every month in `movements`, working
+ * backward from the most recent MRR Snapshot reading.
+ *
+ *   beginning(current_month) = snapshot − net_change_so_far_this_month
+ *   beginning(prior_month)   = beginning(current_month) − net_change(prior_month)
+ *   ...etc
+ *
+ * Returns {ym → beginningMrrDollars}. Returns {} if no snapshot is available.
+ */
+function computeBeginningMrrByMonth(movements, snapshotRows) {
+  if (!Array.isArray(snapshotRows) || snapshotRows.length === 0) return {};
+  // Latest snapshot row (largest "Snapshot Time" or last row).
+  let latest = null;
+  for (const r of snapshotRows) {
+    const t = new Date(r['Snapshot Time']);
+    if (isNaN(t.getTime())) continue;
+    const val = parseFloat(String(r['Active MRR ($)'] || '0').replace(/[$,]/g, ''));
+    if (isNaN(val)) continue;
+    if (!latest || t > latest.t) latest = { t: t, mrr: val };
+  }
+  if (!latest) return {};
+
+  const yms = Object.keys(movements).sort();
+  if (yms.length === 0) return {};
+
+  // current = latest snapshot value (today)
+  // beginningOf(currentMonth) = current − net_so_far_this_month
+  const currentYmStr = currentYm();
+  const result = {};
+  let runningCurrentMrr = latest.mrr;
+
+  // Walk backwards from the latest month present in movements.
+  // For each month, beginning = end_of_month − net_change(that month)
+  // and end_of_month = beginning of next month.
+  // We approximate: end_of_currentMonth ≈ runningCurrentMrr (today's value).
+  let endOfMonth = runningCurrentMrr;
+  for (let i = yms.length - 1; i >= 0; i--) {
+    const ym = yms[i];
+    const netCustomer  = movements[ym].net;        // existing-customer movement
+    const newBiz       = movements[ym].newBusiness ? movements[ym].newBusiness.dollars : 0;
+    const totalNet     = netCustomer + newBiz;
+    const beginning    = endOfMonth - totalNet;
+    result[ym]         = beginning;
+    endOfMonth         = beginning;
+  }
+  return result;
+}
+
+function fmtPct(n) {
+  if (!isFinite(n)) return '';
+  const sign = n >= 0 ? '+' : '';
+  return sign + (n * 100).toFixed(2) + '%';
 }
 
 /**
@@ -1110,7 +1270,7 @@ function changeDrillSort(col) {
 // ----------------------------------------------------------------------------
 // Hero — current-month net customer movement (excludes new business)
 // ----------------------------------------------------------------------------
-function renderHero(movements) {
+function renderHero(movements, beginningByYm) {
   const ym = currentYm();
   const m = movements[ym];
   const heroVal = document.getElementById('heroValue');
@@ -1149,9 +1309,16 @@ function renderHero(movements) {
   const today = new Date();
   const day = today.getDate();
   const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+
+  // % of beginning-of-month MRR, if we have the snapshot data.
+  let pctStr = '';
+  if (beginningByYm && beginningByYm[ym] && beginningByYm[ym] > 0) {
+    const pct = net / beginningByYm[ym];
+    pctStr = ' (<strong>' + fmtPct(pct) + '</strong> of beginning MRR $' + fmtMoney(beginningByYm[ym]).replace('$', '') + ')';
+  }
   document.getElementById('heroSub').innerHTML =
     'Day ' + day + ' of ' + lastDay + '. ' +
-    'Trailing 3-month avg: <strong>' + escapeHtml(trailStr) + '/month</strong>. ' +
+    'Trailing 3-month avg: <strong>' + escapeHtml(trailStr) + '/month</strong>' + pctStr + '. ' +
     'Excludes new business — only upgrades + reactivations minus downgrades + cancellations from existing customers.';
 }
 
@@ -1421,7 +1588,7 @@ function renderCategoryCards(movements) {
 // ----------------------------------------------------------------------------
 // Stacked monthly bar chart — last 13 months of movement by category
 // ----------------------------------------------------------------------------
-function renderMovementChart(movements) {
+function renderMovementChart(movements, beginningByYm) {
   // Sort YMs ascending, take the last 13 for display.
   const allYms = Object.keys(movements).sort();
   const ymsToShow = allYms.slice(-13);
@@ -1472,7 +1639,13 @@ function renderMovementChart(movements) {
             footer: function (items) {
               if (items.length === 0) return '';
               const total = items.reduce((s, it) => s + (it.parsed.y || 0), 0);
-              return 'Net: ' + (total >= 0 ? '+' : '') + fmtMoney(total) + '  — click to drill';
+              const idx = items[0].dataIndex;
+              const ym = ymsToShow[idx];
+              let pctTxt = '';
+              if (beginningByYm && beginningByYm[ym] && beginningByYm[ym] > 0) {
+                pctTxt = '  (' + fmtPct(total / beginningByYm[ym]) + ' of beginning MRR)';
+              }
+              return 'Net: ' + (total >= 0 ? '+' : '') + fmtMoney(total) + pctTxt + '  — click to drill';
             },
           },
         },
@@ -1497,7 +1670,7 @@ function renderMovementChart(movements) {
  * Diagnostic line at the bottom of the page so an empty current month is
  * obvious to debug — shows date range of underlying data and event counts.
  */
-function renderDataDiagnostic(movements, pairsCollapsed) {
+function renderDataDiagnostic(movements, pairsCollapsed, snapshotRows, beginningByYm) {
   const yms = Object.keys(movements).sort();
   if (yms.length === 0) return;
   const first = yms[0];
@@ -1515,6 +1688,25 @@ function renderDataDiagnostic(movements, pairsCollapsed) {
       + escapeHtml(String(pairsCollapsed)) + ' cancel+reactivate pair'
       + (pairsCollapsed === 1 ? '' : 's')
       + ' in the same month collapsed to a wash (excluded from both columns). ';
+  }
+  // Latest MRR snapshot (current total active MRR).
+  if (Array.isArray(snapshotRows) && snapshotRows.length > 0) {
+    let latest = null;
+    for (const r of snapshotRows) {
+      const t = new Date(r['Snapshot Time']);
+      if (isNaN(t.getTime())) continue;
+      const val = parseFloat(String(r['Active MRR ($)'] || '0').replace(/[$,]/g, ''));
+      if (isNaN(val)) continue;
+      if (!latest || t > latest.t) latest = { t: t, mrr: val };
+    }
+    if (latest) {
+      html += '<br>Current active MRR: <strong>$' + fmtMoney(latest.mrr).replace('$', '') + '</strong>'
+        + ' (as of ' + escapeHtml(latest.t.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })) + ').';
+      if (beginningByYm && beginningByYm[ymCurrent]) {
+        html += ' Beginning ' + escapeHtml(ymCurrent) + ' MRR (derived): $'
+          + fmtMoney(beginningByYm[ymCurrent]).replace('$', '') + '.';
+      }
+    }
   }
   if (eventsThisMonth === 0 && last !== ymCurrent) {
     html += '<strong style="color:var(--negative);">No events tagged ' + escapeHtml(ymCurrent)
@@ -1537,6 +1729,104 @@ function renderDataDiagnostic(movements, pairsCollapsed) {
     document.querySelector('main').appendChild(host);
   }
   host.innerHTML = html;
+}
+
+/**
+ * Bar chart of committed churn $ by month for the next 120 days. Clicking
+ * a bar drills into that month's scheduled cancellations.
+ */
+function renderChurnChart(rows) {
+  const now = new Date();
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 120);
+
+  // Aggregate $ by YYYY-MM, only future-dated within 120 days.
+  const byMonth = {};
+  for (const r of rows) {
+    const d = parseDateTime(r['Cancellation Date']);
+    if (!d || d < now || d > cutoff) continue;
+    const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const mrr = parseMoney(r['Current MRR']);
+    if (!byMonth[ym]) byMonth[ym] = { dollars: 0, count: 0 };
+    byMonth[ym].dollars += mrr;
+    byMonth[ym].count += 1;
+  }
+
+  // Always include months in the 120-day horizon even if empty, so the
+  // chart shows a clear shape rather than skipping zero months.
+  const yms = [];
+  const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
+  const horizonEnd = new Date(cutoff.getFullYear(), cutoff.getMonth(), 1);
+  while (cursor <= horizonEnd) {
+    const ym = cursor.getFullYear() + '-' + String(cursor.getMonth() + 1).padStart(2, '0');
+    yms.push(ym);
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  const labels = yms.map(monthLabel);
+  const values = yms.map(ym => -(byMonth[ym]?.dollars || 0)); // negative since it's loss
+  const counts = yms.map(ym => byMonth[ym]?.count || 0);
+
+  if (charts.churn) charts.churn.destroy();
+  const ctx = document.getElementById('churnChart').getContext('2d');
+  charts.churn = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Committed churn MRR',
+        data: values,
+        backgroundColor: 'rgba(239,68,68,0.85)',
+        borderColor: '#ef4444',
+        borderWidth: 1.5,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      onClick: function (evt, items) {
+        if (items.length === 0) return;
+        const idx = items[0].index;
+        if (idx == null || idx < 0) return;
+        drillScheduledMonth(yms[idx]);
+      },
+      onHover: function (evt, items) {
+        evt.native.target.style.cursor = items.length ? 'pointer' : 'default';
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function (c) {
+              const v = c.parsed.y;
+              const idx = c.dataIndex;
+              return fmtMoney(v) + '  —  ' + counts[idx] + ' firm' + (counts[idx] === 1 ? '' : 's');
+            },
+            footer: function () { return 'Click to drill'; },
+          },
+        },
+      },
+      scales: {
+        y: {
+          ticks: { callback: v => fmtMoneyShort(v) },
+          grid: { color: '#f3f4f6' },
+        },
+        x: { grid: { display: false } },
+      },
+    },
+  });
+}
+
+/** Drill on a churn-chart bar — show scheduled cancellations for that month. */
+function drillScheduledMonth(ym) {
+  const filtered = drillRows.filter(function (r) {
+    if (r._source !== 'scheduled') return false;
+    const d = parseChangeDate(r['Change Date']);
+    if (!d) return false;
+    const rowYm = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    return rowYm === ym;
+  });
+  openDrill('Scheduled cancellations — ' + monthLabel(ym),
+            'Firms with a future-dated cancel set in Chargebee for this month',
+            filtered);
 }
 
 function renderChurnTable(rows) {
@@ -1593,11 +1883,25 @@ function renderChurnTable(rows) {
 // Customers.Account Manager, summing across the four CS categories. Excludes
 // new business (NEW / FREE_TO_PAID / FUTURE). Output is a ranked table with
 // rank, AM name, net dollars, and a per-category breakdown.
-function renderAmLeaderboard(rows) {
+function renderAmLeaderboard(rows, retentionRows) {
   const ym = currentYm();
   const [yr, mo] = ym.split('-').map(Number);
   const monthStart = new Date(yr, mo - 1, 1);
   const monthEnd   = new Date(yr, mo, 1);
+
+  // Build {am → { cohort, retained, pct }} from the AM Retention CSV.
+  const retentionByAm = {};
+  if (Array.isArray(retentionRows)) {
+    for (const r of retentionRows) {
+      const am = (r['Account Manager'] || '').trim();
+      if (!am) continue;
+      const cohort   = parseInt(r['Cohort Size'] || '0', 10) || 0;
+      const retained = parseInt(r['Retained'] || '0', 10) || 0;
+      const pct      = parseFloat(String(r['Renewal %'] || '0').replace('%', ''));
+      retentionByAm[am] = { cohort: cohort, retained: retained, pct: pct };
+    }
+  }
+  const hasRetention = Object.keys(retentionByAm).length > 0;
 
   const byAm = {};
   for (const r of rows) {
@@ -1640,6 +1944,7 @@ function renderAmLeaderboard(rows) {
     + '<th class="numeric" style="color:var(--positive);">Reactivations</th>'
     + '<th class="numeric" style="color:var(--negative);">Downgrades</th>'
     + '<th class="numeric" style="color:var(--negative);">Cancellations</th>'
+    + (hasRetention ? '<th class="numeric" title="% of subs from ~11–13 months ago that are still active">12-mo Renewal</th>' : '')
     + '</tr></thead><tbody>';
 
   entries.forEach(function (e, i) {
@@ -1658,6 +1963,22 @@ function renderAmLeaderboard(rows) {
     }
     const escapedName = escapeHtml(name);
     const safeName = name.replace(/'/g, "\\'");
+    // Renewal cell — color-coded by tier
+    let retentionCell = '';
+    if (hasRetention) {
+      const rec = retentionByAm[name];
+      if (rec && rec.cohort > 0) {
+        const pct = rec.pct;
+        const pctCls = pct >= 90 ? 'positive' : pct >= 75 ? '' : 'negative';
+        retentionCell = '<td class="numeric ' + pctCls + '" style="font-weight:600;">'
+          + pct.toFixed(1) + '%'
+          + ' <span style="color:var(--text-muted);font-size:11px;font-weight:400;">('
+          + rec.retained + '/' + rec.cohort + ')</span>'
+          + '</td>';
+      } else {
+        retentionCell = '<td class="numeric" style="color:var(--text-muted);">—</td>';
+      }
+    }
     html += '<tr class="clickable-row" onclick="drillAm(\'' + safeName + '\', \'' + ym + '\')">'
       + '<td style="font-weight:600;color:var(--text-muted);">' + medal + '</td>'
       + '<td style="font-weight:500;">' + escapedName + '</td>'
@@ -1667,6 +1988,7 @@ function renderAmLeaderboard(rows) {
       + cell('pos', v.reactivations)
       + cell('neg', v.downgrades)
       + cell('neg', v.cancellations)
+      + retentionCell
       + '</tr>';
   });
 
@@ -1692,6 +2014,26 @@ function renderAmLeaderboard(rows) {
       + ' <span style="color:var(--text-muted);font-size:11px;">(' + c.count + ')</span>'
       + '</td>';
   }
+  // Team-level renewal: aggregate retained/cohort across all AMs.
+  let teamRetentionCell = '';
+  if (hasRetention) {
+    let tCohort = 0, tRetained = 0;
+    for (const am in retentionByAm) {
+      tCohort   += retentionByAm[am].cohort;
+      tRetained += retentionByAm[am].retained;
+    }
+    if (tCohort > 0) {
+      const tPct = tRetained / tCohort * 100;
+      const tCls = tPct >= 90 ? 'positive' : tPct >= 75 ? '' : 'negative';
+      teamRetentionCell = '<td class="numeric ' + tCls + '">'
+        + tPct.toFixed(1) + '%'
+        + ' <span style="color:var(--text-muted);font-size:11px;font-weight:400;">('
+        + tRetained + '/' + tCohort + ')</span>'
+        + '</td>';
+    } else {
+      teamRetentionCell = '<td></td>';
+    }
+  }
   html += '<tr style="font-weight:600;background:#fafafa;">'
     + '<td></td>'
     + '<td>Team total</td>'
@@ -1700,6 +2042,7 @@ function renderAmLeaderboard(rows) {
     + totalCell('pos', totals.re)
     + totalCell('neg', totals.dn)
     + totalCell('neg', totals.ca)
+    + teamRetentionCell
     + '</tr>';
   html += '</tbody></table>';
 
