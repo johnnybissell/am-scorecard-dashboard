@@ -739,11 +739,13 @@ async function loadAll() {
     const mrrSnapshot       = get('mrrSnapshot');
     const salesforceDetail  = get('salesforceDetail');
 
-    // Build SF lookup map: Salesforce Account ID → SF fields. Used by the
-    // churn renderers below to enrich Chargebee data with SF context.
+    // Build SF lookup map: Firm ID → SF fields. Used by the churn renderers
+    // below to enrich Chargebee data with SF context. We join on Firm ID
+    // (cf_firm_id in Chargebee ↔ Firm_ID__c in Salesforce) rather than the
+    // Salesforce Account ID — Firm ID has ~5x better coverage in Chargebee.
     const sfById = {};
     for (const r of salesforceDetail) {
-      const id = (r['Salesforce Account ID'] || '').trim();
+      const id = String(r['Firm ID'] || '').trim();
       if (id) sfById[id] = r;
     }
 
@@ -1189,9 +1191,10 @@ function appendScheduledChurnAsDrillRows(rows, churnRows, sfById) {
     const mrr = parseMoney(r['Current MRR']);
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const changeDate = months[d.getMonth()] + '-' + String(d.getFullYear()).slice(2);
-    // Look up Salesforce fields if joined.
-    const sfId = (r['Customers.SalesforceID'] || '').trim();
-    const sf   = sfId && sfById[sfId] ? sfById[sfId] : {};
+    // Look up Salesforce fields by Firm ID (the better join key).
+    const firmId = String(r['Customers.FirmID'] || '').trim();
+    const sfId   = (r['Customers.SalesforceID'] || '').trim();
+    const sf     = firmId && sfById[firmId] ? sfById[firmId] : {};
     rows.push({
       'MRR Impact':                  '-$' + Math.abs(mrr).toFixed(2),
       'Impact Sub status':           'CANCEL_FROM_PAID',
@@ -1201,6 +1204,7 @@ function appendScheduledChurnAsDrillRows(rows, churnRows, sfById) {
       'Customers.Onboarder':         r['Customers.Onboarder'] || '',
       'Customers.Account Manager':   r['Customers.Account Manager'] || '',
       'Customers.SalesforceID':      sfId,
+      'Customers.FirmID':            firmId,
       'Customers.Avg Lead Volume':   r['Customers.Avg Lead Volume'] || '',
       'Cancellation Date':           r['Cancellation Date'] || '',
       'Subscription Status':         'NON_RENEWING',
@@ -2140,8 +2144,8 @@ function renderChurnTable(filtered, sfById) {
     const r = x.row;
     const startDate = parseDateTime(r['Creation Date']);
     const startStr  = startDate ? startDate.toISOString().slice(0, 10) : '';
-    const sfId      = (r['Customers.SalesforceID'] || '').trim();
-    const sf        = sfId && sfById[sfId] ? sfById[sfId] : {};
+    const firmId    = String(r['Customers.FirmID'] || '').trim();
+    const sf        = firmId && sfById[firmId] ? sfById[firmId] : {};
     const cbReason  = r['Cancel Reason'] || '';
     // SF Churn Reason takes precedence when present; fall back to Chargebee.
     const reasonDisp  = sf['Churn Reason'] || cbReason || '';
@@ -2438,6 +2442,7 @@ function filterChurnForPeriod(churnRows, mrrRows, period) {
           'Customers.Onboarder':       r['Customers.Onboarder'] || '',
           'Customers.Account Manager': r['Customers.Account Manager'] || '',
           'Customers.SalesforceID':    r['Customers.SalesforceID'] || '',
+          'Customers.FirmID':          r['Customers.FirmID'] || '',
           'Customers.Avg Lead Volume': r['Customers.Avg Lead Volume'] || '',
           'Creation Date':             r['Creation Date'] || '',
           'Cancel Reason':             r['Cancel Reason'] || '',
@@ -2548,9 +2553,9 @@ function renderChurnDeepDive(filtered, sfById) {
 
   for (const x of upcoming) {
     const r = x.row;
-    const sfId  = (r['Customers.SalesforceID'] || '').trim();
-    const sf    = sfId && sfById[sfId] ? sfById[sfId] : {};
-    const am    = (r['Customers.Account Manager'] || '').trim() || '— Unassigned —';
+    const firmId = String(r['Customers.FirmID'] || '').trim();
+    const sf     = firmId && sfById[firmId] ? sfById[firmId] : {};
+    const am     = (r['Customers.Account Manager'] || '').trim() || '— Unassigned —';
     const owner = (r['Customers.Owner'] || '').trim()           || '— Unassigned —';
     // Cancel Reason: prefer SF Churn Reason (richer) when available.
     const sfReason = (sf['Churn Reason'] || '').trim();
