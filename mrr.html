@@ -85,6 +85,7 @@ td.negative { color: var(--negative); }
 @media (max-width: 800px) {
   .scorecards { grid-template-columns: 1fr; }
   main, header { padding: 16px; }
+  .churn-charts { grid-template-columns: 1fr !important; }
 }
 /* Hero scorecard — top-of-page big-readout for current month net customer movement. */
 .hero {
@@ -378,11 +379,35 @@ td.negative { color: var(--negative); }
   <div class="section">
     <div class="card">
       <h2>Committed customer churn — next 120 days</h2>
-      <div class="chart-container" style="height:260px; margin-bottom:16px;">
-        <canvas id="churnChart"></canvas>
+      <div id="churnSummary" style="display:flex; gap:24px; flex-wrap:wrap; padding:4px 0 16px; font-size:13px; color:var(--text-muted);"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;" class="churn-charts">
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">By month</div>
+          <div class="chart-container" style="height:240px;">
+            <canvas id="churnChart"></canvas>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">By MRR bucket</div>
+          <div class="chart-container" style="height:240px;">
+            <canvas id="churnMrrChart"></canvas>
+          </div>
+        </div>
       </div>
       <div id="churnTableContainer" style="max-height:520px; overflow-y:auto;">
         <div class="loading">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="card">
+      <h2>Net customer movement by Owner — last 90 days</h2>
+      <div style="font-size:12px;color:var(--text-muted);padding:0 0 12px;">
+        Same as the AM chart but grouped by Customers.Owner. Existing-customer movement only.
+      </div>
+      <div class="chart-container" style="height:380px;">
+        <canvas id="ownerChart"></canvas>
       </div>
     </div>
   </div>
@@ -571,7 +596,7 @@ async function fetchCsv(url, label) {
 // LOADERS — pull each CSV, normalize into useful shapes.
 // ============================================================================
 
-let charts = { movement: null, am: null, churn: null };
+let charts = { movement: null, am: null, churn: null, churnMrr: null, owner: null };
 
 // Drill-down dataset — kept around so click handlers can filter without
 // re-fetching. Each row is tagged with its source feed so the modal can
@@ -686,9 +711,12 @@ async function loadAll() {
     renderCategoryCards(movements);
     renderAmLeaderboard(mrr, amRetention);
     renderMovementChart(movements, beginningByYm);
+    renderChurnSummary(churn);
     renderChurnChart(churn);
+    renderChurnMrrChart(churn);
     renderChurnTable(churn);
     renderAmBreakdown(mrr);
+    renderOwnerBreakdown(mrr);
     renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm);
 
     const now = new Date();
@@ -1815,6 +1843,136 @@ function renderChurnChart(rows) {
   });
 }
 
+/**
+ * MRR-bucket distribution chart for committed churn.
+ *
+ * Buckets: <$200, $200–$300, $301–$400, $401–$500, $501–$700, $701+
+ */
+const CHURN_MRR_BUCKETS = [
+  { label: '<$200',       min: 0,    max: 199.99 },
+  { label: '$200–$300',   min: 200,  max: 300 },
+  { label: '$301–$400',   min: 301,  max: 400 },
+  { label: '$401–$500',   min: 401,  max: 500 },
+  { label: '$501–$700',   min: 501,  max: 700 },
+  { label: '$701+',       min: 701,  max: Infinity },
+];
+
+function bucketForMrr(mrr) {
+  for (let i = 0; i < CHURN_MRR_BUCKETS.length; i++) {
+    const b = CHURN_MRR_BUCKETS[i];
+    if (mrr >= b.min && mrr <= b.max) return i;
+  }
+  return -1;
+}
+
+function renderChurnMrrChart(rows) {
+  const now = new Date();
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 120);
+
+  const counts = CHURN_MRR_BUCKETS.map(() => 0);
+  const dollars = CHURN_MRR_BUCKETS.map(() => 0);
+  for (const r of rows) {
+    const d = parseDateTime(r['Cancellation Date']);
+    if (!d || d < now || d > cutoff) continue;
+    const mrr = parseMoney(r['Current MRR']);
+    const idx = bucketForMrr(mrr);
+    if (idx < 0) continue;
+    counts[idx] += 1;
+    dollars[idx] += mrr;
+  }
+
+  if (charts.churnMrr) charts.churnMrr.destroy();
+  const ctx = document.getElementById('churnMrrChart').getContext('2d');
+  charts.churnMrr = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: CHURN_MRR_BUCKETS.map(b => b.label),
+      datasets: [{
+        label: 'Firms cancelling',
+        data: counts,
+        backgroundColor: 'rgba(239,68,68,0.85)',
+        borderColor: '#ef4444',
+        borderWidth: 1.5,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      onClick: function (evt, items) {
+        if (items.length === 0) return;
+        drillChurnBucket(items[0].index);
+      },
+      onHover: function (evt, items) {
+        evt.native.target.style.cursor = items.length ? 'pointer' : 'default';
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function (c) {
+              const idx = c.dataIndex;
+              return c.parsed.y + ' firm' + (c.parsed.y === 1 ? '' : 's')
+                + '  —  $' + dollars[idx].toFixed(0) + ' MRR';
+            },
+            footer: function () { return 'Click to drill'; },
+          },
+        },
+      },
+      scales: {
+        y: {
+          ticks: { precision: 0 },
+          grid: { color: '#f3f4f6' },
+          beginAtZero: true,
+        },
+        x: { grid: { display: false } },
+      },
+    },
+  });
+}
+
+function drillChurnBucket(bucketIdx) {
+  const b = CHURN_MRR_BUCKETS[bucketIdx];
+  if (!b) return;
+  const filtered = drillRows.filter(function (r) {
+    if (r._source !== 'scheduled') return false;
+    const mrr = parseMoney(r['MRR Impact']); // negative in synthetic rows
+    return Math.abs(mrr) >= b.min && Math.abs(mrr) <= b.max;
+  });
+  openDrill('Committed churn — ' + b.label + ' MRR',
+            'Scheduled non-renewing firms whose Current MRR falls in this bucket',
+            filtered);
+}
+
+/**
+ * Header summary: count, total MRR, median MRR.
+ */
+function renderChurnSummary(rows) {
+  const now = new Date();
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 120);
+  const mrrs = [];
+  let total = 0;
+  for (const r of rows) {
+    const d = parseDateTime(r['Cancellation Date']);
+    if (!d || d < now || d > cutoff) continue;
+    const mrr = parseMoney(r['Current MRR']);
+    mrrs.push(mrr);
+    total += mrr;
+  }
+  mrrs.sort(function (a, b) { return a - b; });
+  let median = 0;
+  if (mrrs.length > 0) {
+    const mid = Math.floor(mrrs.length / 2);
+    median = mrrs.length % 2 === 0
+      ? (mrrs[mid - 1] + mrrs[mid]) / 2
+      : mrrs[mid];
+  }
+  const avg = mrrs.length > 0 ? total / mrrs.length : 0;
+  document.getElementById('churnSummary').innerHTML =
+      '<span><strong>' + mrrs.length + '</strong> firms</span>'
+    + '<span><strong>' + fmtMoney(total)  + '</strong> total MRR</span>'
+    + '<span>Median <strong>' + fmtMoney(median) + '</strong></span>'
+    + '<span>Avg <strong>' + fmtMoney(avg) + '</strong></span>';
+}
+
 /** Drill on a churn-chart bar — show scheduled cancellations for that month. */
 function drillScheduledMonth(ym) {
   const filtered = drillRows.filter(function (r) {
@@ -1849,25 +2007,38 @@ function renderChurnTable(rows) {
     return;
   }
 
+  const stickyTh = 'position:sticky;top:0;background:var(--card);';
   let html = '<table><thead><tr>'
-    + '<th style="position:sticky;top:0;background:var(--card);">Cancel date</th>'
-    + '<th style="position:sticky;top:0;background:var(--card);">Company</th>'
-    + '<th style="position:sticky;top:0;background:var(--card);">Owner</th>'
-    + '<th style="position:sticky;top:0;background:var(--card);">Account Manager</th>'
-    + '<th class="numeric" style="position:sticky;top:0;background:var(--card);">MRR</th>'
+    + '<th style="' + stickyTh + '">Cancel date</th>'
+    + '<th style="' + stickyTh + '">Start date</th>'
+    + '<th style="' + stickyTh + '">Company</th>'
+    + '<th style="' + stickyTh + '">Owner</th>'
+    + '<th style="' + stickyTh + '">Account Manager</th>'
+    + '<th style="' + stickyTh + '">Cancel reason</th>'
+    + '<th class="numeric" style="' + stickyTh + '">Avg leads</th>'
+    + '<th class="numeric" style="' + stickyTh + '">MRR</th>'
     + '</tr></thead><tbody>';
 
   for (const x of upcoming) {
+    const r = x.row;
+    const startDate = parseDateTime(r['Creation Date']);
+    const startStr  = startDate ? startDate.toISOString().slice(0, 10) : '';
+    const reason    = r['Cancel Reason'] || '';
+    const reasonCls = reason === 'NOT_PAID' ? 'style="color:var(--negative);font-family:ui-monospace,monospace;font-size:11px;"' : '';
+    const leads     = (r['Customers.Avg Lead Volume'] || '').toString().trim();
     html += '<tr>'
       + '<td>' + escapeHtml(x.date.toISOString().slice(0, 10)) + '</td>'
-      + '<td>' + escapeHtml(x.row.Company || '') + '</td>'
-      + '<td>' + escapeHtml(x.row['Customers.Owner'] || '') + '</td>'
-      + '<td>' + escapeHtml(x.row['Customers.Account Manager'] || '') + '</td>'
+      + '<td style="color:var(--text-muted);font-size:12px;">' + escapeHtml(startStr) + '</td>'
+      + '<td><strong>' + escapeHtml(r.Company || '') + '</strong></td>'
+      + '<td>' + escapeHtml(r['Customers.Owner'] || '') + '</td>'
+      + '<td>' + escapeHtml(r['Customers.Account Manager'] || '') + '</td>'
+      + '<td ' + reasonCls + '>' + escapeHtml(reason) + '</td>'
+      + '<td class="numeric" style="color:var(--text-muted);">' + escapeHtml(leads || '—') + '</td>'
       + '<td class="numeric negative">' + fmtMoney(-x.mrr) + '</td>'
       + '</tr>';
   }
   html += '<tr style="font-weight:600;background:#fafafa;">'
-    + '<td colspan="4">Total ' + upcoming.length + ' firm' + (upcoming.length === 1 ? '' : 's') + '</td>'
+    + '<td colspan="7">Total ' + upcoming.length + ' firm' + (upcoming.length === 1 ? '' : 's') + '</td>'
     + '<td class="numeric negative">' + fmtMoney(-total) + '</td>'
     + '</tr>';
   html += '</tbody></table>';
@@ -2047,6 +2218,86 @@ function renderAmLeaderboard(rows, retentionRows) {
   html += '</tbody></table>';
 
   host.innerHTML = html;
+}
+
+/**
+ * Owner-level breakdown — same data shape as the AM chart but grouped by
+ * Customers.Owner. Existing-customer movement, last 90 days, click to drill.
+ */
+function renderOwnerBreakdown(rows) {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+  const byOwner = {};
+  for (const r of rows) {
+    const status = r['Impact Sub status'];
+    const cat = categoryFor(status);
+    if (!cat || cat === 'newBusiness') continue;
+    const d = parseChangeDate(r['Change Date']);
+    if (!d || d < cutoff) continue;
+    const owner = (r['Customers.Owner'] || '').trim() || '— Unassigned —';
+    byOwner[owner] = (byOwner[owner] || 0) + parseMoney(r['MRR Impact']);
+  }
+  const entries = Object.entries(byOwner).sort((a, b) => b[1] - a[1]);
+  const labels = entries.map(e => e[0]);
+  const values = entries.map(e => e[1]);
+  const colors = values.map(v => v >= 0 ? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)');
+  const borders = values.map(v => v >= 0 ? '#10b981' : '#ef4444');
+
+  if (charts.owner) charts.owner.destroy();
+  const ctx = document.getElementById('ownerChart').getContext('2d');
+  charts.owner = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Net MRR change (last 90 days)',
+        data: values,
+        backgroundColor: colors,
+        borderColor: borders,
+        borderWidth: 1.5,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      maintainAspectRatio: false,
+      onClick: function (evt, items) {
+        if (items.length === 0) return;
+        const idx = items[0].index;
+        if (idx == null || idx < 0 || idx >= labels.length) return;
+        drillOwner90(labels[idx]);
+      },
+      onHover: function (evt, items) {
+        evt.native.target.style.cursor = items.length ? 'pointer' : 'default';
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: c => fmtMoney(c.parsed.x),
+            footer: () => 'Click to drill into this owner',
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { callback: v => fmtMoneyShort(v) }, grid: { color: '#f3f4f6' } },
+        y: { grid: { display: false } },
+      },
+    },
+  });
+}
+
+function drillOwner90(ownerName) {
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+  const filtered = drillRows.filter(function (r) {
+    const cat = categoryFor(r['Impact Sub status']);
+    if (!cat || cat === 'newBusiness') return false;
+    const d = parseChangeDate(r['Change Date']);
+    if (!d || d < cutoff) return false;
+    const owner = (r['Customers.Owner'] || '').trim() || '— Unassigned —';
+    return owner === ownerName;
+  });
+  openDrill(ownerName + ' (owner) — last 90 days',
+            'All existing-customer movement attributed to this owner in the past 90 days',
+            filtered);
 }
 
 function renderAmBreakdown(rows) {
