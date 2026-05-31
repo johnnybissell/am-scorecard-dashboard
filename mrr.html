@@ -514,6 +514,10 @@ const CSV_URLS = {
   // (AM Retention is computed client-side from MonthlyMRRImpact — no
   // separate CSV is needed for it.)
   mrrSnapshot:      '',
+  // Salesforce Detail tab — populated by the Salesforce OAuth integration
+  // in the Apps Script. Publish that tab as CSV and paste the URL here.
+  // When empty, churn views fall back to Chargebee fields only.
+  salesforceDetail: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=332446680&single=true&output=csv',
 };
 
 // Auto-refresh every N minutes (set to 0 to disable).
@@ -647,7 +651,7 @@ async function fetchCsv(url, label) {
 let charts = {
   movement: null, am: null, churn: null, churnMrr: null,
   // Churn Deep Dive sub-charts
-  ddAm: null, ddOwner: null, ddReason: null, ddLeads: null,
+  ddAm: null, ddOwner: null, ddReason: null, ddLeads: null, ddPracticeArea: null,
 };
 
 // Drill-down dataset — kept around so click handlers can filter without
@@ -682,16 +686,26 @@ async function loadAll() {
     push('monthlyMrrImpact', CSV_URLS.monthlyMrrImpact);
     push('historical',       CSV_URLS.historical);
     push('mrrSnapshot',      CSV_URLS.mrrSnapshot);
+    push('salesforceDetail', CSV_URLS.salesforceDetail);
 
     const results = await Promise.all(fetches);
     function get(name) {
       const i = fetchIndex[name];
       return i >= 0 ? results[i] : [];
     }
-    const churn          = get('scheduledChurn');
-    const mrrRaw         = get('monthlyMrrImpact');
-    const historicalRaw  = get('historical');
-    const mrrSnapshot    = get('mrrSnapshot');
+    const churn             = get('scheduledChurn');
+    const mrrRaw            = get('monthlyMrrImpact');
+    const historicalRaw     = get('historical');
+    const mrrSnapshot       = get('mrrSnapshot');
+    const salesforceDetail  = get('salesforceDetail');
+
+    // Build SF lookup map: Salesforce Account ID → SF fields. Used by the
+    // churn renderers below to enrich Chargebee data with SF context.
+    const sfById = {};
+    for (const r of salesforceDetail) {
+      const id = (r['Salesforce Account ID'] || '').trim();
+      if (id) sfById[id] = r;
+    }
 
     // Collapse cancel+reactivate pairs within the same month. A firm that
     // leaves and comes back the same month is a wash — neither event
@@ -746,8 +760,9 @@ async function loadAll() {
       }
     }
     // Augment with scheduled-but-not-yet-cancelled rows so the Cancellations
-    // drill matches the augmented card total.
-    appendScheduledChurnAsDrillRows(drillRows, churn);
+    // drill matches the augmented card total. Pass sfById so the synthetic
+    // rows carry the SF Practice Area / Churn Reason / etc. for drill-down.
+    appendScheduledChurnAsDrillRows(drillRows, churn, sfById);
 
     // Derive beginning-of-month MRR baselines from the snapshot tab. Used
     // to render movement metrics as % of beginning ARR. Empty {} when
@@ -766,9 +781,9 @@ async function loadAll() {
     renderChurnSummary(churn);
     renderChurnChart(churn);
     renderChurnMrrChart(churn);
-    renderChurnTable(churn);
+    renderChurnTable(churn, sfById);
     renderAmBreakdown(mrr);
-    renderChurnDeepDive(churn);
+    renderChurnDeepDive(churn, sfById);
     renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm);
 
     const now = new Date();
@@ -1123,17 +1138,19 @@ function escapeHtml(s) {
  * MonthlyMRRImpact schema so the renderer doesn't have to special-case
  * scheduled rows.
  */
-function appendScheduledChurnAsDrillRows(rows, churnRows) {
+function appendScheduledChurnAsDrillRows(rows, churnRows, sfById) {
   if (!Array.isArray(churnRows)) return;
+  sfById = sfById || {};
   const now = new Date();
   for (const r of churnRows) {
     const d = parseDateTime(r['Cancellation Date']);
     if (!d || d < now) continue;
     const mrr = parseMoney(r['Current MRR']);
-    // Include even $0 MRR scheduled cancellations — they still count as a
-    // firm leaving.
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const changeDate = months[d.getMonth()] + '-' + String(d.getFullYear()).slice(2);
+    // Look up Salesforce fields if joined.
+    const sfId = (r['Customers.SalesforceID'] || '').trim();
+    const sf   = sfId && sfById[sfId] ? sfById[sfId] : {};
     rows.push({
       'MRR Impact':                  '-$' + Math.abs(mrr).toFixed(2),
       'Impact Sub status':           'CANCEL_FROM_PAID',
@@ -1142,10 +1159,18 @@ function appendScheduledChurnAsDrillRows(rows, churnRows) {
       'Customers.Owner':             r['Customers.Owner'] || '',
       'Customers.Onboarder':         r['Customers.Onboarder'] || '',
       'Customers.Account Manager':   r['Customers.Account Manager'] || '',
+      'Customers.SalesforceID':      sfId,
       'Customers.Avg Lead Volume':   r['Customers.Avg Lead Volume'] || '',
       'Cancellation Date':           r['Cancellation Date'] || '',
       'Subscription Status':         'NON_RENEWING',
       'Cancel Reason':               r['Cancel Reason'] || '',
+      // Salesforce-derived fields:
+      'SF Practice Area':            sf['Primary Practice Area'] || '',
+      'SF Avg Monthly Volume':       sf['Avg Monthly Volume']    || '',
+      'SF Churn Reason':             sf['Churn Reason']          || '',
+      'SF Churn Details':            sf['Churn Details']         || '',
+      'SF ChurnScore':               sf['Primary ChurnScore']    || '',
+      'SF Onboarding CSAT':          sf['Onboarding CSAT']       || '',
       '_source':                     'scheduled',
     });
   }
@@ -2040,7 +2065,9 @@ function drillScheduledMonth(ym) {
             filtered);
 }
 
-function renderChurnTable(rows) {
+function renderChurnTable(rows, sfById) {
+  sfById = sfById || {};
+  const hasSf = Object.keys(sfById).length > 0;
   const now = new Date();
   const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 120);
 
@@ -2067,8 +2094,12 @@ function renderChurnTable(rows) {
     + '<th style="' + stickyTh + '">Company</th>'
     + '<th style="' + stickyTh + '">Owner</th>'
     + '<th style="' + stickyTh + '">Account Manager</th>'
+    + (hasSf ? '<th style="' + stickyTh + '">Practice Area</th>' : '')
     + '<th style="' + stickyTh + '">Cancel reason</th>'
-    + '<th class="numeric" style="' + stickyTh + '">Avg leads</th>'
+    + (hasSf ? '<th style="' + stickyTh + '">Churn details</th>' : '')
+    + (hasSf ? '<th class="numeric" style="' + stickyTh + '">Churn score</th>' : '')
+    + (hasSf ? '<th class="numeric" style="' + stickyTh + '">Onb. CSAT</th>' : '')
+    + '<th class="numeric" style="' + stickyTh + '">Avg monthly leads</th>'
     + '<th class="numeric" style="' + stickyTh + '">MRR</th>'
     + '</tr></thead><tbody>';
 
@@ -2076,22 +2107,41 @@ function renderChurnTable(rows) {
     const r = x.row;
     const startDate = parseDateTime(r['Creation Date']);
     const startStr  = startDate ? startDate.toISOString().slice(0, 10) : '';
-    const reason    = r['Cancel Reason'] || '';
-    const reasonCls = reason === 'NOT_PAID' ? 'style="color:var(--negative);font-family:ui-monospace,monospace;font-size:11px;"' : '';
-    const leads     = (r['Customers.Avg Lead Volume'] || '').toString().trim();
+    const sfId      = (r['Customers.SalesforceID'] || '').trim();
+    const sf        = sfId && sfById[sfId] ? sfById[sfId] : {};
+    const cbReason  = r['Cancel Reason'] || '';
+    // SF Churn Reason takes precedence when present; fall back to Chargebee.
+    const reasonDisp  = sf['Churn Reason'] || cbReason || '';
+    const isNotPaid   = cbReason === 'NOT_PAID';
+    const reasonStyle = isNotPaid
+      ? 'style="color:var(--negative);font-family:ui-monospace,monospace;font-size:11px;"'
+      : '';
+    // Avg Monthly Volume: prefer SF, fall back to Chargebee cf_Avg_Lead_Volume.
+    const avgVol = (sf['Avg Monthly Volume'] || r['Customers.Avg Lead Volume'] || '').toString().trim();
+    const details = (sf['Churn Details'] || '').toString().trim();
+    const score   = (sf['Primary ChurnScore'] || '').toString().trim();
+    const csat    = (sf['Onboarding CSAT'] || '').toString().trim();
+    const practiceArea = (sf['Primary Practice Area'] || '').toString().trim();
+
     html += '<tr>'
       + '<td>' + escapeHtml(x.date.toISOString().slice(0, 10)) + '</td>'
       + '<td style="color:var(--text-muted);font-size:12px;">' + escapeHtml(startStr) + '</td>'
       + '<td><strong>' + escapeHtml(r.Company || '') + '</strong></td>'
       + '<td>' + escapeHtml(r['Customers.Owner'] || '') + '</td>'
       + '<td>' + escapeHtml(r['Customers.Account Manager'] || '') + '</td>'
-      + '<td ' + reasonCls + '>' + escapeHtml(reason) + '</td>'
-      + '<td class="numeric" style="color:var(--text-muted);">' + escapeHtml(leads || '—') + '</td>'
+      + (hasSf ? '<td>' + escapeHtml(practiceArea || '—') + '</td>' : '')
+      + '<td ' + reasonStyle + '>' + escapeHtml(reasonDisp || '—') + '</td>'
+      + (hasSf ? '<td style="max-width:280px;font-size:12px;color:var(--text-muted);" title="' + escapeHtml(details) + '">'
+          + (details.length > 80 ? escapeHtml(details.slice(0, 78)) + '…' : escapeHtml(details || '—')) + '</td>' : '')
+      + (hasSf ? '<td class="numeric" style="color:var(--text-muted);">' + escapeHtml(score || '—') + '</td>' : '')
+      + (hasSf ? '<td class="numeric" style="color:var(--text-muted);">' + escapeHtml(csat || '—') + '</td>' : '')
+      + '<td class="numeric" style="color:var(--text-muted);">' + escapeHtml(avgVol || '—') + '</td>'
       + '<td class="numeric negative">' + fmtMoney(-x.mrr) + '</td>'
       + '</tr>';
   }
+  const colspan = hasSf ? 11 : 7;
   html += '<tr style="font-weight:600;background:#fafafa;">'
-    + '<td colspan="7">Total ' + upcoming.length + ' firm' + (upcoming.length === 1 ? '' : 's') + '</td>'
+    + '<td colspan="' + colspan + '">Total ' + upcoming.length + ' firm' + (upcoming.length === 1 ? '' : 's') + '</td>'
     + '<td class="numeric negative">' + fmtMoney(-total) + '</td>'
     + '</tr>';
   html += '</tbody></table>';
@@ -2315,15 +2365,19 @@ function leadVolumeBucketIndex(rawValue) {
 }
 
 /**
- * Main entry — render all four breakdown mini-charts.
+ * Main entry — render all five breakdown mini-charts. When Salesforce data
+ * is available, switches the Cancel Reason and Avg Volume cuts to use SF
+ * fields (richer than Chargebee's) and lights up the Practice Area chart.
  */
-function renderChurnDeepDive(rows) {
+function renderChurnDeepDive(rows, sfById) {
+  sfById = sfById || {};
+  const hasSf = Object.keys(sfById).length > 0;
   const upcoming = filterUpcomingChurn(rows);
 
-  // Build the four aggregate views.
-  const byAm     = {};   // name → { count, dollars, rowKeys }
+  const byAm     = {};
   const byOwner  = {};
   const byReason = {};
+  const byPA     = {};
   const byLeads  = LEAD_VOLUME_BUCKETS.map(function () { return { count: 0, dollars: 0 }; });
 
   function bump(map, key, mrr) {
@@ -2334,21 +2388,80 @@ function renderChurnDeepDive(rows) {
 
   for (const x of upcoming) {
     const r = x.row;
-    const am     = (r['Customers.Account Manager'] || '').trim() || '— Unassigned —';
-    const owner  = (r['Customers.Owner'] || '').trim()          || '— Unassigned —';
-    const reason = (r['Cancel Reason'] || '').trim()            || 'Voluntary / unspecified';
-    bump(byAm, am, x.mrr);
-    bump(byOwner, owner, x.mrr);
+    const sfId  = (r['Customers.SalesforceID'] || '').trim();
+    const sf    = sfId && sfById[sfId] ? sfById[sfId] : {};
+    const am    = (r['Customers.Account Manager'] || '').trim() || '— Unassigned —';
+    const owner = (r['Customers.Owner'] || '').trim()           || '— Unassigned —';
+    // Cancel Reason: prefer SF Churn Reason (richer) when available.
+    const sfReason = (sf['Churn Reason'] || '').trim();
+    const cbReason = (r['Cancel Reason'] || '').trim();
+    const reason   = sfReason || cbReason || 'Voluntary / unspecified';
+    // Practice Area only available with SF.
+    const pa = (sf['Primary Practice Area'] || '').trim() || '— Unknown —';
+    // Avg lead volume: prefer SF Avg Monthly Volume when present.
+    const sfVol   = sf['Avg Monthly Volume'];
+    const cbVol   = r['Customers.Avg Lead Volume'];
+    const useVol  = (sfVol !== undefined && sfVol !== null && String(sfVol).trim() !== '') ? sfVol : cbVol;
+
+    bump(byAm,     am,     x.mrr);
+    bump(byOwner,  owner,  x.mrr);
     bump(byReason, reason, x.mrr);
-    const li = leadVolumeBucketIndex(r['Customers.Avg Lead Volume']);
+    bump(byPA,     pa,     x.mrr);
+    const li = leadVolumeBucketIndex(useVol);
     byLeads[li].count   += 1;
     byLeads[li].dollars += x.mrr;
   }
 
   renderChurnDdHorizontal('ddAm',     'ddAm',     byAm,     'amName',     drillChurnByField.bind(null, 'Customers.Account Manager'));
   renderChurnDdHorizontal('ddOwner',  'ddOwner',  byOwner,  'ownerName',  drillChurnByField.bind(null, 'Customers.Owner'));
-  renderChurnDdHorizontal('ddReason', 'ddReason', byReason, 'reasonName', drillChurnByField.bind(null, 'Cancel Reason'));
+  renderChurnDdHorizontal('ddReason', 'ddReason', byReason, 'reasonName', drillChurnReason);
   renderChurnDdBuckets   ('ddLeads',  'ddLeads',  byLeads,  LEAD_VOLUME_BUCKETS, drillChurnByLeadBucket);
+  renderChurnPracticeArea(hasSf, byPA);
+}
+
+/**
+ * Practice Area chart — replaces the placeholder card. Renders a chart when
+ * SF is connected, an inline "not connected" message otherwise.
+ */
+function renderChurnPracticeArea(hasSf, byPA) {
+  // Locate the Practice Area dd-card and swap its inner content.
+  const cards = document.querySelectorAll('.dd-placeholder');
+  // The original placeholder is the Practice Area card. Once SF is connected
+  // we promote it into a real chart card.
+  if (cards.length === 0) {
+    // Already promoted — render into the canvas.
+    renderChurnDdHorizontal('ddPracticeArea', 'ddPracticeArea', byPA, 'paName', drillChurnByField.bind(null, 'SF Practice Area'));
+    return;
+  }
+  const card = cards[0];
+  if (!hasSf) {
+    // Keep the helpful placeholder text.
+    return;
+  }
+  // First time after SF connects — promote the card into a real chart.
+  card.classList.remove('dd-placeholder');
+  card.innerHTML =
+      '<div class="dd-title">By Practice Area</div>'
+    + '<div class="chart-container" style="height:260px;"><canvas id="ddPracticeAreaChart"></canvas></div>';
+  renderChurnDdHorizontal('ddPracticeArea', 'ddPracticeArea', byPA, 'paName', drillChurnByField.bind(null, 'SF Practice Area'));
+}
+
+/**
+ * Drill handler — for reason chart. Tries both SF Churn Reason and Chargebee
+ * Cancel Reason (since the chart merges them).
+ */
+function drillChurnReason(value) {
+  const isUnspecified = (value === 'Voluntary / unspecified');
+  const filtered = drillRows.filter(function (r) {
+    if (r._source !== 'scheduled') return false;
+    const sfR = (r['SF Churn Reason'] || '').trim();
+    const cbR = (r['Cancel Reason'] || '').trim();
+    if (isUnspecified) return !sfR && !cbR;
+    return sfR === value || cbR === value;
+  });
+  openDrill('Churn — Reason: ' + value,
+            'Committed cancellations in the next 120 days for this reason',
+            filtered);
 }
 
 /**
@@ -2467,18 +2580,20 @@ function renderChurnDdBuckets(chartKey, canvasIdSuffix, bucketData, bucketsDef, 
  * match. Used for AM, Owner, and Cancel Reason cuts.
  */
 function drillChurnByField(field, value) {
-  // The synthetic Cancel Reason value 'Voluntary / unspecified' maps to an
-  // empty/missing field in the underlying row.
   const looksLikeUnspecified = (field === 'Cancel Reason' && value === 'Voluntary / unspecified');
-  const looksLikeUnassigned = (value === '— Unassigned —');
+  const looksLikeUnassigned  = (value === '— Unassigned —');
+  const looksLikeUnknown     = (value === '— Unknown —');
   const filtered = drillRows.filter(function (r) {
     if (r._source !== 'scheduled') return false;
     const raw = (r[field] || '').trim();
-    if (looksLikeUnspecified) return raw === '';
-    if (looksLikeUnassigned)  return raw === '';
+    if (looksLikeUnspecified || looksLikeUnassigned || looksLikeUnknown) return raw === '';
     return raw === value;
   });
-  openDrill('Churn — ' + escapeHtml(field.replace('Customers.', '').replace('Cancel Reason', 'Reason')) + ': ' + value,
+  const fieldLabel = field
+    .replace('Customers.', '')
+    .replace('SF ', '')
+    .replace('Cancel Reason', 'Reason');
+  openDrill('Churn — ' + fieldLabel + ': ' + value,
             'Committed cancellations in the next 120 days for this slice',
             filtered);
 }
