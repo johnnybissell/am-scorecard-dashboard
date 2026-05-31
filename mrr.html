@@ -87,6 +87,31 @@ td.negative { color: var(--negative); }
   main, header { padding: 16px; }
   .churn-charts { grid-template-columns: 1fr !important; }
 }
+
+/* Churn deep dive grid */
+.dd-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+@media (max-width: 1000px) {
+  .dd-grid { grid-template-columns: 1fr; }
+}
+.dd-card {
+  background: #fafbfc;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+.dd-card.dd-placeholder { background: #f9fafb; border-style: dashed; }
+.dd-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 10px;
+}
 /* Hero scorecard — top-of-page big-readout for current month net customer movement. */
 .hero {
   background: var(--card);
@@ -400,17 +425,6 @@ td.negative { color: var(--negative); }
     </div>
   </div>
 
-  <div class="section">
-    <div class="card">
-      <h2>Net customer movement by Owner — last 90 days</h2>
-      <div style="font-size:12px;color:var(--text-muted);padding:0 0 12px;">
-        Same as the AM chart but grouped by Customers.Owner. Existing-customer movement only.
-      </div>
-      <div class="chart-container" style="height:380px;">
-        <canvas id="ownerChart"></canvas>
-      </div>
-    </div>
-  </div>
 
   <!-- Drill-down modal. Hidden by default; openDrill() shows it. -->
   <div class="drill-overlay" id="drillOverlay" onclick="if(event.target===this) closeDrill()">
@@ -426,6 +440,40 @@ td.negative { color: var(--negative); }
         <div class="drill-empty">Loading…</div>
       </div>
       <div class="drill-footer" id="drillFooter"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="card">
+      <h2>Churn deep dive — committed cancellations next 120 days</h2>
+      <div style="font-size:12px;color:var(--text-muted);padding:0 0 12px;">
+        Same firms as the Committed customer churn table above, sliced by attribution and reason. Click any bar to drill into the firms in that slice.
+      </div>
+      <div class="dd-grid">
+        <div class="dd-card">
+          <div class="dd-title">By Account Manager</div>
+          <div class="chart-container" style="height:260px;"><canvas id="ddAmChart"></canvas></div>
+        </div>
+        <div class="dd-card">
+          <div class="dd-title">By Owner</div>
+          <div class="chart-container" style="height:260px;"><canvas id="ddOwnerChart"></canvas></div>
+        </div>
+        <div class="dd-card">
+          <div class="dd-title">By Cancel Reason</div>
+          <div class="chart-container" style="height:260px;"><canvas id="ddReasonChart"></canvas></div>
+        </div>
+        <div class="dd-card">
+          <div class="dd-title">By Avg Lead Volume bucket</div>
+          <div class="chart-container" style="height:260px;"><canvas id="ddLeadsChart"></canvas></div>
+        </div>
+        <div class="dd-card dd-placeholder">
+          <div class="dd-title">By Practice Area</div>
+          <div style="padding:48px 16px;text-align:center;color:var(--text-muted);font-size:13px;line-height:1.6;">
+            Practice Area lives in Salesforce.<br>
+            Will populate once the Salesforce REST API integration (option C) is set up.
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -596,7 +644,11 @@ async function fetchCsv(url, label) {
 // LOADERS — pull each CSV, normalize into useful shapes.
 // ============================================================================
 
-let charts = { movement: null, am: null, churn: null, churnMrr: null, owner: null };
+let charts = {
+  movement: null, am: null, churn: null, churnMrr: null,
+  // Churn Deep Dive sub-charts
+  ddAm: null, ddOwner: null, ddReason: null, ddLeads: null,
+};
 
 // Drill-down dataset — kept around so click handlers can filter without
 // re-fetching. Each row is tagged with its source feed so the modal can
@@ -716,7 +768,7 @@ async function loadAll() {
     renderChurnMrrChart(churn);
     renderChurnTable(churn);
     renderAmBreakdown(mrr);
-    renderOwnerBreakdown(mrr);
+    renderChurnDeepDive(churn);
     renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm);
 
     const now = new Date();
@@ -1083,17 +1135,18 @@ function appendScheduledChurnAsDrillRows(rows, churnRows) {
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const changeDate = months[d.getMonth()] + '-' + String(d.getFullYear()).slice(2);
     rows.push({
-      'MRR Impact':                '-$' + Math.abs(mrr).toFixed(2),
-      'Impact Sub status':         'CANCEL_FROM_PAID',
-      'Change Date':               changeDate,
-      'Company':                   r['Company'] || '',
-      'Customers.Owner':           r['Customers.Owner'] || '',
-      'Customers.Onboarder':       r['Customers.Onboarder'] || '',
-      'Customers.Account Manager': r['Customers.Account Manager'] || '',
-      'Cancellation Date':         r['Cancellation Date'] || '',
-      'Subscription Status':       'NON_RENEWING',
-      'Cancel Reason':             r['Cancel Reason'] || '',
-      '_source':                   'scheduled',
+      'MRR Impact':                  '-$' + Math.abs(mrr).toFixed(2),
+      'Impact Sub status':           'CANCEL_FROM_PAID',
+      'Change Date':                 changeDate,
+      'Company':                     r['Company'] || '',
+      'Customers.Owner':             r['Customers.Owner'] || '',
+      'Customers.Onboarder':         r['Customers.Onboarder'] || '',
+      'Customers.Account Manager':   r['Customers.Account Manager'] || '',
+      'Customers.Avg Lead Volume':   r['Customers.Avg Lead Volume'] || '',
+      'Cancellation Date':           r['Cancellation Date'] || '',
+      'Subscription Status':         'NON_RENEWING',
+      'Cancel Reason':               r['Cancel Reason'] || '',
+      '_source':                     'scheduled',
     });
   }
 }
@@ -2220,39 +2273,106 @@ function renderAmLeaderboard(rows, retentionRows) {
   host.innerHTML = html;
 }
 
-/**
- * Owner-level breakdown — same data shape as the AM chart but grouped by
- * Customers.Owner. Existing-customer movement, last 90 days, click to drill.
- */
-function renderOwnerBreakdown(rows) {
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
-  const byOwner = {};
-  for (const r of rows) {
-    const status = r['Impact Sub status'];
-    const cat = categoryFor(status);
-    if (!cat || cat === 'newBusiness') continue;
-    const d = parseChangeDate(r['Change Date']);
-    if (!d || d < cutoff) continue;
-    const owner = (r['Customers.Owner'] || '').trim() || '— Unassigned —';
-    byOwner[owner] = (byOwner[owner] || 0) + parseMoney(r['MRR Impact']);
-  }
-  const entries = Object.entries(byOwner).sort((a, b) => b[1] - a[1]);
-  const labels = entries.map(e => e[0]);
-  const values = entries.map(e => e[1]);
-  const colors = values.map(v => v >= 0 ? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)');
-  const borders = values.map(v => v >= 0 ? '#10b981' : '#ef4444');
+// ----------------------------------------------------------------------------
+// Churn Deep Dive — slice committed cancellations several ways
+// ----------------------------------------------------------------------------
 
-  if (charts.owner) charts.owner.destroy();
-  const ctx = document.getElementById('ownerChart').getContext('2d');
-  charts.owner = new Chart(ctx, {
+/**
+ * Filter Scheduled Churn rows to the next-120-day, future-only window we
+ * use everywhere in the churn section.
+ */
+function filterUpcomingChurn(rows) {
+  const now = new Date();
+  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 120);
+  const out = [];
+  for (const r of rows) {
+    const d = parseDateTime(r['Cancellation Date']);
+    if (!d || d < now || d > cutoff) continue;
+    out.push({ row: r, date: d, mrr: parseMoney(r['Current MRR']) });
+  }
+  return out;
+}
+
+const LEAD_VOLUME_BUCKETS = [
+  { label: 'Not set',  test: function (n) { return n === null; } },
+  { label: '0–10',     test: function (n) { return n >= 0  && n <= 10; } },
+  { label: '11–25',    test: function (n) { return n >= 11 && n <= 25; } },
+  { label: '26–50',    test: function (n) { return n >= 26 && n <= 50; } },
+  { label: '51–100',   test: function (n) { return n >= 51 && n <= 100; } },
+  { label: '101+',     test: function (n) { return n >  100; } },
+];
+
+function leadVolumeBucketIndex(rawValue) {
+  if (rawValue === undefined || rawValue === null) return 0;
+  const s = String(rawValue).trim();
+  if (!s) return 0;
+  const n = parseFloat(s.replace(/[^0-9.\-]/g, ''));
+  if (isNaN(n)) return 0;
+  for (let i = 1; i < LEAD_VOLUME_BUCKETS.length; i++) {
+    if (LEAD_VOLUME_BUCKETS[i].test(n)) return i;
+  }
+  return 0;
+}
+
+/**
+ * Main entry — render all four breakdown mini-charts.
+ */
+function renderChurnDeepDive(rows) {
+  const upcoming = filterUpcomingChurn(rows);
+
+  // Build the four aggregate views.
+  const byAm     = {};   // name → { count, dollars, rowKeys }
+  const byOwner  = {};
+  const byReason = {};
+  const byLeads  = LEAD_VOLUME_BUCKETS.map(function () { return { count: 0, dollars: 0 }; });
+
+  function bump(map, key, mrr) {
+    if (!map[key]) map[key] = { count: 0, dollars: 0 };
+    map[key].count += 1;
+    map[key].dollars += mrr;
+  }
+
+  for (const x of upcoming) {
+    const r = x.row;
+    const am     = (r['Customers.Account Manager'] || '').trim() || '— Unassigned —';
+    const owner  = (r['Customers.Owner'] || '').trim()          || '— Unassigned —';
+    const reason = (r['Cancel Reason'] || '').trim()            || 'Voluntary / unspecified';
+    bump(byAm, am, x.mrr);
+    bump(byOwner, owner, x.mrr);
+    bump(byReason, reason, x.mrr);
+    const li = leadVolumeBucketIndex(r['Customers.Avg Lead Volume']);
+    byLeads[li].count   += 1;
+    byLeads[li].dollars += x.mrr;
+  }
+
+  renderChurnDdHorizontal('ddAm',     'ddAm',     byAm,     'amName',     drillChurnByField.bind(null, 'Customers.Account Manager'));
+  renderChurnDdHorizontal('ddOwner',  'ddOwner',  byOwner,  'ownerName',  drillChurnByField.bind(null, 'Customers.Owner'));
+  renderChurnDdHorizontal('ddReason', 'ddReason', byReason, 'reasonName', drillChurnByField.bind(null, 'Cancel Reason'));
+  renderChurnDdBuckets   ('ddLeads',  'ddLeads',  byLeads,  LEAD_VOLUME_BUCKETS, drillChurnByLeadBucket);
+}
+
+/**
+ * Generic horizontal-bar renderer for {label → {count, dollars}} data.
+ * Sort by count desc. Each bar's click invokes the provided drillFn with
+ * the label as argument.
+ */
+function renderChurnDdHorizontal(chartKey, canvasIdSuffix, byKey, labelParam, drillFn) {
+  const entries = Object.entries(byKey).sort(function (a, b) { return b[1].count - a[1].count; });
+  const labels = entries.map(function (e) { return e[0]; });
+  const counts = entries.map(function (e) { return e[1].count; });
+  const dollars = entries.map(function (e) { return e[1].dollars; });
+  const canvasId = canvasIdSuffix + 'Chart';
+  if (charts[chartKey]) charts[chartKey].destroy();
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  charts[chartKey] = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: labels,
       datasets: [{
-        label: 'Net MRR change (last 90 days)',
-        data: values,
-        backgroundColor: colors,
-        borderColor: borders,
+        label: 'Firms cancelling',
+        data: counts,
+        backgroundColor: 'rgba(239,68,68,0.85)',
+        borderColor: '#ef4444',
         borderWidth: 1.5,
       }],
     },
@@ -2263,7 +2383,7 @@ function renderOwnerBreakdown(rows) {
         if (items.length === 0) return;
         const idx = items[0].index;
         if (idx == null || idx < 0 || idx >= labels.length) return;
-        drillOwner90(labels[idx]);
+        drillFn(labels[idx]);
       },
       onHover: function (evt, items) {
         evt.native.target.style.cursor = items.length ? 'pointer' : 'default';
@@ -2272,31 +2392,111 @@ function renderOwnerBreakdown(rows) {
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: c => fmtMoney(c.parsed.x),
-            footer: () => 'Click to drill into this owner',
+            label: function (c) {
+              const idx = c.dataIndex;
+              return c.parsed.x + ' firm' + (c.parsed.x === 1 ? '' : 's')
+                + '  —  ' + fmtMoney(dollars[idx]) + ' MRR';
+            },
+            footer: function () { return 'Click to drill'; },
           },
         },
       },
       scales: {
-        x: { ticks: { callback: v => fmtMoneyShort(v) }, grid: { color: '#f3f4f6' } },
+        x: { ticks: { precision: 0 }, beginAtZero: true, grid: { color: '#f3f4f6' } },
         y: { grid: { display: false } },
       },
     },
   });
 }
 
-function drillOwner90(ownerName) {
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
-  const filtered = drillRows.filter(function (r) {
-    const cat = categoryFor(r['Impact Sub status']);
-    if (!cat || cat === 'newBusiness') return false;
-    const d = parseChangeDate(r['Change Date']);
-    if (!d || d < cutoff) return false;
-    const owner = (r['Customers.Owner'] || '').trim() || '— Unassigned —';
-    return owner === ownerName;
+/**
+ * Render the lead-volume bucket chart. Different from the generic one
+ * because we want bucket order preserved (not sorted by count).
+ */
+function renderChurnDdBuckets(chartKey, canvasIdSuffix, bucketData, bucketsDef, drillFn) {
+  const labels  = bucketsDef.map(function (b) { return b.label; });
+  const counts  = bucketData.map(function (b) { return b.count; });
+  const dollars = bucketData.map(function (b) { return b.dollars; });
+  const canvasId = canvasIdSuffix + 'Chart';
+  if (charts[chartKey]) charts[chartKey].destroy();
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  charts[chartKey] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Firms cancelling',
+        data: counts,
+        backgroundColor: 'rgba(239,68,68,0.85)',
+        borderColor: '#ef4444',
+        borderWidth: 1.5,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      onClick: function (evt, items) {
+        if (items.length === 0) return;
+        drillFn(items[0].index);
+      },
+      onHover: function (evt, items) {
+        evt.native.target.style.cursor = items.length ? 'pointer' : 'default';
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function (c) {
+              const idx = c.dataIndex;
+              return c.parsed.y + ' firm' + (c.parsed.y === 1 ? '' : 's')
+                + '  —  ' + fmtMoney(dollars[idx]) + ' MRR';
+            },
+            footer: function () { return 'Click to drill'; },
+          },
+        },
+      },
+      scales: {
+        y: { ticks: { precision: 0 }, beginAtZero: true, grid: { color: '#f3f4f6' } },
+        x: { grid: { display: false } },
+      },
+    },
   });
-  openDrill(ownerName + ' (owner) — last 90 days',
-            'All existing-customer movement attributed to this owner in the past 90 days',
+}
+
+/**
+ * Drill handler — filter the scheduled-churn drill rows by a single field
+ * match. Used for AM, Owner, and Cancel Reason cuts.
+ */
+function drillChurnByField(field, value) {
+  // The synthetic Cancel Reason value 'Voluntary / unspecified' maps to an
+  // empty/missing field in the underlying row.
+  const looksLikeUnspecified = (field === 'Cancel Reason' && value === 'Voluntary / unspecified');
+  const looksLikeUnassigned = (value === '— Unassigned —');
+  const filtered = drillRows.filter(function (r) {
+    if (r._source !== 'scheduled') return false;
+    const raw = (r[field] || '').trim();
+    if (looksLikeUnspecified) return raw === '';
+    if (looksLikeUnassigned)  return raw === '';
+    return raw === value;
+  });
+  openDrill('Churn — ' + escapeHtml(field.replace('Customers.', '').replace('Cancel Reason', 'Reason')) + ': ' + value,
+            'Committed cancellations in the next 120 days for this slice',
+            filtered);
+}
+
+function drillChurnByLeadBucket(bucketIdx) {
+  const bucket = LEAD_VOLUME_BUCKETS[bucketIdx];
+  if (!bucket) return;
+  const filtered = drillRows.filter(function (r) {
+    if (r._source !== 'scheduled') return false;
+    const raw = r['Customers.Avg Lead Volume'];
+    if (raw === undefined || raw === null || String(raw).trim() === '') return bucketIdx === 0;
+    if (bucketIdx === 0) return false;
+    const n = parseFloat(String(raw).replace(/[^0-9.\-]/g, ''));
+    if (isNaN(n)) return bucketIdx === 0;
+    return bucket.test(n);
+  });
+  openDrill('Churn — Lead volume ' + bucket.label,
+            'Committed cancellations whose Avg Lead Volume falls in this bucket',
             filtered);
 }
 
