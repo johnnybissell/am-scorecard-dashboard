@@ -88,6 +88,32 @@ td.negative { color: var(--negative); }
   .churn-charts { grid-template-columns: 1fr !important; }
 }
 
+/* Period tabs (Last/This/Next month + next 120) */
+.period-tabs {
+  display: inline-flex;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 3px;
+}
+.period-tabs button {
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.08s, color 0.08s;
+}
+.period-tabs button:hover { color: var(--text); }
+.period-tabs button.active {
+  background: var(--card);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
 /* Churn deep dive grid */
 .dd-grid {
   display: grid;
@@ -403,8 +429,16 @@ td.negative { color: var(--negative); }
 
   <div class="section">
     <div class="card">
-      <h2>Committed customer churn — next 120 days</h2>
-      <div id="churnSummary" style="display:flex; gap:24px; flex-wrap:wrap; padding:4px 0 16px; font-size:13px; color:var(--text-muted);"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <h2 id="churnHeading" style="margin:0;">Churn — next 120 days</h2>
+        <div class="period-tabs" id="churnPeriodTabs">
+          <button data-period="lastMonth"  onclick="setChurnPeriod('lastMonth')">Last month</button>
+          <button data-period="thisMonth"  onclick="setChurnPeriod('thisMonth')">This month</button>
+          <button data-period="nextMonth"  onclick="setChurnPeriod('nextMonth')">Next month</button>
+          <button data-period="next120" class="active" onclick="setChurnPeriod('next120')">Next 120 days</button>
+        </div>
+      </div>
+      <div id="churnSummary" style="display:flex; gap:24px; flex-wrap:wrap; padding:8px 0 16px; font-size:13px; color:var(--text-muted);"></div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;" class="churn-charts">
         <div>
           <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">By month</div>
@@ -445,9 +479,9 @@ td.negative { color: var(--negative); }
 
   <div class="section">
     <div class="card">
-      <h2>Churn deep dive — committed cancellations next 120 days</h2>
+      <h2 id="ddHeading">Churn deep dive — next 120 days</h2>
       <div style="font-size:12px;color:var(--text-muted);padding:0 0 12px;">
-        Same firms as the Committed customer churn table above, sliced by attribution and reason. Click any bar to drill into the firms in that slice.
+        Same firms as the churn table above, sliced by attribution and reason. Click any bar to drill into the firms in that slice. Use the period buttons above to switch between Last/This/Next month.
       </div>
       <div class="dd-grid">
         <div class="dd-card">
@@ -661,6 +695,12 @@ let drillRows = [];
 // Drill-down sort state — persisted across reopens so the user's preference sticks.
 let drillSort = { col: 'date', dir: 'desc' };
 
+// Currently-selected churn period for the deep dive + table. Switching this
+// re-runs all the churn renderers with the new filter window.
+let currentChurnPeriod = 'next120';
+// Cached references so setChurnPeriod can re-render without re-fetching.
+let cachedChurn = [], cachedMrr = [], cachedSfById = {};
+
 async function loadAll() {
   showError(null);
   document.getElementById('lastRefreshed').textContent = 'Refreshing…';
@@ -778,12 +818,13 @@ async function loadAll() {
     renderCategoryCards(movements);
     renderAmLeaderboard(mrr, amRetention);
     renderMovementChart(movements, beginningByYm);
-    renderChurnSummary(churn);
-    renderChurnChart(churn);
-    renderChurnMrrChart(churn);
-    renderChurnTable(churn, sfById);
+    // Cache the inputs so the time-period switcher can re-render without
+    // refetching CSVs.
+    cachedChurn   = churn;
+    cachedMrr     = mrr;
+    cachedSfById  = sfById;
+    renderChurnSection();
     renderAmBreakdown(mrr);
-    renderChurnDeepDive(churn, sfById);
     renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm);
 
     const now = new Date();
@@ -1838,31 +1879,28 @@ function renderDataDiagnostic(movements, pairsCollapsed, snapshotRows, beginning
 }
 
 /**
- * Bar chart of committed churn $ by month for the next 120 days. Clicking
- * a bar drills into that month's scheduled cancellations.
+ * Bar chart of churn $ by month. Now period-aware — the X axis spans
+ * whatever date range the current period covers (1 month for last/this/next,
+ * up to 5 months for next 120 days).
  */
-function renderChurnChart(rows) {
-  const now = new Date();
-  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 120);
-
-  // Aggregate $ by YYYY-MM, only future-dated within 120 days.
+function renderChurnChart(filtered) {
+  // Aggregate $ by YYYY-MM from the already-filtered rows.
   const byMonth = {};
-  for (const r of rows) {
-    const d = parseDateTime(r['Cancellation Date']);
-    if (!d || d < now || d > cutoff) continue;
+  for (const x of filtered) {
+    const d = x.date;
     const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    const mrr = parseMoney(r['Current MRR']);
     if (!byMonth[ym]) byMonth[ym] = { dollars: 0, count: 0 };
-    byMonth[ym].dollars += mrr;
+    byMonth[ym].dollars += x.mrr;
     byMonth[ym].count += 1;
   }
 
-  // Always include months in the 120-day horizon even if empty, so the
-  // chart shows a clear shape rather than skipping zero months.
+  // Span the months covered by the current period so empty months still show.
+  const range = dateRangeForPeriod(currentChurnPeriod);
   const yms = [];
-  const cursor = new Date(now.getFullYear(), now.getMonth(), 1);
-  const horizonEnd = new Date(cutoff.getFullYear(), cutoff.getMonth(), 1);
-  while (cursor <= horizonEnd) {
+  const cursor = new Date(range.start.getFullYear(), range.start.getMonth(), 1);
+  // end is exclusive; cap iteration so we don't get an extra month.
+  const endMonth = new Date(range.end.getFullYear(), range.end.getMonth(), 1);
+  while (cursor < endMonth) {
     const ym = cursor.getFullYear() + '-' + String(cursor.getMonth() + 1).padStart(2, '0');
     yms.push(ym);
     cursor.setMonth(cursor.getMonth() + 1);
@@ -1943,20 +1981,14 @@ function bucketForMrr(mrr) {
   return -1;
 }
 
-function renderChurnMrrChart(rows) {
-  const now = new Date();
-  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 120);
-
+function renderChurnMrrChart(filtered) {
   const counts = CHURN_MRR_BUCKETS.map(() => 0);
   const dollars = CHURN_MRR_BUCKETS.map(() => 0);
-  for (const r of rows) {
-    const d = parseDateTime(r['Cancellation Date']);
-    if (!d || d < now || d > cutoff) continue;
-    const mrr = parseMoney(r['Current MRR']);
-    const idx = bucketForMrr(mrr);
+  for (const x of filtered) {
+    const idx = bucketForMrr(x.mrr);
     if (idx < 0) continue;
     counts[idx] += 1;
-    dollars[idx] += mrr;
+    dollars[idx] += x.mrr;
   }
 
   if (charts.churnMrr) charts.churnMrr.destroy();
@@ -2007,41 +2039,52 @@ function renderChurnMrrChart(rows) {
   });
 }
 
+/**
+ * Returns drillRows that fall within the current churn period and that
+ * represent a cancellation (either past-fired CANCEL_FROM_* or a synthetic
+ * scheduled row). The deep-dive drill handlers all start from this set.
+ */
+function drillRowsInCurrentChurnPeriod() {
+  const range = dateRangeForPeriod(currentChurnPeriod);
+  const now = new Date();
+  return drillRows.filter(function (r) {
+    const status = r['Impact Sub status'];
+    const isCancel    = status && status.indexOf('CANCEL_FROM_') === 0;
+    const isScheduled = r._source === 'scheduled';
+    if (!isCancel && !isScheduled) return false;
+    // Prefer the precise Cancellation Date when available, else month-only.
+    const d = parseDateTime(r['Cancellation Date']) || parseChangeDate(r['Change Date']);
+    if (!d) return false;
+    if (d < range.start || d >= range.end) return false;
+    if (range.includeFuture === false && d > now) return false;
+    if (range.includePast   === false && d < now) return false;
+    return true;
+  });
+}
+
 function drillChurnBucket(bucketIdx) {
   const b = CHURN_MRR_BUCKETS[bucketIdx];
   if (!b) return;
-  const filtered = drillRows.filter(function (r) {
-    if (r._source !== 'scheduled') return false;
-    const mrr = parseMoney(r['MRR Impact']); // negative in synthetic rows
+  const filtered = drillRowsInCurrentChurnPeriod().filter(function (r) {
+    const mrr = parseMoney(r['MRR Impact']);
     return Math.abs(mrr) >= b.min && Math.abs(mrr) <= b.max;
   });
-  openDrill('Committed churn — ' + b.label + ' MRR',
-            'Scheduled non-renewing firms whose Current MRR falls in this bucket',
+  openDrill('Churn — ' + b.label + ' MRR',
+            'Firms in this period whose MRR falls in this bucket',
             filtered);
 }
 
 /**
  * Header summary: count, total MRR, median MRR.
  */
-function renderChurnSummary(rows) {
-  const now = new Date();
-  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 120);
-  const mrrs = [];
-  let total = 0;
-  for (const r of rows) {
-    const d = parseDateTime(r['Cancellation Date']);
-    if (!d || d < now || d > cutoff) continue;
-    const mrr = parseMoney(r['Current MRR']);
-    mrrs.push(mrr);
-    total += mrr;
-  }
+function renderChurnSummary(filtered) {
+  const mrrs = filtered.map(function (x) { return x.mrr; });
+  const total = mrrs.reduce(function (s, v) { return s + v; }, 0);
   mrrs.sort(function (a, b) { return a - b; });
   let median = 0;
   if (mrrs.length > 0) {
     const mid = Math.floor(mrrs.length / 2);
-    median = mrrs.length % 2 === 0
-      ? (mrrs[mid - 1] + mrrs[mid]) / 2
-      : mrrs[mid];
+    median = mrrs.length % 2 === 0 ? (mrrs[mid - 1] + mrrs[mid]) / 2 : mrrs[mid];
   }
   const avg = mrrs.length > 0 ? total / mrrs.length : 0;
   document.getElementById('churnSummary').innerHTML =
@@ -2051,39 +2094,29 @@ function renderChurnSummary(rows) {
     + '<span>Avg <strong>' + fmtMoney(avg) + '</strong></span>';
 }
 
-/** Drill on a churn-chart bar — show scheduled cancellations for that month. */
+/** Drill on a churn-chart bar — shows all churned firms (past or scheduled) in that month. */
 function drillScheduledMonth(ym) {
-  const filtered = drillRows.filter(function (r) {
-    if (r._source !== 'scheduled') return false;
-    const d = parseChangeDate(r['Change Date']);
+  const filtered = drillRowsInCurrentChurnPeriod().filter(function (r) {
+    const d = parseDateTime(r['Cancellation Date']) || parseChangeDate(r['Change Date']);
     if (!d) return false;
     const rowYm = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     return rowYm === ym;
   });
-  openDrill('Scheduled cancellations — ' + monthLabel(ym),
-            'Firms with a future-dated cancel set in Chargebee for this month',
+  openDrill('Churn — ' + monthLabel(ym),
+            'All firms cancelling or scheduled to cancel in this month',
             filtered);
 }
 
-function renderChurnTable(rows, sfById) {
+function renderChurnTable(filtered, sfById) {
   sfById = sfById || {};
   const hasSf = Object.keys(sfById).length > 0;
-  const now = new Date();
-  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 120);
 
-  const upcoming = rows
-    .map(r => {
-      const d = parseDateTime(r['Cancellation Date']);
-      return { row: r, date: d, mrr: parseMoney(r['Current MRR']) };
-    })
-    .filter(x => x.date && x.date >= now && x.date <= cutoff)
-    .sort((a, b) => a.date - b.date);
-
-  const total = upcoming.reduce((s, x) => s + x.mrr, 0);
+  const upcoming = filtered.slice().sort(function (a, b) { return a.date - b.date; });
+  const total = upcoming.reduce(function (s, x) { return s + x.mrr; }, 0);
 
   if (upcoming.length === 0) {
     document.getElementById('churnTableContainer').innerHTML =
-      '<p style="padding:16px;color:var(--text-muted);">No firms scheduled to cancel in the next 90 days.</p>';
+      '<p style="padding:16px;color:var(--text-muted);">No firms in this period.</p>';
     return;
   }
 
@@ -2332,15 +2365,140 @@ function renderAmLeaderboard(rows, retentionRows) {
  * use everywhere in the churn section.
  */
 function filterUpcomingChurn(rows) {
+  return filterChurnForPeriod(rows, [], 'next120');
+}
+
+/**
+ * Compute the [start, end) date range for a churn period selector value.
+ */
+function dateRangeForPeriod(period) {
   const now = new Date();
-  const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() + 120);
-  const out = [];
-  for (const r of rows) {
-    const d = parseDateTime(r['Cancellation Date']);
-    if (!d || d < now || d > cutoff) continue;
-    out.push({ row: r, date: d, mrr: parseMoney(r['Current MRR']) });
+  if (period === 'lastMonth') {
+    return {
+      start: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      end:   new Date(now.getFullYear(), now.getMonth(),     1),
+      includePast: true,
+      includeFuture: false,
+    };
   }
+  if (period === 'thisMonth') {
+    return {
+      start: new Date(now.getFullYear(), now.getMonth(),     1),
+      end:   new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      includePast: true,
+      includeFuture: true,
+    };
+  }
+  if (period === 'nextMonth') {
+    return {
+      start: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      end:   new Date(now.getFullYear(), now.getMonth() + 2, 1),
+      includePast: false,
+      includeFuture: true,
+    };
+  }
+  // next120 default
+  const end120 = new Date(now); end120.setDate(end120.getDate() + 120);
+  return { start: now, end: end120, includePast: false, includeFuture: true };
+}
+
+/**
+ * Build a unified list of churn rows for a period, drawing past-fired
+ * cancellations from the live MonthlyMRRImpact data and future-scheduled
+ * cancellations from the Scheduled Churn feed. Rows are normalized so the
+ * existing renderers (which expect "Scheduled Churn"-shape rows) can
+ * consume both. Returns [{ row, date, mrr }] with `row._churnType` set
+ * to 'fired' or 'scheduled' so renderers can distinguish if needed.
+ */
+function filterChurnForPeriod(churnRows, mrrRows, period) {
+  const { start, end, includePast, includeFuture } = dateRangeForPeriod(period);
+  const now = new Date();
+  const out = [];
+
+  // Fired cancellations from MonthlyMRRImpact.
+  if (includePast && Array.isArray(mrrRows)) {
+    for (const r of mrrRows) {
+      const status = r['Impact Sub status'];
+      if (!status || status.indexOf('CANCEL_FROM_') !== 0) continue;
+      // Prefer the precise Cancellation Date column; fall back to the
+      // month-resolution Change Date.
+      const cancelD = parseDateTime(r['Cancellation Date']) || parseChangeDate(r['Change Date']);
+      if (!cancelD) continue;
+      if (cancelD < start || cancelD >= end) continue;
+      // For thisMonth, only fired = strictly before now (future-of-this-month
+      // comes from scheduled).
+      if (period === 'thisMonth' && cancelD > now) continue;
+      const mrr = Math.abs(parseMoney(r['MRR Impact']));
+      out.push({
+        row: {
+          'Cancellation Date':         r['Cancellation Date'] || cancelD.toISOString().replace('T', ' ').slice(0, 19),
+          'Current MRR':               '$' + mrr.toFixed(2),
+          'Company':                   r['Company'] || '',
+          'Customers.Owner':           r['Customers.Owner'] || '',
+          'Customers.Onboarder':       r['Customers.Onboarder'] || '',
+          'Customers.Account Manager': r['Customers.Account Manager'] || '',
+          'Customers.SalesforceID':    r['Customers.SalesforceID'] || '',
+          'Customers.Avg Lead Volume': r['Customers.Avg Lead Volume'] || '',
+          'Creation Date':             r['Creation Date'] || '',
+          'Cancel Reason':             r['Cancel Reason'] || '',
+          '_churnType':                'fired',
+        },
+        date: cancelD,
+        mrr:  mrr,
+      });
+    }
+  }
+
+  // Scheduled cancellations from the Scheduled Churn feed.
+  if (includeFuture && Array.isArray(churnRows)) {
+    for (const r of churnRows) {
+      const d = parseDateTime(r['Cancellation Date']);
+      if (!d) continue;
+      if (d < start || d >= end) continue;
+      if (d < now) continue; // skip past from scheduled
+      out.push({
+        row: Object.assign({}, r, { '_churnType': 'scheduled' }),
+        date: d,
+        mrr:  parseMoney(r['Current MRR']),
+      });
+    }
+  }
+
   return out;
+}
+
+/**
+ * Re-renders every churn-section widget for the currently-selected period.
+ * Called on initial load and whenever the user clicks a period tab.
+ */
+function renderChurnSection() {
+  const filtered = filterChurnForPeriod(cachedChurn, cachedMrr, currentChurnPeriod);
+  const periodLabel = {
+    lastMonth: 'Last Month',
+    thisMonth: 'This Month',
+    nextMonth: 'Next Month',
+    next120:   'Next 120 days',
+  }[currentChurnPeriod] || '';
+  document.getElementById('churnHeading').textContent = 'Churn — ' + periodLabel;
+  document.getElementById('ddHeading').textContent   = 'Churn deep dive — ' + periodLabel;
+  // Update the active state on the period tabs.
+  const buttons = document.querySelectorAll('#churnPeriodTabs button');
+  buttons.forEach(function (b) {
+    if (b.dataset.period === currentChurnPeriod) b.classList.add('active');
+    else b.classList.remove('active');
+  });
+
+  renderChurnSummary(filtered);
+  renderChurnChart(filtered);
+  renderChurnMrrChart(filtered);
+  renderChurnTable(filtered, cachedSfById);
+  renderChurnDeepDive(filtered, cachedSfById);
+}
+
+function setChurnPeriod(period) {
+  if (currentChurnPeriod === period) return;
+  currentChurnPeriod = period;
+  renderChurnSection();
 }
 
 const LEAD_VOLUME_BUCKETS = [
@@ -2365,14 +2523,16 @@ function leadVolumeBucketIndex(rawValue) {
 }
 
 /**
- * Main entry — render all five breakdown mini-charts. When Salesforce data
- * is available, switches the Cancel Reason and Avg Volume cuts to use SF
- * fields (richer than Chargebee's) and lights up the Practice Area chart.
+ * Main entry — render all five breakdown mini-charts. Now takes pre-filtered
+ * period rows so it respects the time selector at the top of the churn
+ * section. When Salesforce data is available, switches the Cancel Reason
+ * and Avg Volume cuts to use SF fields (richer than Chargebee's) and
+ * lights up the Practice Area chart.
  */
-function renderChurnDeepDive(rows, sfById) {
+function renderChurnDeepDive(filtered, sfById) {
   sfById = sfById || {};
   const hasSf = Object.keys(sfById).length > 0;
-  const upcoming = filterUpcomingChurn(rows);
+  const upcoming = filtered;
 
   const byAm     = {};
   const byOwner  = {};
@@ -2452,15 +2612,14 @@ function renderChurnPracticeArea(hasSf, byPA) {
  */
 function drillChurnReason(value) {
   const isUnspecified = (value === 'Voluntary / unspecified');
-  const filtered = drillRows.filter(function (r) {
-    if (r._source !== 'scheduled') return false;
+  const filtered = drillRowsInCurrentChurnPeriod().filter(function (r) {
     const sfR = (r['SF Churn Reason'] || '').trim();
-    const cbR = (r['Cancel Reason'] || '').trim();
+    const cbR = (r['Cancel Reason']    || '').trim();
     if (isUnspecified) return !sfR && !cbR;
     return sfR === value || cbR === value;
   });
   openDrill('Churn — Reason: ' + value,
-            'Committed cancellations in the next 120 days for this reason',
+            'Firms in this period for this reason',
             filtered);
 }
 
@@ -2583,8 +2742,7 @@ function drillChurnByField(field, value) {
   const looksLikeUnspecified = (field === 'Cancel Reason' && value === 'Voluntary / unspecified');
   const looksLikeUnassigned  = (value === '— Unassigned —');
   const looksLikeUnknown     = (value === '— Unknown —');
-  const filtered = drillRows.filter(function (r) {
-    if (r._source !== 'scheduled') return false;
+  const filtered = drillRowsInCurrentChurnPeriod().filter(function (r) {
     const raw = (r[field] || '').trim();
     if (looksLikeUnspecified || looksLikeUnassigned || looksLikeUnknown) return raw === '';
     return raw === value;
@@ -2594,15 +2752,14 @@ function drillChurnByField(field, value) {
     .replace('SF ', '')
     .replace('Cancel Reason', 'Reason');
   openDrill('Churn — ' + fieldLabel + ': ' + value,
-            'Committed cancellations in the next 120 days for this slice',
+            'Firms in this period for this slice',
             filtered);
 }
 
 function drillChurnByLeadBucket(bucketIdx) {
   const bucket = LEAD_VOLUME_BUCKETS[bucketIdx];
   if (!bucket) return;
-  const filtered = drillRows.filter(function (r) {
-    if (r._source !== 'scheduled') return false;
+  const filtered = drillRowsInCurrentChurnPeriod().filter(function (r) {
     const raw = r['Customers.Avg Lead Volume'];
     if (raw === undefined || raw === null || String(raw).trim() === '') return bucketIdx === 0;
     if (bucketIdx === 0) return false;
@@ -2611,7 +2768,7 @@ function drillChurnByLeadBucket(bucketIdx) {
     return bucket.test(n);
   });
   openDrill('Churn — Lead volume ' + bucket.label,
-            'Committed cancellations whose Avg Lead Volume falls in this bucket',
+            'Firms in this period whose Avg Lead Volume falls in this bucket',
             filtered);
 }
 
