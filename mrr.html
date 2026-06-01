@@ -609,16 +609,23 @@ function parseChangeDate(s) {
 
 /**
  * Normalize a Firm ID value so SF-side and Chargebee-side keys reliably
- * match. Strips whitespace, removes a trailing ".0" (which Google Sheets
- * sometimes appends when SF returns the field as a number), and converts
- * to a plain string.
+ * match. Handles several quirks Google Sheets / CSV exports can introduce:
+ *   "5678"          → "5678"  (already correct)
+ *   "5678.0"        → "5678"  (SF returns number; Sheets adds .0)
+ *   "$4,639.00"     → "4639"  (column inherited currency formatting)
+ *   "  5678  "      → "5678"  (whitespace)
+ *   "ABC-123"       → "ABC-123" (non-numeric IDs kept as-is)
  */
 function normalizeFirmId(v) {
   if (v === undefined || v === null) return '';
-  const s = String(v).trim();
+  let s = String(v).trim();
   if (!s) return '';
-  // "5678.0" → "5678"; leave alpha/alphanum IDs untouched.
-  if (/^\d+\.0+$/.test(s)) return s.replace(/\.0+$/, '');
+  // Currency-formatted numeric ("$4,639.00", "$5,678", "5,678.00")
+  if (/^\$?[\d,]+(\.\d+)?$/.test(s)) {
+    s = s.replace(/[$,]/g, '');
+  }
+  // Trailing .0 from a numeric round-trip
+  if (/^\d+\.0+$/.test(s)) s = s.replace(/\.0+$/, '');
   return s;
 }
 
