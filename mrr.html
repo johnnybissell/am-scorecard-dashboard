@@ -607,6 +607,21 @@ function parseChangeDate(s) {
   return new Date(year, mo, 1);
 }
 
+/**
+ * Normalize a Firm ID value so SF-side and Chargebee-side keys reliably
+ * match. Strips whitespace, removes a trailing ".0" (which Google Sheets
+ * sometimes appends when SF returns the field as a number), and converts
+ * to a plain string.
+ */
+function normalizeFirmId(v) {
+  if (v === undefined || v === null) return '';
+  const s = String(v).trim();
+  if (!s) return '';
+  // "5678.0" → "5678"; leave alpha/alphanum IDs untouched.
+  if (/^\d+\.0+$/.test(s)) return s.replace(/\.0+$/, '');
+  return s;
+}
+
 function parseDateTime(s) {
   if (!s) return null;
   const str = String(s).trim();
@@ -743,10 +758,20 @@ async function loadAll() {
     // below to enrich Chargebee data with SF context. We join on Firm ID
     // (cf_firm_id in Chargebee ↔ Firm_ID__c in Salesforce) rather than the
     // Salesforce Account ID — Firm ID has ~5x better coverage in Chargebee.
+    //
+    // Salesforce may return Firm_ID__c as a number, which Google Sheets can
+    // then format with a ".0" suffix in the published CSV ("5678.0"), while
+    // Chargebee returns cf_firm_id as a plain string ("5678"). We normalize
+    // both sides to a trimmed, decimal-free string so the keys match.
     const sfById = {};
     for (const r of salesforceDetail) {
-      const id = String(r['Firm ID'] || '').trim();
+      const id = normalizeFirmId(r['Firm ID']);
       if (id) sfById[id] = r;
+    }
+    // Diagnostic — visible in DevTools so we can confirm the join is working.
+    if (salesforceDetail.length > 0) {
+      console.log('[MRR Dashboard] SF Detail rows:', salesforceDetail.length,
+                  '| Sample SF firm IDs:', Object.keys(sfById).slice(0, 5));
     }
 
     // Collapse cancel+reactivate pairs within the same month. A firm that
@@ -790,15 +815,30 @@ async function loadAll() {
     // historical), and we apply the same "live wins per month" rule so the
     // drill numbers reconcile with the aggregated cards/charts.
     drillRows = [];
+    // Helper: enrich a row with SF fields (joined on Firm ID) so deep-dive
+    // drills can match against SF reason / practice area / etc. on live and
+    // historical rows the same way they match on synthetic scheduled rows.
+    function enrichWithSf(r) {
+      const firmId = normalizeFirmId(r['Customers.FirmID']);
+      const sf = (firmId && sfById[firmId]) ? sfById[firmId] : {};
+      return {
+        'SF Practice Area':      sf['Primary Practice Area'] || '',
+        'SF Avg Monthly Volume': sf['Avg Monthly Volume']    || '',
+        'SF Churn Reason':       sf['Churn Reason']          || '',
+        'SF Churn Details':      sf['Churn Details']         || '',
+        'SF ChurnScore':         sf['Primary ChurnScore']    || '',
+        'SF Onboarding CSAT':    sf['Onboarding CSAT']       || '',
+      };
+    }
     for (const r of mrr) {
-      drillRows.push(Object.assign({}, r, { _source: 'live' }));
+      drillRows.push(Object.assign({}, r, { _source: 'live' }, enrichWithSf(r)));
     }
     for (const r of historical) {
       const d = parseChangeDate(r['Change Date']);
       if (!d) continue;
       const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
       if (!earliestLiveYm || ym < earliestLiveYm) {
-        drillRows.push(Object.assign({}, r, { _source: 'historical' }));
+        drillRows.push(Object.assign({}, r, { _source: 'historical' }, enrichWithSf(r)));
       }
     }
     // Augment with scheduled-but-not-yet-cancelled rows so the Cancellations
@@ -1191,10 +1231,11 @@ function appendScheduledChurnAsDrillRows(rows, churnRows, sfById) {
     const mrr = parseMoney(r['Current MRR']);
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
     const changeDate = months[d.getMonth()] + '-' + String(d.getFullYear()).slice(2);
-    // Look up Salesforce fields by Firm ID (the better join key).
-    const firmId = String(r['Customers.FirmID'] || '').trim();
+    // Look up Salesforce fields by Firm ID (the better join key — keyed on
+    // Firm ID after the SF integration switched away from SF Account ID).
+    const firmId = normalizeFirmId(r['Customers.FirmID']);
     const sfId   = (r['Customers.SalesforceID'] || '').trim();
-    const sf     = firmId && sfById[firmId] ? sfById[firmId] : {};
+    const sf     = (firmId && sfById[firmId]) ? sfById[firmId] : {};
     rows.push({
       'MRR Impact':                  '-$' + Math.abs(mrr).toFixed(2),
       'Impact Sub status':           'CANCEL_FROM_PAID',
@@ -2144,7 +2185,7 @@ function renderChurnTable(filtered, sfById) {
     const r = x.row;
     const startDate = parseDateTime(r['Creation Date']);
     const startStr  = startDate ? startDate.toISOString().slice(0, 10) : '';
-    const firmId    = String(r['Customers.FirmID'] || '').trim();
+    const firmId    = normalizeFirmId(r['Customers.FirmID']);
     const sf        = firmId && sfById[firmId] ? sfById[firmId] : {};
     const cbReason  = r['Cancel Reason'] || '';
     // SF Churn Reason takes precedence when present; fall back to Chargebee.
@@ -2539,6 +2580,22 @@ function renderChurnDeepDive(filtered, sfById) {
   const hasSf = Object.keys(sfById).length > 0;
   const upcoming = filtered;
 
+  // Diagnostic — how many of the period's churn rows are joining to SF?
+  // If this number is 0 the join key is broken; if it equals upcoming.length
+  // every row has SF data.
+  if (hasSf && upcoming.length > 0) {
+    let joined = 0;
+    const unmatched = [];
+    for (const x of upcoming) {
+      const fid = normalizeFirmId(x.row['Customers.FirmID']);
+      if (fid && sfById[fid]) joined++;
+      else if (unmatched.length < 5) unmatched.push({ company: x.row.Company, firmId: fid });
+    }
+    console.log('[MRR Dashboard] ' + currentChurnPeriod + ' churn:', upcoming.length,
+                'rows, joined to SF:', joined,
+                '| Sample unmatched:', unmatched);
+  }
+
   const byAm     = {};
   const byOwner  = {};
   const byReason = {};
@@ -2553,7 +2610,7 @@ function renderChurnDeepDive(filtered, sfById) {
 
   for (const x of upcoming) {
     const r = x.row;
-    const firmId = String(r['Customers.FirmID'] || '').trim();
+    const firmId = normalizeFirmId(r['Customers.FirmID']);
     const sf     = firmId && sfById[firmId] ? sfById[firmId] : {};
     const am     = (r['Customers.Account Manager'] || '').trim() || '— Unassigned —';
     const owner = (r['Customers.Owner'] || '').trim()           || '— Unassigned —';
