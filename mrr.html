@@ -832,9 +832,25 @@ async function loadAll() {
     // Collapse cancel+reactivate pairs within the same month. A firm that
     // leaves and comes back the same month is a wash — neither event
     // should count in the cancellation or reactivation tallies.
-    const mrr        = dropSameMonthCancelReactivatePairs(mrrRaw);
-    const historical = dropSameMonthCancelReactivatePairs(historicalRaw);
-    const pairsCollapsed = (mrr.__pairsCollapsed || 0) + (historical.__pairsCollapsed || 0);
+    const mrrAfterCancelReact        = dropSameMonthCancelReactivatePairs(mrrRaw);
+    const historicalAfterCancelReact = dropSameMonthCancelReactivatePairs(historicalRaw);
+    const pairsCollapsed = (mrrAfterCancelReact.__pairsCollapsed || 0) +
+                           (historicalAfterCancelReact.__pairsCollapsed || 0);
+
+    // Net UPGRADE+DOWNGRADE per (sub, month) so the UPGRADE/DOWNGRADE buckets
+    // match Chargebee's per-sub-net methodology. Without this, a sub that
+    // had both an upgrade and a downgrade in the same month would inflate
+    // BOTH buckets (gross-vs-net accounting). See function docstring for the
+    // Hope Wood JD example. This was the root cause of the May 2026
+    // upgrades=$17k-vs-Chargebee-$15k discrepancy.
+    const mrr        = collapseUpgradeDowngradeWithinMonth(mrrAfterCancelReact);
+    const historical = collapseUpgradeDowngradeWithinMonth(historicalAfterCancelReact);
+    const upDownCollapsed = (mrr.__upgradeDowngradeCollapsed || 0) +
+                            (historical.__upgradeDowngradeCollapsed || 0);
+    if (upDownCollapsed > 0) {
+      console.log('[MRR Dashboard] Collapsed', upDownCollapsed,
+                  'UPGRADE/DOWNGRADE rows into per-(sub,month) nets to match Chargebee.');
+    }
 
     // Aggregate each source separately, then merge.
     //
@@ -927,7 +943,7 @@ async function loadAll() {
     renderHistorical12Rate(mrr, historical, mrrSnapshot);
     renderChurnInsights(mrr, historical, sfById);
     renderAmBreakdown(mrr);
-    renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm);
+    renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm, upDownCollapsed);
 
     const now = new Date();
     document.getElementById('lastRefreshed').textContent =
@@ -1018,6 +1034,88 @@ function dropSameMonthCancelReactivatePairs(rows) {
   });
   // Stash on the result for diagnostic.
   out.__pairsCollapsed = pairCount;
+  return out;
+}
+
+/**
+ * Collapse UPGRADE + DOWNGRADE rows per (Subscription ID, YYYY-MM) into ONE
+ * net row per group. This makes our bucket totals match Chargebee's
+ * NetMRRGrowth report, which classifies each sub by its NET movement per
+ * period (not per individual event).
+ *
+ * Why this matters — concrete example:
+ *   Hope Wood JD, P.L.L.C. in May 2026:
+ *     UPGRADE   +$86.08
+ *     UPGRADE  +$198.00
+ *     DOWNGRADE -$234.07
+ *   Net: +$50.01
+ *
+ *   Chargebee shows this as one UPGRADE row of $50.
+ *   Without this collapse, our dashboard shows $284 in UPGRADE and -$234 in
+ *   DOWNGRADE — net is the same but BOTH buckets are inflated.
+ *
+ * This was the root cause of the "May upgrades $17k vs Chargebee $15k" gap:
+ * the ~$2k difference came entirely from gross-vs-net accounting on
+ * mixed-direction subs.
+ *
+ * Behavior:
+ *   - Only UPGRADE and DOWNGRADE rows are touched. NEW, CANCEL_*, REACTIVE,
+ *     etc. pass through unchanged.
+ *   - Each (sub, month) group is reduced to one synthetic row carrying the
+ *     LATEST original row's metadata (company, AM, SF fields, etc.) and the
+ *     net dollar amount. Bucket assignment follows the net sign.
+ *   - Groups that net to exactly zero are dropped entirely (true wash).
+ *
+ * Returns a new array; doesn't mutate input. Stashes __upgradeDowngradeCollapsed
+ * (count of rows removed) on the result for diagnostic display.
+ */
+function collapseUpgradeDowngradeWithinMonth(rows) {
+  const isUpDown = function (s) { return s === 'UPGRADE' || s === 'DOWNGRADE'; };
+  const groups = {};        // key 'ym|subId' → { rows: [], net: 0 }
+  const passthrough = [];
+
+  for (const r of rows) {
+    const status = r['Impact Sub status'];
+    if (!isUpDown(status)) { passthrough.push(r); continue; }
+    const subId = r['Subscription ID'];
+    const d = parseChangeDate(r['Change Date']);
+    if (!subId || !d) { passthrough.push(r); continue; } // can't group → keep
+    const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    const key = ym + '|' + subId;
+    if (!groups[key]) groups[key] = { rows: [], net: 0 };
+    groups[key].rows.push(r);
+    groups[key].net += parseMoney(r['MRR Impact']);
+  }
+
+  let collapsedCount = 0;
+  const collapsed = [];
+  for (const key in groups) {
+    const g = groups[key];
+    if (g.rows.length === 1) {
+      collapsed.push(g.rows[0]);
+      continue;
+    }
+    collapsedCount += g.rows.length - 1;
+    // True wash — drop entirely so neither bucket is inflated.
+    if (Math.abs(g.net) < 0.005) continue;
+    // Use the LATEST event as the representative so the surviving row
+    // reflects the sub's current state (status, cancel reason, current MRR).
+    const sorted = g.rows.slice().sort(function (a, b) {
+      const ad = parseChangeDate(a['Change Date']) || new Date(0);
+      const bd = parseChangeDate(b['Change Date']) || new Date(0);
+      return bd - ad;
+    });
+    const rep = Object.assign({}, sorted[0]);
+    rep['Impact Sub status'] = g.net > 0 ? 'UPGRADE' : 'DOWNGRADE';
+    const abs = Math.abs(g.net).toLocaleString('en-US', {
+      minimumFractionDigits: 2, maximumFractionDigits: 2,
+    });
+    rep['MRR Impact'] = (g.net >= 0 ? '$' : '-$') + abs;
+    collapsed.push(rep);
+  }
+
+  const out = passthrough.concat(collapsed);
+  out.__upgradeDowngradeCollapsed = collapsedCount;
   return out;
 }
 
@@ -1922,7 +2020,7 @@ function renderMovementChart(movements, beginningByYm) {
  * Diagnostic line at the bottom of the page so an empty current month is
  * obvious to debug — shows date range of underlying data and event counts.
  */
-function renderDataDiagnostic(movements, pairsCollapsed, snapshotRows, beginningByYm) {
+function renderDataDiagnostic(movements, pairsCollapsed, snapshotRows, beginningByYm, upDownCollapsed) {
   const yms = Object.keys(movements).sort();
   if (yms.length === 0) return;
   const first = yms[0];
@@ -1940,6 +2038,13 @@ function renderDataDiagnostic(movements, pairsCollapsed, snapshotRows, beginning
       + escapeHtml(String(pairsCollapsed)) + ' cancel+reactivate pair'
       + (pairsCollapsed === 1 ? '' : 's')
       + ' in the same month collapsed to a wash (excluded from both columns). ';
+  }
+  if (upDownCollapsed && upDownCollapsed > 0) {
+    html += '<br>'
+      + escapeHtml(String(upDownCollapsed))
+      + ' UPGRADE/DOWNGRADE event'
+      + (upDownCollapsed === 1 ? '' : 's')
+      + ' folded into per-(sub, month) nets so totals match Chargebee\'s NetMRRGrowth report.';
   }
   // Latest MRR snapshot (current total active MRR).
   if (Array.isArray(snapshotRows) && snapshotRows.length > 0) {
