@@ -428,6 +428,22 @@ td.negative { color: var(--negative); }
   </div>
 
   <div class="section">
+    <div class="card" style="border-left:4px solid var(--negative);padding:24px 28px;">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:24px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:280px;">
+          <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;" id="churnForecastLabel">Projected churn — month-end</div>
+          <div id="churnForecastValue" style="font-size:36px;font-weight:700;letter-spacing:-0.02em;margin-top:4px;color:var(--negative);">—</div>
+          <div id="churnForecastBasis" style="font-size:12px;color:var(--text-muted);margin-top:6px;"></div>
+        </div>
+        <button class="projection-toggle" id="churnForecastToggle" onclick="toggleChurnForecastDetail()">
+          Show breakdown ▾
+        </button>
+      </div>
+      <div class="projection-detail" id="churnForecastDetail"></div>
+    </div>
+  </div>
+
+  <div class="section">
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
         <h2 id="churnHeading" style="margin:0;">Churn — next 120 days</h2>
@@ -904,6 +920,7 @@ async function loadAll() {
     cachedChurn   = churn;
     cachedMrr     = mrr;
     cachedSfById  = sfById;
+    renderChurnForecast(mrr, historical, churn);
     renderChurnSection();
     renderHistorical12Mrr(mrr, historical);
     renderHistorical12Reason(mrr, historical, sfById);
@@ -1622,11 +1639,12 @@ function computeProjection(movements, rawRows) {
     cancellations: trailN > 0 ? trailSum.cancellations / trailN : 0,
   };
 
-  // ---- Non-payment-only trailing average for cancellations ----
+  // ---- "Surprise" trailing average for cancellations ----
   // Lawmatics requires 30-day notice for voluntary churn, so voluntary
   // cancellations don't surprise us mid-month — they're already in Scheduled
-  // Churn. Only NOT_PAID involuntary cancellations can newly appear within
-  // the month. Compute their per-month average from the trailing window.
+  // Churn. The exceptions: agency-client firms (their contract waives the
+  // notice) and NOT_PAID involuntary cancellations. Compute the per-month
+  // average for those two categories combined.
   const trailingYmSet = {};
   for (const t of trailingYms) trailingYmSet[t] = true;
   let nonPaymentTotal = 0;
@@ -1634,11 +1652,10 @@ function computeProjection(movements, rawRows) {
     for (const r of rawRows) {
       const status = r['Impact Sub status'] || '';
       if (status.indexOf('CANCEL_FROM_') !== 0) continue;
-      // NOT_PAID is the Chargebee involuntary cancel reason. Anything else
-      // is voluntary (and therefore would have come through scheduled
-      // non-renewing).
-      const reason = (r['Cancel Reason'] || '').toUpperCase();
-      if (reason !== 'NOT_PAID') continue;
+      const reason  = (r['Cancel Reason'] || '').toUpperCase();
+      const isAgency = String(r['Customers.Agency Client Firm'] || '').toLowerCase().trim() === 'true';
+      const isSurprise = (reason === 'NOT_PAID') || isAgency;
+      if (!isSurprise) continue;
       const d = parseChangeDate(r['Change Date']);
       if (!d) continue;
       const ymKey = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
@@ -1764,9 +1781,9 @@ function renderProjection(movements, mrrRows, historicalRows) {
     + '<div class="methodology">'
     +   '<strong>Formula.</strong> For upgrades / reactivations / downgrades: '
     +   formula + '.<br>'
-    +   '<strong>For cancellations:</strong> <code>past-fired + scheduled non-renewing + (trailing avg <em>NOT_PAID-only</em> × ' + (p.lastDay - p.day) + '/' + p.lastDay + ')</code>'
+    +   '<strong>For cancellations:</strong> <code>past-fired + scheduled non-renewing + (trailing avg <em>agency + NOT_PAID</em> × ' + (p.lastDay - p.day) + '/' + p.lastDay + ')</code>'
     +   '<br><br>'
-    +   '<strong>Why different formulas?</strong> Lawmatics requires 30-day cancellation notice, so every voluntary cancellation for the rest of this month is already in the Scheduled Churn feed. The only cancellations that can newly appear mid-month are involuntary non-payment ones — so we project only those for the remainder, not the full cancellation pattern.'
+    +   '<strong>Why different formulas?</strong> Lawmatics requires 30-day cancellation notice for voluntary churn, so most rest-of-month cancellations are already in the Scheduled Churn feed. The exceptions: <strong>agency-client firms</strong> (no notice req\'d) and <strong>NOT_PAID</strong> involuntary cancellations. So we project only those two categories for the remainder.'
     +   '<br><br>'
     +   '<strong>MTD</strong> = events that have already fired this month (existing customers only).'
     +   ' <strong>Scheduled</strong> = firms with a future-dated cancel inside this month, taken from Chargebee Scheduled Churn (only Cancellations).'
@@ -2568,6 +2585,205 @@ function filterChurnForPeriod(churnRows, mrrRows, period) {
   return out;
 }
 
+// ----------------------------------------------------------------------------
+// Churn Forecast — month-end prediction tailored to Lawmatics' policy
+// ----------------------------------------------------------------------------
+//
+// Lawmatics' 30-day cancellation notice means voluntary churn is essentially
+// known at the start of the month (visible in the Scheduled Churn feed). The
+// two categories that CAN appear mid-month without notice:
+//   1. Agency-client cancellations (their contract waives the 30-day notice)
+//   2. NOT_PAID involuntary cancellations (credit card failures, anytime)
+//
+// We forecast remaining churn by taking the trailing 3-month average of just
+// those two categories and prorating by days remaining in the month. Adding
+// MTD + scheduled-rest-of-month + this remainder gives the projected total.
+//
+function computeChurnForecast(mrrRows, historicalRows, churnRows) {
+  const now = new Date();
+  const ym = currentYm();
+  const [yr, mo] = ym.split('-').map(Number);
+  const monthStart = new Date(yr, mo - 1, 1);
+  const monthEnd   = new Date(yr, mo, 1);
+  const day = now.getDate();
+  const lastDay = new Date(yr, mo, 0).getDate();
+  const daysRemaining = Math.max(0, lastDay - day);
+  const remainingFraction = daysRemaining / lastDay;
+
+  // === MTD: cancellations that have already fired this month ===
+  let mtdCount = 0,  mtdDollars = 0;
+  let mtdAgencyCount = 0,  mtdAgencyDollars = 0;
+  let mtdNotPaidCount = 0, mtdNotPaidDollars = 0;
+  let mtdOtherCount = 0,   mtdOtherDollars = 0;
+  for (const r of (mrrRows || [])) {
+    const status = r['Impact Sub status'];
+    if (!status || status.indexOf('CANCEL_FROM_') !== 0) continue;
+    const d = parseDateTime(r['Cancellation Date']) || parseChangeDate(r['Change Date']);
+    if (!d || d < monthStart || d >= monthEnd || d > now) continue;
+    const dollars = Math.abs(parseMoney(r['MRR Impact']));
+    mtdCount   += 1;
+    mtdDollars += dollars;
+    const isNotPaid = (r['Cancel Reason'] || '').toUpperCase() === 'NOT_PAID';
+    const isAgency  = String(r['Customers.Agency Client Firm'] || '').toLowerCase().trim() === 'true';
+    if (isNotPaid)       { mtdNotPaidCount += 1; mtdNotPaidDollars += dollars; }
+    else if (isAgency)   { mtdAgencyCount  += 1; mtdAgencyDollars  += dollars; }
+    else                 { mtdOtherCount   += 1; mtdOtherDollars   += dollars; }
+  }
+
+  // === Future scheduled this month (from Scheduled Churn) ===
+  let scheduledCount = 0, scheduledDollars = 0;
+  for (const r of (churnRows || [])) {
+    const d = parseDateTime(r['Cancellation Date']);
+    if (!d || d < monthStart || d >= monthEnd || d < now) continue;
+    scheduledCount  += 1;
+    scheduledDollars += parseMoney(r['Current MRR']);
+  }
+
+  // === Trailing 3-month baseline for the two "surprise" categories ===
+  const LOOKBACK = 3;
+  const trailingYms = [];
+  for (let i = 1; i <= LOOKBACK; i++) {
+    const d = new Date(yr, mo - 1 - i, 1);
+    trailingYms.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'));
+  }
+  const trailingYmSet = {};
+  for (const t of trailingYms) trailingYmSet[t] = true;
+
+  let trailAgencyCount = 0,  trailAgencyDollars = 0;
+  let trailNotPaidCount = 0, trailNotPaidDollars = 0;
+  const seenSubs = {};
+  for (const r of (mrrRows || []).concat(historicalRows || [])) {
+    const status = r['Impact Sub status'];
+    if (!status || status.indexOf('CANCEL_FROM_') !== 0) continue;
+    const d = parseDateTime(r['Cancellation Date']) || parseChangeDate(r['Change Date']);
+    if (!d) continue;
+    const rYm = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    if (!trailingYmSet[rYm]) continue;
+    const subId = r['Subscription ID'];
+    if (subId) {
+      const key = rYm + '|' + subId;
+      if (seenSubs[key]) continue;
+      seenSubs[key] = true;
+    }
+    const dollars = Math.abs(parseMoney(r['MRR Impact']));
+    const isNotPaid = (r['Cancel Reason'] || '').toUpperCase() === 'NOT_PAID';
+    const isAgency  = String(r['Customers.Agency Client Firm'] || '').toLowerCase().trim() === 'true';
+    if (isNotPaid)    { trailNotPaidCount += 1; trailNotPaidDollars += dollars; }
+    else if (isAgency){ trailAgencyCount  += 1; trailAgencyDollars  += dollars; }
+    // Other voluntary cancellations would have flowed through Scheduled
+    // Churn in their month, so they're not "surprises" from the forecast's
+    // perspective. Don't add them to the trailing surprise baseline.
+  }
+
+  const avgAgencyPerMonth        = trailAgencyCount       / LOOKBACK;
+  const avgAgencyDollarsPerMonth = trailAgencyDollars     / LOOKBACK;
+  const avgNotPaidPerMonth       = trailNotPaidCount      / LOOKBACK;
+  const avgNotPaidDollarsPerMonth = trailNotPaidDollars   / LOOKBACK;
+
+  // === Predicted surprises for remainder of month ===
+  // Apply the trailing per-month average × remaining fraction. This is
+  // separate from MTD — even if MTD has already absorbed some surprises,
+  // additional ones can still appear before month-end.
+  const predictedAgencyCount    = avgAgencyPerMonth        * remainingFraction;
+  const predictedAgencyDollars  = avgAgencyDollarsPerMonth * remainingFraction;
+  const predictedNotPaidCount   = avgNotPaidPerMonth       * remainingFraction;
+  const predictedNotPaidDollars = avgNotPaidDollarsPerMonth * remainingFraction;
+
+  const predictedSurpriseCount   = predictedAgencyCount   + predictedNotPaidCount;
+  const predictedSurpriseDollars = predictedAgencyDollars + predictedNotPaidDollars;
+
+  const totalCount   = mtdCount   + scheduledCount   + predictedSurpriseCount;
+  const totalDollars = mtdDollars + scheduledDollars + predictedSurpriseDollars;
+
+  return {
+    ym, day, lastDay, daysRemaining, remainingFraction,
+    mtdCount, mtdDollars,
+    mtdAgencyCount, mtdAgencyDollars,
+    mtdNotPaidCount, mtdNotPaidDollars,
+    mtdOtherCount, mtdOtherDollars,
+    scheduledCount, scheduledDollars,
+    avgAgencyPerMonth, avgAgencyDollarsPerMonth,
+    avgNotPaidPerMonth, avgNotPaidDollarsPerMonth,
+    predictedAgencyCount, predictedAgencyDollars,
+    predictedNotPaidCount, predictedNotPaidDollars,
+    predictedSurpriseCount, predictedSurpriseDollars,
+    totalCount, totalDollars,
+    trailingYms,
+  };
+}
+
+function renderChurnForecast(mrrRows, historicalRows, churnRows) {
+  const f = computeChurnForecast(mrrRows, historicalRows, churnRows);
+
+  document.getElementById('churnForecastLabel').textContent =
+    'Projected churn — ' + monthLabel(f.ym) + ' month-end';
+  document.getElementById('churnForecastValue').textContent =
+    '-' + fmtMoney(f.totalDollars) + '  ·  ~' + Math.round(f.totalCount) + ' firms';
+  document.getElementById('churnForecastBasis').textContent =
+    'Day ' + f.day + ' of ' + f.lastDay + ' + scheduled + surprise estimate ('
+    + 'trailing 3-mo avg agency + NOT_PAID, prorated).';
+
+  // Detail breakdown
+  function row(label, count, dollars, hint) {
+    return '<tr>'
+      + '<td><strong>' + label + '</strong>'
+        + (hint ? '<div style="font-size:11px;color:var(--text-muted);">' + hint + '</div>' : '')
+        + '</td>'
+      + '<td class="numeric">' + (count > 0 ? (count < 1 ? '~' + count.toFixed(1) : Math.round(count)) : '—') + '</td>'
+      + '<td class="numeric negative">' + (dollars > 0 ? '-' + fmtMoney(dollars) : '—') + '</td>'
+      + '</tr>';
+  }
+  function rowSub(label, count, dollars) {
+    return '<tr>'
+      + '<td style="padding-left:24px;color:var(--text-muted);">' + label + '</td>'
+      + '<td class="numeric" style="color:var(--text-muted);">' + (count < 1 && count > 0 ? '~' + count.toFixed(1) : Math.round(count)) + '</td>'
+      + '<td class="numeric" style="color:var(--text-muted);">' + (dollars > 0 ? '-' + fmtMoney(dollars) : '—') + '</td>'
+      + '</tr>';
+  }
+
+  let html = ''
+    + '<table style="margin-top:18px;">'
+    + '<thead><tr>'
+    +   '<th>Component</th>'
+    +   '<th class="numeric">Firms</th>'
+    +   '<th class="numeric">MRR</th>'
+    + '</tr></thead><tbody>'
+    + row('MTD — already fired',  f.mtdCount, f.mtdDollars, 'Days 1–' + f.day + ' of this month')
+    + rowSub('NOT_PAID (involuntary)', f.mtdNotPaidCount, f.mtdNotPaidDollars)
+    + rowSub('Agency clients',          f.mtdAgencyCount,  f.mtdAgencyDollars)
+    + rowSub('Other voluntary',         f.mtdOtherCount,   f.mtdOtherDollars)
+    + row('Scheduled for rest of month', f.scheduledCount, f.scheduledDollars,
+          'Voluntary non-renewing already on the books — 30-day notice')
+    + row('Predicted surprises (rest of month)', f.predictedSurpriseCount, f.predictedSurpriseDollars,
+          'Trailing 3-mo avg of agency + NOT_PAID, scaled to ' + f.daysRemaining + ' / ' + f.lastDay + ' days remaining')
+    + rowSub('Agency clients (no notice req\'d)', f.predictedAgencyCount,  f.predictedAgencyDollars)
+    + rowSub('NOT_PAID (involuntary)',             f.predictedNotPaidCount, f.predictedNotPaidDollars)
+    + '<tr style="font-weight:600;background:#fafafa;">'
+    +   '<td>Total month-end forecast</td>'
+    +   '<td class="numeric">~' + Math.round(f.totalCount) + '</td>'
+    +   '<td class="numeric negative">-' + fmtMoney(f.totalDollars) + '</td>'
+    + '</tr>'
+    + '</tbody></table>'
+    + '<div class="methodology" style="margin-top:16px;">'
+    +   '<strong>Why this formula?</strong> Lawmatics requires 30-day cancellation notice — so most voluntary churn for the rest of the month is already in <em>Scheduled for rest of month</em>. The exceptions are <strong>agency-client firms</strong> (no notice req\'d in their contract) and <strong>NOT_PAID</strong> involuntary cancellations (credit-card failures can fire any day). The trailing 3-month average captures the typical mid-month surprise rate for those two categories.'
+    +   '<br><br>'
+    +   '<strong>Trailing baseline.</strong> Months used: ' + escapeHtml(f.trailingYms.slice().reverse().join(', ')) + '. '
+    +   'Per-month averages — Agency: ' + f.avgAgencyPerMonth.toFixed(1) + ' firms / ' + fmtMoney(f.avgAgencyDollarsPerMonth) + '; '
+    +   'NOT_PAID: ' + f.avgNotPaidPerMonth.toFixed(1) + ' firms / ' + fmtMoney(f.avgNotPaidDollarsPerMonth) + '.'
+    +   '<br><br>'
+    +   '<strong>Caveats.</strong> Linear pacing — assumes surprises arrive evenly through the month. Treats agency and NOT_PAID as independent (so we double-count any agency NOT_PAID, which is rare). If MTD already has more surprises than the trailing baseline, the forecast may under-shoot.'
+    + '</div>';
+
+  document.getElementById('churnForecastDetail').innerHTML = html;
+}
+
+function toggleChurnForecastDetail() {
+  const el = document.getElementById('churnForecastDetail');
+  const btn = document.getElementById('churnForecastToggle');
+  const open = el.classList.toggle('open');
+  btn.textContent = open ? 'Hide breakdown ▴' : 'Show breakdown ▾';
+}
+
 /**
  * Re-renders every churn-section widget for the currently-selected period.
  * Called on initial load and whenever the user clicks a period tab.
@@ -3198,7 +3414,16 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
   sfById = sfById || {};
   const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
 
-  // Walk all churn rows across the 12-month window.
+  // Scope: previous month + this month, anchored to the calendar (not to
+  // whatever the rolling 12-month window happens to end on).
+  const thisMonth = currentYm();
+  const now = new Date();
+  const prevDate  = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonth = prevDate.getFullYear() + '-' + String(prevDate.getMonth() + 1).padStart(2, '0');
+  const focusYms = [prevMonth, thisMonth];
+  const focusLabels = focusYms.map(monthLabel).join(' + ');
+
+  // Walk all churn rows across the 2-month window.
   let total = 0;
   let totalDollars = 0;
   let belowIcp = 0;
@@ -3209,7 +3434,10 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
   const reasonAgg = {};
   const detailSamples = [];
 
-  for (const ym of yms) {
+  for (const ym of focusYms) {
+    // byMonth might not have an entry if the month is empty or outside the
+    // 12-month window edge; treat as zero rows.
+    if (!byMonth[ym]) continue;
     for (const entry of byMonth[ym].rows) {
       const r = entry.row;
       total += 1;
@@ -3254,7 +3482,7 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
 
   let html = ''
     + '<p style="margin-top:0;">'
-    +   'Over the last 12 months we lost <strong>' + total + ' firms</strong> totalling <strong>'
+    +   'Across <strong>' + escapeHtml(focusLabels) + '</strong> we lost <strong>' + total + ' firms</strong> totalling <strong>'
     +   fmtMoney(totalDollars) + '</strong> in MRR.'
     + '</p>';
 
