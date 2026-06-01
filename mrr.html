@@ -513,6 +513,36 @@ td.negative { color: var(--negative); }
 
   <div class="section">
     <div class="card">
+      <h2>Historical churn trends — last 12 months</h2>
+      <div style="font-size:12px;color:var(--text-muted);padding:0 0 16px;">
+        Aggregated from past-fired CANCEL_FROM_* events. Helps you read the trend separately from this-month/next-month committed view.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;" class="churn-charts">
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">MRR + logos churned per month</div>
+          <div class="chart-container" style="height:260px;"><canvas id="hist12MrrChart"></canvas></div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Monthly churn rate</div>
+          <div class="chart-container" style="height:260px;"><canvas id="hist12RateChart"></canvas></div>
+        </div>
+      </div>
+      <div style="margin-top:24px;">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Churn $ by reason per month</div>
+        <div class="chart-container" style="height:340px;"><canvas id="hist12ReasonChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="card">
+      <h2>Churn insights</h2>
+      <div id="churnInsightsBody" style="font-size:14px;line-height:1.7;color:var(--text);"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="card">
       <h2>Net customer movement by Account Manager — last 90 days</h2>
       <div style="font-size:12px;color:var(--text-muted);padding:0 0 12px;">
         Existing-customer movement only (upgrades + reactivations minus downgrades + cancellations). Excludes new business.
@@ -708,6 +738,8 @@ let charts = {
   movement: null, am: null, churn: null, churnMrr: null,
   // Churn Deep Dive sub-charts
   ddAm: null, ddOwner: null, ddReason: null, ddLeads: null, ddPracticeArea: null,
+  // Historical 12-month charts
+  hist12Mrr: null, hist12Rate: null, hist12Reason: null,
 };
 
 // Drill-down dataset — kept around so click handlers can filter without
@@ -873,6 +905,10 @@ async function loadAll() {
     cachedMrr     = mrr;
     cachedSfById  = sfById;
     renderChurnSection();
+    renderHistorical12Mrr(mrr, historical);
+    renderHistorical12Reason(mrr, historical, sfById);
+    renderHistorical12Rate(mrr, historical, mrrSnapshot);
+    renderChurnInsights(mrr, historical, sfById);
     renderAmBreakdown(mrr);
     renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm);
 
@@ -2132,18 +2168,29 @@ function drillChurnBucket(bucketIdx) {
 function renderChurnSummary(filtered) {
   const mrrs = filtered.map(function (x) { return x.mrr; });
   const total = mrrs.reduce(function (s, v) { return s + v; }, 0);
-  mrrs.sort(function (a, b) { return a - b; });
+  const sorted = mrrs.slice().sort(function (a, b) { return a - b; });
   let median = 0;
-  if (mrrs.length > 0) {
-    const mid = Math.floor(mrrs.length / 2);
-    median = mrrs.length % 2 === 0 ? (mrrs[mid - 1] + mrrs[mid]) / 2 : mrrs[mid];
+  if (sorted.length > 0) {
+    const mid = Math.floor(sorted.length / 2);
+    median = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
   }
   const avg = mrrs.length > 0 ? total / mrrs.length : 0;
+  // Agency client cancellations: count firms with Customers.Agency Client Firm === 'true'
+  let agencyCount = 0, agencyMrr = 0;
+  for (const x of filtered) {
+    const flag = String(x.row['Customers.Agency Client Firm'] || '').toLowerCase().trim();
+    if (flag === 'true') {
+      agencyCount += 1;
+      agencyMrr   += x.mrr;
+    }
+  }
   document.getElementById('churnSummary').innerHTML =
       '<span><strong>' + mrrs.length + '</strong> firms</span>'
     + '<span><strong>' + fmtMoney(total)  + '</strong> total MRR</span>'
     + '<span>Median <strong>' + fmtMoney(median) + '</strong></span>'
-    + '<span>Avg <strong>' + fmtMoney(avg) + '</strong></span>';
+    + '<span>Avg <strong>' + fmtMoney(avg) + '</strong></span>'
+    + '<span style="color:var(--negative);">Agency clients: <strong>' + agencyCount + '</strong> firms / <strong>'
+      + fmtMoney(agencyMrr) + '</strong></span>';
 }
 
 /** Drill on a churn-chart bar — shows all churned firms (past or scheduled) in that month. */
@@ -2483,18 +2530,19 @@ function filterChurnForPeriod(churnRows, mrrRows, period) {
       const mrr = Math.abs(parseMoney(r['MRR Impact']));
       out.push({
         row: {
-          'Cancellation Date':         r['Cancellation Date'] || cancelD.toISOString().replace('T', ' ').slice(0, 19),
-          'Current MRR':               '$' + mrr.toFixed(2),
-          'Company':                   r['Company'] || '',
-          'Customers.Owner':           r['Customers.Owner'] || '',
-          'Customers.Onboarder':       r['Customers.Onboarder'] || '',
-          'Customers.Account Manager': r['Customers.Account Manager'] || '',
-          'Customers.SalesforceID':    r['Customers.SalesforceID'] || '',
-          'Customers.FirmID':          r['Customers.FirmID'] || '',
-          'Customers.Avg Lead Volume': r['Customers.Avg Lead Volume'] || '',
-          'Creation Date':             r['Creation Date'] || '',
-          'Cancel Reason':             r['Cancel Reason'] || '',
-          '_churnType':                'fired',
+          'Cancellation Date':           r['Cancellation Date'] || cancelD.toISOString().replace('T', ' ').slice(0, 19),
+          'Current MRR':                 '$' + mrr.toFixed(2),
+          'Company':                     r['Company'] || '',
+          'Customers.Owner':             r['Customers.Owner'] || '',
+          'Customers.Onboarder':         r['Customers.Onboarder'] || '',
+          'Customers.Account Manager':   r['Customers.Account Manager'] || '',
+          'Customers.SalesforceID':      r['Customers.SalesforceID'] || '',
+          'Customers.FirmID':            r['Customers.FirmID'] || '',
+          'Customers.Avg Lead Volume':   r['Customers.Avg Lead Volume'] || '',
+          'Customers.Agency Client Firm': r['Customers.Agency Client Firm'] || '',
+          'Creation Date':               r['Creation Date'] || '',
+          'Cancel Reason':               r['Cancel Reason'] || '',
+          '_churnType':                  'fired',
         },
         date: cancelD,
         mrr:  mrr,
@@ -2839,6 +2887,439 @@ function drillChurnByLeadBucket(bucketIdx) {
   openDrill('Churn — Lead volume ' + bucket.label,
             'Firms in this period whose Avg Lead Volume falls in this bucket',
             filtered);
+}
+
+// ----------------------------------------------------------------------------
+// Historical churn trends — last 12 months
+// ----------------------------------------------------------------------------
+
+/**
+ * Walk all past CANCEL_FROM_* events across mrr + historical for the last
+ * 12 calendar months. Returns:
+ *   yms: ['2025-06', '2025-07', ..., '2026-05']
+ *   byMonth: { ym → { dollars, count, rows: [...] } }
+ */
+function aggregateChurn12Months(mrrRows, historicalRows) {
+  const all = (mrrRows || []).concat(historicalRows || []);
+  const now = new Date();
+  // First day of (now - 11 months), so we get 12 months including current.
+  const horizonStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+  const yms = [];
+  const cursor = new Date(horizonStart.getTime());
+  while (cursor <= now) {
+    yms.push(cursor.getFullYear() + '-' + String(cursor.getMonth() + 1).padStart(2, '0'));
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+  const byMonth = {};
+  for (const ym of yms) byMonth[ym] = { dollars: 0, count: 0, rows: [] };
+
+  // Dedup by Subscription ID so we don't double-count a sub appearing in
+  // both mrr (live) and historical (backfill) for an overlap month.
+  const seen = {};
+  for (const r of all) {
+    const status = r['Impact Sub status'];
+    if (!status || status.indexOf('CANCEL_FROM_') !== 0) continue;
+    const d = parseDateTime(r['Cancellation Date']) || parseChangeDate(r['Change Date']);
+    if (!d) continue;
+    const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    if (!byMonth[ym]) continue;
+    const subId = r['Subscription ID'];
+    if (subId) {
+      const key = ym + '|' + subId;
+      if (seen[key]) continue;
+      seen[key] = true;
+    }
+    const mrr = Math.abs(parseMoney(r['MRR Impact']));
+    byMonth[ym].dollars += mrr;
+    byMonth[ym].count   += 1;
+    byMonth[ym].rows.push({ row: r, mrr: mrr });
+  }
+  return { yms: yms, byMonth: byMonth };
+}
+
+/**
+ * Dual-axis line chart — MRR ($) churned per month and # of logos.
+ */
+function renderHistorical12Mrr(mrrRows, historicalRows) {
+  const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
+  const labels  = yms.map(monthLabel);
+  const dollars = yms.map(function (ym) { return byMonth[ym].dollars; });
+  const counts  = yms.map(function (ym) { return byMonth[ym].count;   });
+
+  if (charts.hist12Mrr) charts.hist12Mrr.destroy();
+  const ctx = document.getElementById('hist12MrrChart').getContext('2d');
+  charts.hist12Mrr = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'MRR churned',
+          data: dollars,
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239,68,68,0.12)',
+          yAxisID: 'y',
+          tension: 0.3,
+          fill: true,
+        },
+        {
+          label: 'Logos churned',
+          data: counts,
+          borderColor: '#1f2937',
+          backgroundColor: 'rgba(31,41,55,0)',
+          yAxisID: 'y2',
+          tension: 0.3,
+          borderDash: [4, 4],
+        },
+      ],
+    },
+    options: {
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: function (c) {
+              if (c.dataset.yAxisID === 'y2') return c.dataset.label + ': ' + c.parsed.y + ' firms';
+              return c.dataset.label + ': ' + fmtMoney(c.parsed.y);
+            },
+          },
+        },
+      },
+      scales: {
+        y:  { position: 'left',  ticks: { callback: function (v) { return fmtMoneyShort(v); } }, grid: { color: '#f3f4f6' } },
+        y2: { position: 'right', ticks: { precision: 0 }, grid: { display: false } },
+        x:  { grid: { display: false } },
+      },
+    },
+  });
+}
+
+/**
+ * Stacked column — last 12 months, each month's MRR churn split by reason
+ * (SF Churn Reason preferred; falls back to Chargebee Cancel Reason).
+ */
+function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
+  sfById = sfById || {};
+  const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
+
+  // Collect all reasons across all months. Sum MRR per (month, reason).
+  const reasonTotals = {}; // reason → total MRR across all months
+  const grid = {};         // ym → reason → MRR
+  for (const ym of yms) grid[ym] = {};
+  for (const ym of yms) {
+    for (const entry of byMonth[ym].rows) {
+      const r = entry.row;
+      const firmId = normalizeFirmId(r['Customers.FirmID']);
+      const sf = firmId && sfById[firmId] ? sfById[firmId] : {};
+      const sfReason = (sf['Churn Reason'] || '').trim();
+      const cbReason = (r['Cancel Reason'] || '').trim();
+      const reason = sfReason || cbReason || 'Voluntary / unspecified';
+      grid[ym][reason]  = (grid[ym][reason]  || 0) + entry.mrr;
+      reasonTotals[reason] = (reasonTotals[reason] || 0) + entry.mrr;
+    }
+  }
+
+  // Limit to the top N reasons by total $, lump the rest as "Other".
+  const TOP_N = 7;
+  const reasonsByTotal = Object.keys(reasonTotals).sort(function (a, b) {
+    return reasonTotals[b] - reasonTotals[a];
+  });
+  const topReasons = reasonsByTotal.slice(0, TOP_N);
+  const includeOther = reasonsByTotal.length > TOP_N;
+  const stackKeys = topReasons.concat(includeOther ? ['Other'] : []);
+
+  // Build per-reason series across months.
+  const palette = ['#ef4444','#f97316','#eab308','#84cc16','#10b981','#06b6d4','#6366f1','#94a3b8'];
+  const datasets = stackKeys.map(function (reason, i) {
+    const data = yms.map(function (ym) {
+      if (reason === 'Other') {
+        let sum = 0;
+        for (const r in grid[ym]) {
+          if (topReasons.indexOf(r) === -1) sum += grid[ym][r];
+        }
+        return sum;
+      }
+      return grid[ym][reason] || 0;
+    });
+    return {
+      label: reason,
+      data: data,
+      backgroundColor: palette[i % palette.length],
+      borderColor: palette[i % palette.length],
+      borderWidth: 1,
+      stack: 'reasons',
+    };
+  });
+
+  if (charts.hist12Reason) charts.hist12Reason.destroy();
+  const ctx = document.getElementById('hist12ReasonChart').getContext('2d');
+  charts.hist12Reason = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: yms.map(monthLabel), datasets: datasets },
+    options: {
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: function (c) { return c.dataset.label + ': ' + fmtMoney(c.parsed.y); },
+            footer: function (items) {
+              const total = items.reduce(function (s, it) { return s + it.parsed.y; }, 0);
+              return 'Total: ' + fmtMoney(total);
+            },
+          },
+        },
+      },
+      scales: {
+        y: { stacked: true, ticks: { callback: function (v) { return fmtMoneyShort(v); } }, grid: { color: '#f3f4f6' } },
+        x: { stacked: true, grid: { display: false } },
+      },
+    },
+  });
+}
+
+/**
+ * Monthly churn % line chart. Two series:
+ *   Logo churn % = firms cancelled in month / customer count at start of month
+ *   MRR churn %  = $ churned in month / active MRR at start of month
+ *
+ * Both denominators come from the MRR Snapshot tab. The two often diverge
+ * — high logo churn with low MRR churn means you're losing many small
+ * firms; the inverse means you're losing fewer but bigger ones.
+ */
+function renderHistorical12Rate(mrrRows, historicalRows, snapshotRows) {
+  const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
+
+  // Build a map: ym → earliest snapshot in that month, with both customer
+  // count and active MRR. Earliest snapshot in the month = best proxy for
+  // "beginning of month" state.
+  const earliestForYm = {};
+  if (Array.isArray(snapshotRows)) {
+    for (const r of snapshotRows) {
+      const t = new Date(r['Snapshot Time']);
+      if (isNaN(t.getTime())) continue;
+      const count = parseFloat(String(r['Active Customers'] || '0').replace(/[,]/g, ''));
+      const mrrSnap = parseFloat(String(r['Active MRR ($)'] || '0').replace(/[$,]/g, ''));
+      if ((!isFinite(count) || count <= 0) && (!isFinite(mrrSnap) || mrrSnap <= 0)) continue;
+      const ym = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0');
+      if (!earliestForYm[ym] || t < earliestForYm[ym].t) {
+        earliestForYm[ym] = { t: t, count: count, mrr: mrrSnap };
+      }
+    }
+  }
+  const haveSnapshots = Object.keys(earliestForYm).length > 0;
+
+  const logoData = yms.map(function (ym) {
+    const snap = earliestForYm[ym];
+    if (!snap || !isFinite(snap.count) || snap.count <= 0) return null;
+    return (byMonth[ym].count / snap.count) * 100;
+  });
+  const mrrData = yms.map(function (ym) {
+    const snap = earliestForYm[ym];
+    if (!snap || !isFinite(snap.mrr) || snap.mrr <= 0) return null;
+    return (byMonth[ym].dollars / snap.mrr) * 100;
+  });
+
+  if (charts.hist12Rate) charts.hist12Rate.destroy();
+  const ctx = document.getElementById('hist12RateChart').getContext('2d');
+  charts.hist12Rate = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: yms.map(monthLabel),
+      datasets: [
+        {
+          label: 'Logo churn %',
+          data: logoData,
+          borderColor: '#ef4444',
+          backgroundColor: 'rgba(239,68,68,0.12)',
+          tension: 0.3,
+          fill: false,
+          spanGaps: true,
+        },
+        {
+          label: 'MRR churn %',
+          data: mrrData,
+          borderColor: '#6366f1',
+          backgroundColor: 'rgba(99,102,241,0.12)',
+          tension: 0.3,
+          fill: false,
+          spanGaps: true,
+          borderDash: [4, 3],
+        },
+      ],
+    },
+    options: {
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: function (c) {
+              if (c.parsed.y === null) return c.dataset.label + ': no snapshot yet';
+              const ym = yms[c.dataIndex];
+              const m  = byMonth[ym];
+              if (c.dataset.label === 'Logo churn %') {
+                return 'Logo: ' + c.parsed.y.toFixed(2) + '% — ' + m.count + ' firms';
+              }
+              return 'MRR: ' + c.parsed.y.toFixed(2) + '% — ' + fmtMoney(m.dollars);
+            },
+            afterBody: function () {
+              return haveSnapshots ? '' : 'Both lines populate as MRR Snapshot accumulates history.';
+            },
+          },
+        },
+      },
+      scales: {
+        y: {
+          ticks: { callback: function (v) { return v.toFixed(2) + '%'; } },
+          grid: { color: '#f3f4f6' },
+          beginAtZero: true,
+        },
+        x: { grid: { display: false } },
+      },
+    },
+  });
+}
+
+// ----------------------------------------------------------------------------
+// Churn Insights narrative — rule-based pattern surfacing
+// ----------------------------------------------------------------------------
+
+// Lawmatics-specific business context. Edit here if anything changes.
+const LAWMATICS_CONTEXT = {
+  icpLeadsPerMonth: 50, // ICP = customers with 50+ leads/month
+  minPlanSeats: 3,      // No solo plan; lowest plan = 3 seats
+};
+
+function renderChurnInsights(mrrRows, historicalRows, sfById) {
+  sfById = sfById || {};
+  const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
+
+  // Walk all churn rows across the 12-month window.
+  let total = 0;
+  let totalDollars = 0;
+  let belowIcp = 0;
+  let belowIcpDollars = 0;
+  let unknownLead = 0;
+  let agencyClientCount = 0;
+  let agencyClientDollars = 0;
+  const reasonAgg = {};
+  const detailSamples = [];
+
+  for (const ym of yms) {
+    for (const entry of byMonth[ym].rows) {
+      const r = entry.row;
+      total += 1;
+      totalDollars += entry.mrr;
+      // Lead volume — prefer SF Avg Monthly Volume, fall back to Chargebee.
+      const firmId = normalizeFirmId(r['Customers.FirmID']);
+      const sf = firmId && sfById[firmId] ? sfById[firmId] : {};
+      const volRaw = sf['Avg Monthly Volume'] !== undefined && sf['Avg Monthly Volume'] !== ''
+        ? sf['Avg Monthly Volume']
+        : r['Customers.Avg Lead Volume'];
+      const volNum = parseFloat(String(volRaw || '').replace(/[^0-9.\-]/g, ''));
+      if (!isFinite(volNum) || String(volRaw || '').trim() === '') {
+        unknownLead += 1;
+      } else if (volNum < LAWMATICS_CONTEXT.icpLeadsPerMonth) {
+        belowIcp += 1;
+        belowIcpDollars += entry.mrr;
+      }
+      // Agency client
+      const agency = String(r['Customers.Agency Client Firm'] || '').toLowerCase().trim();
+      if (agency === 'true') {
+        agencyClientCount += 1;
+        agencyClientDollars += entry.mrr;
+      }
+      // Reason — SF preferred, CB fallback
+      const reason = (sf['Churn Reason'] || '').trim() || (r['Cancel Reason'] || '').trim() || 'Voluntary / unspecified';
+      if (!reasonAgg[reason]) reasonAgg[reason] = { count: 0, dollars: 0 };
+      reasonAgg[reason].count   += 1;
+      reasonAgg[reason].dollars += entry.mrr;
+      // Detail samples (free-text)
+      const details = (sf['Churn Details'] || '').trim();
+      if (details && detailSamples.length < 4) {
+        detailSamples.push({ company: r['Company'] || '', details: details });
+      }
+    }
+  }
+
+  const topReasons = Object.entries(reasonAgg)
+    .sort(function (a, b) { return b[1].dollars - a[1].dollars; })
+    .slice(0, 5);
+
+  const pct = function (n, d) { return d > 0 ? Math.round(n / d * 100) : 0; };
+
+  let html = ''
+    + '<p style="margin-top:0;">'
+    +   'Over the last 12 months we lost <strong>' + total + ' firms</strong> totalling <strong>'
+    +   fmtMoney(totalDollars) + '</strong> in MRR.'
+    + '</p>';
+
+  // ICP framing — below-ICP firms are likely under-served by our minimum plan.
+  if (total > 0) {
+    const knownLead = total - unknownLead;
+    if (knownLead > 0) {
+      html += '<p>'
+        + '<strong>' + belowIcp + '</strong> of the <strong>' + knownLead + '</strong> churned firms with known lead volume '
+        + '(<strong>' + pct(belowIcp, knownLead) + '%</strong>) had fewer than '
+        + LAWMATICS_CONTEXT.icpLeadsPerMonth + ' leads/month — '
+        + '<strong>below our ICP</strong>. That accounts for '
+        + fmtMoney(belowIcpDollars) + ' of churned MRR.'
+        + '</p>';
+    }
+    if (unknownLead > 0) {
+      html += '<p style="color:var(--text-muted);font-size:13px;">'
+        + unknownLead + ' churned firms have no lead-volume data — these are not factored into the ICP comparison. '
+        + 'Populating Avg_Monthly_Volume__c in Salesforce or cf_Avg_Lead_Volume in Chargebee will tighten this signal.'
+        + '</p>';
+    }
+  }
+
+  // Agency clients
+  if (agencyClientCount > 0) {
+    html += '<p>'
+      + '<strong>' + agencyClientCount + '</strong> of the churned firms are agency-client firms, contributing '
+      + '<strong>' + fmtMoney(agencyClientDollars) + '</strong> of the loss.'
+      + '</p>';
+  }
+
+  // Top reasons
+  if (topReasons.length > 0) {
+    html += '<p>Top churn reasons by dollars:</p>';
+    html += '<ul style="margin:6px 0 12px 18px;padding:0;">';
+    for (const [reason, v] of topReasons) {
+      html += '<li><strong>' + escapeHtml(reason) + '</strong> — '
+        + v.count + ' firms · ' + fmtMoney(v.dollars) + '</li>';
+    }
+    html += '</ul>';
+  }
+
+  // Business-context observations
+  html += '<div style="margin-top:18px;padding:14px 16px;background:#fafbfc;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-muted);line-height:1.65;">'
+    +   '<strong style="color:var(--text);">Context informing these patterns:</strong>'
+    +   '<ul style="margin:6px 0 0 18px;padding:0;">'
+    +     '<li>ICP = firms with <strong>' + LAWMATICS_CONTEXT.icpLeadsPerMonth + '+ leads/month</strong>. Below-ICP churn often reflects fit/timing issues that solo-firm tooling would catch.</li>'
+    +     '<li>Lowest plan = <strong>' + LAWMATICS_CONTEXT.minPlanSeats + ' seats</strong>. Firms with 1–2 attorneys may churn because the entry plan is bigger than they need.</li>'
+    +     '<li>NOT_PAID cancellations are involuntary — usually a credit-card or billing failure, not a churn-intent signal.</li>'
+    +   '</ul>'
+    + '</div>';
+
+  // Recent churn details samples
+  if (detailSamples.length > 0) {
+    html += '<div style="margin-top:18px;">';
+    html += '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:8px;">Recent churn details from Salesforce</div>';
+    html += '<ul style="margin:0 0 0 18px;padding:0;font-size:13px;">';
+    for (const sample of detailSamples) {
+      html += '<li style="margin-bottom:6px;"><strong>' + escapeHtml(sample.company) + ':</strong> '
+        + '<span style="color:var(--text-muted);">' + escapeHtml(sample.details) + '</span></li>';
+    }
+    html += '</ul></div>';
+  }
+
+  document.getElementById('churnInsightsBody').innerHTML = html;
 }
 
 function renderAmBreakdown(rows) {
