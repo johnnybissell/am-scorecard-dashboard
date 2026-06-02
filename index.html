@@ -432,8 +432,11 @@ const READ_ONLY = !!D.read_only;
 const EXCLUSIONS_KEY = 'am-dashboard-exclusions-v1';
 function loadExclusions() {
   if (READ_ONLY) return JSON.parse(JSON.stringify(D.baked_exclusions || {}));
-  try { return JSON.parse(localStorage.getItem(EXCLUSIONS_KEY)) || {}; }
-  catch (e) { return {}; }
+  try {
+    const local = JSON.parse(localStorage.getItem(EXCLUSIONS_KEY)) || {};
+    return Object.assign({}, D.baked_exclusions || {}, local);
+  }
+  catch (e) { return JSON.parse(JSON.stringify(D.baked_exclusions || {})); }
 }
 function saveExclusions(obj) {
   if (READ_ONLY) return;
