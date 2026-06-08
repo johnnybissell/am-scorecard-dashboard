@@ -428,6 +428,7 @@ if(sessionStorage.getItem('mgr_auth')==='1'){document.addEventListener('DOMConte
 
     <div class="read-only-banner" id="ro-banner"></div>
 
+    <div id="comm-panel"></div>
     <h2 id="lb-title">Team leaderboard</h2>
     <div class="leaderboard">
       <table class="lb-table">
@@ -560,12 +561,9 @@ if(sessionStorage.getItem('mgr_auth')==='1'){document.addEventListener('DOMConte
       var gate=document.getElementById('pw-gate');
       if(gate)gate.style.display='flex';
     }
-    var lbT=document.getElementById('lb-title');
-    if(lbT&&!document.getElementById('comm-panel')){
-      var d=document.createElement('div');d.id='comm-panel';
-      lbT.parentNode.insertBefore(d,lbT);
-    }
   });
+  window.renderAll_comm = renderAll_comm;
+  window.__mgrDrill = window.__mgrDrill || function(){};
 })();
 </script>
 <script>
