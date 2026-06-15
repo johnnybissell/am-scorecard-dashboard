@@ -941,7 +941,7 @@ async function loadAll() {
     renderHistorical12Mrr(mrr, historical);
     renderHistorical12Reason(mrr, historical, sfById);
     renderHistorical12Rate(mrr, historical, mrrSnapshot);
-    renderChurnInsights(mrr, historical, sfById);
+    renderChurnInsights(mrr, historical, sfById, churn);
     renderAmBreakdown(mrr);
     renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm, upDownCollapsed);
 
@@ -3515,8 +3515,9 @@ const LAWMATICS_CONTEXT = {
   minPlanSeats: 3,      // No solo plan; lowest plan = 3 seats
 };
 
-function renderChurnInsights(mrrRows, historicalRows, sfById) {
+function renderChurnInsights(mrrRows, historicalRows, sfById, churnRows) {
   sfById = sfById || {};
+  churnRows = churnRows || [];
   const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
 
   // Scope: previous month + this month, anchored to the calendar (not to
@@ -3536,15 +3537,27 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
   let unknownLead = 0;
   let agencyClientCount = 0;
   let agencyClientDollars = 0;
+  // Scheduled-this-month split — separate counters so we can label the
+  // portion that hasn't fired yet.
+  let scheduledCount = 0;
+  let scheduledDollars = 0;
   const reasonAgg = {};
   const detailSamples = [];
 
+  // Track seen subscription IDs so we don't double-count a sub that
+  // appears in both the fired-cancellations feed (mrrRows) and the
+  // scheduled feed (churnRows).
+  const seenSubIds = {};
+
+  // ---- Fired cancellations (from MonthlyMRRImpact + historical) ----
   for (const ym of focusYms) {
     // byMonth might not have an entry if the month is empty or outside the
     // 12-month window edge; treat as zero rows.
     if (!byMonth[ym]) continue;
     for (const entry of byMonth[ym].rows) {
       const r = entry.row;
+      const subId = r['Subscription ID'];
+      if (subId) seenSubIds[subId] = true;
       total += 1;
       totalDollars += entry.mrr;
       // Lead volume — prefer SF Avg Monthly Volume, fall back to Chargebee.
@@ -3579,16 +3592,96 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
     }
   }
 
+  // ---- Scheduled cancellations for THIS MONTH (not yet fired) ----
+  // Previous-month scheduled rows have already fired and live in mrrRows,
+  // so we only pull current-month scheduled rows here. Skip any sub already
+  // counted in fired rows.
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  for (const r of churnRows) {
+    const d = parseDateTime(r['Cancellation Date']);
+    if (!d) continue;
+    if (d < thisMonthStart || d >= nextMonthStart) continue;
+    if (d < now) continue; // already-fired ones come through mrrRows
+    const subId = r['Subscription ID'];
+    if (subId && seenSubIds[subId]) continue;
+    if (subId) seenSubIds[subId] = true;
+
+    const mrr = parseMoney(r['Current MRR']);
+    total += 1;
+    totalDollars += mrr;
+    scheduledCount += 1;
+    scheduledDollars += mrr;
+
+    // Lead volume
+    const firmId = normalizeFirmId(r['Customers.FirmID']);
+    const sf = firmId && sfById[firmId] ? sfById[firmId] : {};
+    const volRaw = sf['Avg Monthly Volume'] !== undefined && sf['Avg Monthly Volume'] !== ''
+      ? sf['Avg Monthly Volume']
+      : r['Customers.Avg Lead Volume'];
+    const volNum = parseFloat(String(volRaw || '').replace(/[^0-9.\-]/g, ''));
+    if (!isFinite(volNum) || String(volRaw || '').trim() === '') {
+      unknownLead += 1;
+    } else if (volNum < LAWMATICS_CONTEXT.icpLeadsPerMonth) {
+      belowIcp += 1;
+      belowIcpDollars += mrr;
+    }
+    // Agency client
+    const agency = String(r['Customers.Agency Client Firm'] || '').toLowerCase().trim();
+    if (agency === 'true') {
+      agencyClientCount += 1;
+      agencyClientDollars += mrr;
+    }
+    // Reason — SF preferred, CB fallback
+    const reason = (sf['Churn Reason'] || '').trim() || (r['Cancel Reason'] || '').trim() || 'Voluntary / unspecified';
+    if (!reasonAgg[reason]) reasonAgg[reason] = { count: 0, dollars: 0 };
+    reasonAgg[reason].count   += 1;
+    reasonAgg[reason].dollars += mrr;
+    // Detail samples
+    const details = (sf['Churn Details'] || '').trim();
+    if (details && detailSamples.length < 4) {
+      detailSamples.push({ company: r['Company'] || '', details: details });
+    }
+  }
+
   const topReasons = Object.entries(reasonAgg)
     .sort(function (a, b) { return b[1].dollars - a[1].dollars; })
     .slice(0, 5);
 
   const pct = function (n, d) { return d > 0 ? Math.round(n / d * 100) : 0; };
 
+  // ---- Prominent stat strip at the top ----
+  // Surface the key breakdowns as scannable stat cards before the prose.
+  // Agency client churn is now a first-class metric so it's hard to miss.
+  const statCard = function (label, count, dollars, accent) {
+    const color = accent === 'negative' ? 'var(--negative)' :
+                  accent === 'muted'    ? 'var(--text-muted)' :
+                  'var(--text)';
+    return ''
+      + '<div style="flex:1;min-width:140px;padding:14px 16px;background:#fafbfc;border:1px solid var(--border);border-radius:8px;">'
+      +   '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);margin-bottom:6px;">' + escapeHtml(label) + '</div>'
+      +   '<div style="font-size:22px;font-weight:600;color:' + color + ';line-height:1.2;">' + count + ' <span style="font-size:13px;color:var(--text-muted);font-weight:500;">firms</span></div>'
+      +   '<div style="font-size:13px;color:var(--text-muted);margin-top:2px;">' + fmtMoney(dollars) + '</div>'
+      + '</div>';
+  };
+
   let html = ''
+    + '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;">'
+    +   statCard('Total churn', total, totalDollars, 'negative')
+    +   statCard('Agency clients', agencyClientCount, agencyClientDollars, agencyClientCount > 0 ? 'negative' : 'muted')
+    +   statCard('Below ICP', belowIcp, belowIcpDollars, belowIcp > 0 ? 'negative' : 'muted')
+    +   statCard('Scheduled (' + monthLabel(thisMonth) + ', not yet fired)', scheduledCount, scheduledDollars, scheduledCount > 0 ? 'negative' : 'muted')
+    + '</div>';
+
+  html += ''
     + '<p style="margin-top:0;">'
-    +   'Across <strong>' + escapeHtml(focusLabels) + '</strong> we lost <strong>' + total + ' firms</strong> totalling <strong>'
+    +   'Across <strong>' + escapeHtml(focusLabels) + '</strong> we lost or have scheduled <strong>' + total + ' firms</strong> totalling <strong>'
     +   fmtMoney(totalDollars) + '</strong> in MRR.'
+    +   (scheduledCount > 0
+        ? ' <span style="color:var(--text-muted);">(' + scheduledCount + ' of those — '
+          + fmtMoney(scheduledDollars) + ' — are scheduled cancellations for '
+          + escapeHtml(monthLabel(thisMonth)) + ' that haven\'t fired yet.)</span>'
+        : '')
     + '</p>';
 
   // ICP framing — below-ICP firms are likely under-served by our minimum plan.
@@ -3611,11 +3704,13 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
     }
   }
 
-  // Agency clients
+  // Agency clients — keep the prose line too for the narrative context,
+  // even though the stat strip above already surfaces the count.
   if (agencyClientCount > 0) {
     html += '<p>'
       + '<strong>' + agencyClientCount + '</strong> of the churned firms are agency-client firms, contributing '
-      + '<strong>' + fmtMoney(agencyClientDollars) + '</strong> of the loss.'
+      + '<strong>' + fmtMoney(agencyClientDollars) + '</strong> of the loss. '
+      + '<span style="color:var(--text-muted);">Agency clients cancel without the 30-day notice, so they tend to show up as same-month surprises.</span>'
       + '</p>';
   }
 
