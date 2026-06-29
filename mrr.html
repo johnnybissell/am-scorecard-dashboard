@@ -1545,18 +1545,29 @@ function renderDrillTable(rows) {
 
   // Normalize each row to a flat shape the table understands.
   const items = rows.map(function (r) {
+    // Cancel reason: SF preferred, CB fallback.
+    const sfReason = (r['SF Churn Reason'] || '').trim();
+    const cbReason = (r['Cancel Reason']    || '').trim();
     return {
-      company: r['Company'] || '(no company)',
-      status:  r['Impact Sub status'] || '',
-      am:      (r['Customers.Account Manager'] || '').trim() || '—',
-      owner:   (r['Customers.Owner'] || '').trim() || '—',
-      onboarder: (r['Customers.Onboarder'] || '').trim() || '—',
-      date:    parseChangeDate(r['Change Date']),
-      dateStr: r['Change Date'] || '',
+      company:      r['Company'] || '(no company)',
+      status:       r['Impact Sub status'] || '',
+      am:           (r['Customers.Account Manager'] || '').trim() || '—',
+      owner:        (r['Customers.Owner'] || '').trim() || '—',
+      onboarder:    (r['Customers.Onboarder'] || '').trim() || '—',
+      date:         parseChangeDate(r['Change Date']),
+      dateStr:      r['Change Date'] || '',
       cancelDateStr: r['Cancellation Date'] || '',
-      mrr:     parseMoney(r['MRR Impact']),
-      source:  r._source || 'live',
+      mrr:          parseMoney(r['MRR Impact']),
+      source:       r._source || 'live',
+      practiceArea: (r['SF Practice Area'] || '').trim(),
+      reason:       sfReason || cbReason || '',
+      details:      (r['SF Churn Details'] || '').trim(),
     };
+  });
+
+  // Show SF columns only when at least one row has SF data.
+  const hasSfData = items.some(function (it) {
+    return it.practiceArea || it.reason || it.details;
   });
 
   // Apply current sort.
@@ -1572,9 +1583,11 @@ function renderDrillTable(rows) {
 
   let html = '<table><thead><tr>'
     + '<th onclick="changeDrillSort(\'company\')">Company' + arrow('company') + '</th>'
-    + '<th onclick="changeDrillSort(\'status\')">Status' + arrow('status') + '</th>'
     + '<th onclick="changeDrillSort(\'am\')">Account Manager' + arrow('am') + '</th>'
-    + '<th onclick="changeDrillSort(\'date\')">Change date' + arrow('date') + '</th>'
+    + (hasSfData ? '<th onclick="changeDrillSort(\'practiceArea\')">Practice Area' + arrow('practiceArea') + '</th>' : '')
+    + (hasSfData ? '<th onclick="changeDrillSort(\'reason\')">Cancel Reason' + arrow('reason') + '</th>' : '')
+    + (hasSfData ? '<th>Churn Details</th>' : '')
+    + '<th onclick="changeDrillSort(\'date\')">Date' + arrow('date') + '</th>'
     + '<th class="numeric" onclick="changeDrillSort(\'mrr\')">MRR Impact' + arrow('mrr') + '</th>'
     + '</tr></thead><tbody>';
 
@@ -1583,11 +1596,15 @@ function renderDrillTable(rows) {
     const sourceBadge = it.source !== 'live'
       ? '<span class="drill-source-badge">' + escapeHtml(it.source) + '</span>'
       : '';
+    const detailsCell = it.details.length > 100
+      ? '<span title="' + escapeHtml(it.details) + '">' + escapeHtml(it.details.slice(0, 98)) + '…</span>'
+      : escapeHtml(it.details || '—');
     html += '<tr>'
       + '<td><strong>' + escapeHtml(it.company) + '</strong>' + sourceBadge + '</td>'
-      + '<td><span style="font-family:ui-monospace,SFMono-Regular,monospace;font-size:12px;color:var(--text-muted);">'
-        + escapeHtml(it.status) + '</span></td>'
       + '<td>' + escapeHtml(it.am) + '</td>'
+      + (hasSfData ? '<td style="color:var(--text-muted);font-size:12px;">' + escapeHtml(it.practiceArea || '—') + '</td>' : '')
+      + (hasSfData ? '<td style="font-size:12px;">' + escapeHtml(it.reason || '—') + '</td>' : '')
+      + (hasSfData ? '<td style="max-width:260px;font-size:12px;color:var(--text-muted);">' + detailsCell + '</td>' : '')
       + '<td>' + escapeHtml(it.dateStr) + (it.source === 'scheduled' && it.cancelDateStr ?
           ' <span style="color:var(--text-muted);font-size:11px;">(' + escapeHtml(it.cancelDateStr.slice(0,10)) + ')</span>' : '') + '</td>'
       + '<td class="numeric ' + cls + '">' + (it.mrr >= 0 ? '+' : '') + fmtMoney(it.mrr) + '</td>'
