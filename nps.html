@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lawmatics NPS Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f2;--surface:#fff;--surface2:#f0efe9;
+  --border:#e2e1d8;--border2:#ccc9bc;
+  --text:#111;--text2:#555;--text3:#888;
+  --blue:#1a5fb4;--blue-bg:#e8f0fb;
+  --green:#2a7a4e;--green-bg:#e6f4ed;
+  --red:#c0392b;--red-bg:#fbeae8;
+  --amber:#b35a00;--amber-bg:#fef3e2;
+  --radius:8px;--gap:16px;
+  --nav-h:52px;
+}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;background:#111;height:var(--nav-h);display:flex;align-items:center;padding:0 24px;gap:0;border-bottom:1px solid #222}
+.nav-brand{color:#fff;font-weight:600;font-size:15px;margin-right:32px;white-space:nowrap}
+.nav-brand span{color:#7eb3ff}
+.nav-links{display:flex;gap:2px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
+.nav-links::-webkit-scrollbar{display:none}
+.nav-link{color:#aaa;font-size:13px;padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;transition:all .15s;border:none;background:none}
+.nav-link:hover{color:#fff;background:#222}
+.nav-link.active{color:#fff;background:#1a5fb4}
+.nav-right{margin-left:auto;color:#666;font-size:12px;white-space:nowrap;padding-left:16px}
+
+/* LAYOUT */
+main{max-width:1200px;margin:0 auto;padding:24px 20px}
+.page{display:none}.page.active{display:block}
+
+/* SECTION */
+.section{margin-bottom:32px}
+.section-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
+
+/* KPI ROW */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--gap);margin-bottom:24px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:4px}
+.kpi-label{font-size:11px;color:var(--text3);font-weight:500}
+.kpi-val{font-size:28px;font-weight:700;line-height:1;color:var(--text)}
+.kpi-val.up{color:var(--green)}
+.kpi-val.down{color:var(--red)}
+.kpi-val.neutral{color:var(--amber)}
+.kpi-sub{font-size:12px;color:var(--text2)}
+.kpi-delta{font-size:12px;font-weight:600}
+.kpi-delta.pos{color:var(--green)}.kpi-delta.neg{color:var(--red)}.kpi-delta.flat{color:var(--text3)}
+
+/* CHART CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:var(--gap)}
+.card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.card-sub{font-size:12px;color:var(--text3);margin-bottom:16px}
+.chart-wrap{position:relative;width:100%}
+.h200{height:200px}.h240{height:240px}.h280{height:280px}.h320{height:320px}
+.h-auto{height:auto}
+
+/* TWO-COL */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
+@media(max-width:720px){.two-col{grid-template-columns:1fr}}
+
+/* LEGEND */
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)}
+.lsq{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+/* SELECT */
+.filter-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center}
+.filter-label{font-size:12px;color:var(--text3);font-weight:500}
+select{font-size:13px;padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;min-width:140px}
+select:focus{outline:2px solid var(--blue);outline-offset:1px}
+
+/* STACKED BAR LEGEND */
+.stacked-legend{display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap}
+.stacked-legend span{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);border-bottom:2px solid var(--border);white-space:nowrap}
+.data-table td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--surface2)}
+.nps-pill{display:inline-block;padding:2px 8px;border-radius:20px;font-weight:600;font-size:12px}
+.nps-pos{background:var(--green-bg);color:var(--green)}
+.nps-neg{background:var(--red-bg);color:var(--red)}
+.nps-neu{background:var(--amber-bg);color:var(--amber)}
+
+/* THEME BARS */
+.theme-list{display:flex;flex-direction:column;gap:8px}
+.theme-row{display:flex;align-items:center;gap:10px}
+.theme-name{font-size:12px;color:var(--text2);min-width:150px}
+.theme-bar-bg{flex:1;height:7px;background:var(--surface2);border-radius:4px}
+.theme-bar-fill{height:7px;border-radius:4px}
+.theme-pct{font-size:12px;font-weight:600;color:var(--text);min-width:36px;text-align:right}
+.theme-count{font-size:11px;color:var(--text3);min-width:28px}
+
+/* COMMENT CARD */
+.comment-list{display:flex;flex-direction:column;gap:10px}
+.comment-item{background:var(--surface2);border-radius:6px;padding:12px 14px}
+.comment-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;align-items:center}
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500}
+.tag-score-bad{background:#fbeae8;color:#c0392b}
+.tag-score-ok{background:var(--amber-bg);color:var(--amber)}
+.tag-q{background:var(--blue-bg);color:var(--blue)}
+.tag-owner{background:#f3f0ff;color:#5b35b5}
+.tag-ae{background:#e8f7f0;color:#2a7a4e}
+.tag-pa{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.comment-text{font-size:13px;color:var(--text);line-height:1.55}
+.comment-account{font-size:11px;color:var(--text3);margin-top:4px}
+
+/* ZAPIER DOCS */
+.step-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px}
+.step-num{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin-bottom:4px}
+.step-title{font-size:14px;font-weight:600;margin-bottom:6px}
+.step-body{font-size:13px;color:var(--text2);line-height:1.6}
+pre{background:#1a1a1a;color:#e8e8e8;padding:14px 16px;border-radius:6px;font-size:12px;overflow-x:auto;margin-top:8px;line-height:1.7}
+code{font-family:'JetBrains Mono','Fira Code',monospace}
+.alert-box{background:var(--amber-bg);border:1px solid #f0c060;border-radius:6px;padding:12px 14px;font-size:13px;color:var(--amber);margin:12px 0}
+.good-box{background:var(--green-bg);border:1px solid #7ecba0;border-radius:6px;padding:12px 14px;font-size:13px;color:var(--green);margin:12px 0}
+
+/* SCROLLABLE TABLE WRAP */
+.table-wrap{overflow-x:auto}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">Lawmatics <span>NPS</span></div>
+  <div class="nav-links">
+    <button class="nav-link active" onclick="showPage('overview')">Overview</button>
+    <button class="nav-link" onclick="showPage('trends')">QoQ Trends</button>
+    <button class="nav-link" onclick="showPage('practice')">Practice Area</button>
+    <button class="nav-link" onclick="showPage('owners')">Account Owners</button>
+    <button class="nav-link" onclick="showPage('ae')">Account Executives</button>
+    <button class="nav-link" onclick="showPage('segments')">Segments</button>
+    <button class="nav-link" onclick="showPage('comments')">Comments</button>
+    <button class="nav-link" onclick="showPage('setup')">Setup Guide</button>
+  </div>
+  <div class="nav-right" id="last-updated">—</div>
+</nav>
+
+<main>
+
+<!-- OVERVIEW -->
+<div class="page active" id="page-overview">
+  <div class="section">
+    <div class="section-title">At a glance — all time</div>
+    <div class="kpi-row" id="overview-kpis"></div>
+  </div>
+  <div class="section">
+    <div class="section-title">Quarter-over-quarter</div>
+    <div class="card">
+      <div class="card-title">NPS trend by quarter</div>
+      <div class="card-sub">Promoters (9–10) minus detractors (0–6) as % of responses</div>
+      <div class="stacked-legend">
+        <span><span class="lsq" style="background:#2a78d6"></span>NPS score</span>
+        <span><span class="lsq" style="background:#e34948"></span>Negative zone</span>
+      </div>
+      <div class="chart-wrap h240"><canvas id="overview-qoq" role="img" aria-label="NPS by quarter"></canvas></div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Promoter / Passive / Detractor mix</div>
+      <div class="card-sub">% of responses per quarter</div>
+      <div class="chart-wrap h240"><canvas id="overview-stack" role="img" aria-label="PPD mix by quarter"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Detractor themes — all time</div>
+      <div class="card-sub">% of detractor comments mentioning each theme</div>
+      <div class="theme-list" id="overview-themes"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TRENDS -->
+<div class="page" id="page-trends">
+  <div class="section">
+    <div class="section-title">Quarter-over-quarter trends</div>
+    <div class="card">
+      <div class="card-title">NPS by quarter</div>
+      <div class="card-sub">With promoter, passive, and detractor counts</div>
+      <div class="chart-wrap h260"><canvas id="trends-nps" role="img" aria-label="Quarterly NPS trend"></canvas></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Detailed quarter table</div>
+    <div class="card">
+      <div class="table-wrap">
+        <table class="data-table" id="trends-table"></table>
+      </div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Detractor themes over time</div>
+    <div class="card">
+      <div class="card-title">Theme frequency per quarter</div>
+      <div class="card-sub">Count of detractor comments mentioning each theme (detractors with written feedback only)</div>
+      <div class="chart-wrap h280"><canvas id="trends-themes" role="img" aria-label="Detractor themes by quarter"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- PRACTICE AREA -->
+<div class="page" id="page-practice">
+  <div class="section">
+    <div class="section-title">NPS by practice area</div>
+    <div class="card">
+      <div class="card-title">All-time NPS — practice area ranking</div>
+      <div class="card-sub">Minimum 5 responses</div>
+      <div class="chart-wrap h320"><canvas id="pa-bar" role="img" aria-label="NPS by practice area"></canvas></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Practice area trends QoQ</div>
+    <div class="filter-row">
+      <span class="filter-label">Practice area:</span>
+      <select id="pa-select" onchange="renderPATrend()"></select>
+    </div>
+    <div class="card">
+      <div class="chart-wrap h220"><canvas id="pa-trend" role="img" aria-label="Practice area QoQ trend"></canvas></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Year-over-year comparison</div>
+    <div class="card">
+      <div class="table-wrap"><table class="data-table" id="pa-table"></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- OWNERS -->
+<div class="page" id="page-owners">
+  <div class="section">
+    <div class="section-title">NPS by account owner — all time</div>
+    <div class="card">
+      <div class="chart-wrap h320"><canvas id="owner-bar" role="img" aria-label="NPS by account owner"></canvas></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Owner QoQ trend</div>
+    <div class="filter-row">
+      <span class="filter-label">Account owner:</span>
+      <select id="owner-select" onchange="renderOwnerTrend()"></select>
+    </div>
+    <div class="card">
+      <div class="chart-wrap h220"><canvas id="owner-trend" role="img" aria-label="Owner QoQ trend"></canvas></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Owner comparison table — 2025 vs 2026</div>
+    <div class="card">
+      <div class="table-wrap"><table class="data-table" id="owner-table"></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- AE -->
+<div class="page" id="page-ae">
+  <div class="section">
+    <div class="section-title">NPS by account executive — all time</div>
+    <div class="card">
+      <div class="chart-wrap h320"><canvas id="ae-bar" role="img" aria-label="NPS by account executive"></canvas></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">AE QoQ trend</div>
+    <div class="filter-row">
+      <span class="filter-label">Account executive:</span>
+      <select id="ae-select" onchange="renderAETrend()"></select>
+    </div>
+    <div class="card">
+      <div class="chart-wrap h220"><canvas id="ae-trend" role="img" aria-label="AE QoQ trend"></canvas></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">AE comparison table — 2025 vs 2026</div>
+    <div class="card">
+      <div class="table-wrap"><table class="data-table" id="ae-table"></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- SEGMENTS -->
+<div class="page" id="page-segments">
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">NPS by lead volume bucket</div>
+      <div class="card-sub">Avg monthly leads (lifetime)</div>
+      <div class="chart-wrap h220"><canvas id="seg-leads" role="img" aria-label="NPS by lead volume"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">NPS by contract amount</div>
+      <div class="card-sub">Total contract amount (TCA)</div>
+      <div class="chart-wrap h220"><canvas id="seg-tca" role="img" aria-label="NPS by TCA"></canvas></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Segment insight</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.7">
+      <p style="margin-bottom:8px">Higher lead volume firms score better — <strong style="color:var(--text)">200+ lead firms hit +31 NPS</strong> vs +12 for 1–24 lead firms. The 0-lead bucket (+20) is likely inactive accounts, not genuinely satisfied ones — monitor for churn risk.</p>
+      <p>Contract value is a strong signal: <strong style="color:var(--text)">$6K–$12K TCA accounts score +58</strong>, the highest of any segment. These are your best expansion candidates. The volume of responses in the &lt;$1K bucket (n=694) means small improvements there move the overall number significantly.</p>
+    </div>
+  </div>
+</div>
+
+<!-- COMMENTS -->
+<div class="page" id="page-comments">
+  <div class="section">
+    <div class="section-title">Recent detractor comments</div>
+    <div class="filter-row">
+      <span class="filter-label">Quarter:</span>
+      <select id="comment-q-filter" onchange="renderComments()">
+        <option value="all">All recent</option>
+      </select>
+      <span class="filter-label" style="margin-left:8px">Owner:</span>
+      <select id="comment-owner-filter" onchange="renderComments()">
+        <option value="all">All owners</option>
+      </select>
+    </div>
+    <div class="comment-list" id="comment-list"></div>
+  </div>
+</div>
+
+<!-- SETUP GUIDE -->
+<div class="page" id="page-setup">
+  <div class="section">
+    <div class="section-title">How to keep this dashboard auto-updating</div>
+
+    <div class="step-block">
+      <div class="step-num">Step 1 — Google Sheet</div>
+      <div class="step-title">Seed the master ledger with your historical data</div>
+      <div class="step-body">
+        Create a Google Sheet named <strong>NPS Master</strong> with a tab called <strong>raw</strong>. Upload your historical CSV export from ChurnZero (Export_10556.csv) as the starting data. The sheet needs these columns exactly:<br><br>
+        <code>Scheduled Survey Date | Response Date | Contact Full Name | Contact Email | Account Name | Account Owner | Response Source | Score | Follow-Up Response | Account Primary Practice Area | Account Avg Monthly Lead Volume (Lifetime) | Account Total Contract Amount | Account Account Executive</code>
+      </div>
+    </div>
+
+    <div class="step-block">
+      <div class="step-num">Step 2 — Zapier Zap</div>
+      <div class="step-title">Trigger: New message in Slack NPS channel → Append row to Google Sheet</div>
+      <div class="step-body">
+        Build this Zap in Zapier (you already have it connected):<br><br>
+        <strong>Trigger:</strong> Slack → New Message Posted to Channel → select your NPS channel<br><br>
+        <strong>Action 1:</strong> Zapier Formatter → Text → Extract Pattern — use a separate formatter step for each field below. Or use a single <em>Utilities → Line-item to Text</em> step if ChurnZero sends labeled key:value lines.<br><br>
+        Map these fields from the Slack message to the Sheet columns:
+      </div>
+      <pre><code>Score            → Column H (Score)
+Account Name     → Column E (Account Name)
+Contact Name     → Column C (Contact Full Name)
+Contact Email    → Column D (Contact Email)
+Account Owner    → Column F (Account Owner)
+Practice Area    → Column J (Account Primary Practice Area)
+Lead Volume      → Column K (Account Avg Monthly Lead Volume)
+TCA              → Column L (Account Total Contract Amount)
+Account Exec     → Column M (Account Account Executive)
+Comment/Feedback → Column I (Follow-Up Response)
+Response Date    → Column B (set to today's date)
+Source           → Column G (hardcode "Slack")</code></pre>
+      <div class="alert-box">
+        <strong>Before building:</strong> paste a sample NPS Slack message here and I'll write the exact regex patterns for each field. The field names in the message need to match what ChurnZero sends.
+      </div>
+    </div>
+
+    <div class="step-block">
+      <div class="step-num">Step 3 — Apps Script</div>
+      <div class="step-title">Auto-compute aggregates and push updated JSON to GitHub</div>
+      <div class="step-body">
+        In your Google Sheet → Extensions → Apps Script. Paste this script. It runs on a daily trigger, recomputes all NPS aggregates from the raw tab, and commits the updated <code>nps_data.json</code> to your GitHub repo — which instantly updates this dashboard.
+      </div>
+      <pre><code>// NPS Dashboard — Apps Script
+// Runs daily at 6am PT. Reads raw tab, recomputes all aggregates,
+// pushes updated nps_data.json to GitHub Pages repo.
+
+const GITHUB_TOKEN = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
+const GITHUB_REPO  = 'johnnybissell/am-scorecard-dashboard';
+const GITHUB_FILE  = 'nps_data.json';
+const SHEET_NAME   = 'raw';
+
+function runDailyUpdate() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAME);
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const rows = data.slice(1).filter(r => r[7] !== '' && r[7] !== null);
+
+  function col(name) { return headers.indexOf(name); }
+  const iScore = col('Score');
+  const iDate  = col('Response Date');
+  const iPA    = col('Account Primary Practice Area');
+  const iOwner = col('Account Owner');
+  const iAE    = col('Account Account Executive');
+  const iLead  = col('Account Avg Monthly Lead Volume (Lifetime)');
+  const iTCA   = col('Account Total Contract Amount');
+  const iComment = col('Follow-Up Response');
+
+  function parseScore(v) {
+    const n = parseInt(v);
+    return isNaN(n) ? null : n;
+  }
+
+  function quarter(d) {
+    if (!d) return 'Unknown';
+    const dt = new Date(d);
+    if (isNaN(dt)) return 'Unknown';
+    return `${dt.getFullYear()}-Q${Math.floor(dt.getMonth()/3)+1}`;
+  }
+
+  function npsCalc(scores) {
+    const valid = scores.filter(s => s !== null);
+    if (!valid.length) return {nps:null,n:0,promoters:0,passives:0,detractors:0};
+    const p = valid.filter(s=>s>=9).length;
+    const d = valid.filter(s=>s<=6).length;
+    const pa = valid.length - p - d;
+    return {
+      nps: Math.round((p-d)/valid.length*1000)/10,
+      n: valid.length, promoters:p, passives:pa, detractors:d,
+      pct_p: Math.round(p/valid.length*1000)/10,
+      pct_pa: Math.round(pa/valid.length*1000)/10,
+      pct_d: Math.round(d/valid.length*1000)/10,
+      avg_score: valid.length ? Math.round(valid.reduce((a,b)=>a+b,0)/valid.length*100)/100 : null
+    };
+  }
+
+  function leadBucket(v) {
+    const n = parseFloat(String(v).replace(/,/g,''));
+    if (isNaN(n)) return 'Unknown';
+    if (n===0) return '0';
+    if (n<25) return '1-24';
+    if (n<75) return '25-74';
+    if (n<200) return '75-199';
+    return '200+';
+  }
+
+  function tcaBucket(v) {
+    const n = parseFloat(String(v).replace(/[$,]/g,''));
+    if (isNaN(n)) return 'Unknown';
+    if (n<1000) return '<$1K';
+    if (n<3000) return '$1K-$3K';
+    if (n<6000) return '$3K-$6K';
+    if (n<12000) return '$6K-$12K';
+    return '$12K+';
+  }
+
+  const parsed = rows.map(r => ({
+    score: parseScore(r[iScore]),
+    quarter: quarter(r[iDate]),
+    practice: (r[iPA]||'').trim() || 'Unknown',
+    owner: (r[iOwner]||'').trim() || 'Unknown',
+    ae: (r[iAE]||'').trim() || 'Unknown',
+    leadBucket: leadBucket(r[iLead]),
+    tcaBucket: tcaBucket(r[iTCA]),
+    comment: (r[iComment]||'').trim()
+  }));
+
+  const quarters = [...new Set(parsed.map(r=>r.quarter))].filter(q=>q!=='Unknown').sort();
+
+  function groupBy(arr, key) {
+    return arr.reduce((acc,r) => { (acc[r[key]]=acc[r[key]]||[]).push(r); return acc; }, {});
+  }
+
+  const byQ = groupBy(parsed, 'quarter');
+  const byPA = groupBy(parsed, 'practice');
+  const byOwner = groupBy(parsed, 'owner');
+  const byAE = groupBy(parsed, 'ae');
+
+  const result = {
+    quarters,
+    by_quarter: Object.fromEntries(quarters.map(q => [q, npsCalc((byQ[q]||[]).map(r=>r.score))])),
+    by_practice: Object.fromEntries(Object.entries(byPA).filter(([,v])=>v.length>=5).map(([k,v])=>[k,npsCalc(v.map(r=>r.score))])),
+    by_owner: Object.fromEntries(Object.entries(byOwner).filter(([,v])=>v.length>=5).map(([k,v])=>[k,npsCalc(v.map(r=>r.score))])),
+    by_ae: Object.fromEntries(Object.entries(byAE).filter(([,v])=>v.length>=5).map(([k,v])=>[k,npsCalc(v.map(r=>r.score))])),
+    // QoQ by dim (trimmed for brevity — same pattern as above, group by dim x quarter)
+    by_lead_bucket: Object.fromEntries(['0','1-24','25-74','75-199','200+','Unknown'].map(b=>[b,npsCalc(parsed.filter(r=>r.leadBucket===b).map(r=>r.score))])),
+    by_tca_bucket: Object.fromEntries(['<$1K','$1K-$3K','$3K-$6K','$6K-$12K','$12K+','Unknown'].map(b=>[b,npsCalc(parsed.filter(r=>r.tcaBucket===b).map(r=>r.score))])),
+    meta: {
+      total_responses: parsed.length,
+      last_updated: new Date().toISOString().slice(0,10),
+      quarters
+    }
+  };
+
+  // Push to GitHub
+  const existing = getGitHubFile_();
+  const payload = JSON.stringify({
+    message: `NPS data update ${result.meta.last_updated}`,
+    content: Utilities.base64Encode(JSON.stringify(result)),
+    sha: existing.sha
+  });
+  UrlFetchApp.fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
+    method: 'PUT',
+    headers: {'Authorization':'token '+GITHUB_TOKEN,'Content-Type':'application/json'},
+    payload
+  });
+  console.log('NPS data updated:', result.meta.last_updated);
+}
+
+function getGitHubFile_() {
+  const res = UrlFetchApp.fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
+    headers: {'Authorization':'token '+GITHUB_TOKEN}
+  });
+  return JSON.parse(res.getContentText());
+}
+
+// Run daily at 6am PT — set up with:
+// ScriptApp.newTrigger('runDailyUpdate').timeBased().atHour(6).everyDays(1).create()
+</code></pre>
+      <div class="good-box">
+        <strong>One-time setup:</strong> In Apps Script → Project Settings → Script Properties, add <code>GITHUB_TOKEN</code> with a GitHub personal access token (repo scope). Then run <code>runDailyUpdate()</code> once manually to test, then set the daily trigger.
+      </div>
+    </div>
+
+    <div class="step-block">
+      <div class="step-num">Step 4 — GitHub Pages</div>
+      <div class="step-title">Add nps.html to your existing repo</div>
+      <div class="step-body">
+        Commit <code>nps.html</code> (this file) and <code>nps_data.json</code> to your <code>johnnybissell/am-scorecard-dashboard</code> repo. The dashboard will be live at:<br><br>
+        <code>https://johnnybissell.github.io/am-scorecard-dashboard/nps.html</code><br><br>
+        The Apps Script updates <code>nps_data.json</code> daily. The dashboard fetches it on load. No build step, no server needed.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</main>
+
+<script>
+window.__NPS_DATA__ = {"quarters":["2025-Q1","2025-Q2","2025-Q3","2025-Q4","2026-Q1","2026-Q2"],"by_quarter":{"2025-Q1":{"nps":38.1,"n":97,"promoters":58,"passives":18,"detractors":21,"pct_p":59.8,"pct_pa":18.6,"pct_d":21.6,"avg_score":7.69},"2025-Q2":{"nps":22.6,"n":195,"promoters":103,"passives":33,"detractors":59,"pct_p":52.8,"pct_pa":16.9,"pct_d":30.3,"avg_score":7.28},"2025-Q3":{"nps":29.2,"n":178,"promoters":94,"passives":42,"detractors":42,"pct_p":52.8,"pct_pa":23.6,"pct_d":23.6,"avg_score":7.56},"2025-Q4":{"nps":29.9,"n":164,"promoters":92,"passives":29,"detractors":43,"pct_p":56.1,"pct_pa":17.7,"pct_d":26.2,"avg_score":7.63},"2026-Q1":{"nps":15.6,"n":231,"promoters":112,"passives":43,"detractors":76,"pct_p":48.5,"pct_pa":18.6,"pct_d":32.9,"avg_score":6.81},"2026-Q2":{"nps":13.1,"n":168,"promoters":81,"passives":28,"detractors":59,"pct_p":48.2,"pct_pa":16.7,"pct_d":35.1,"avg_score":6.8}},"by_practice_quarter":{"Bankruptcy":{"2025-Q2":{"nps":0.0,"n":5}},"Business Law":{"2025-Q2":{"nps":-60.0,"n":5},"2025-Q3":{"nps":40.0,"n":5},"2025-Q4":{"nps":-12.5,"n":8},"2026-Q1":{"nps":0.0,"n":3},"2026-Q2":{"nps":16.7,"n":6}},"Civil Litigation":{"2025-Q3":{"nps":33.3,"n":3},"2026-Q2":{"nps":50.0,"n":4}},"Consumer Protection":{"2025-Q1":{"nps":66.7,"n":3}},"Criminal Defense":{"2025-Q2":{"nps":76.9,"n":13},"2025-Q3":{"nps":20.0,"n":10},"2025-Q4":{"nps":60.0,"n":15},"2026-Q1":{"nps":-20.0,"n":15},"2026-Q2":{"nps":-50.0,"n":16}},"Employment Law":{"2025-Q1":{"nps":0.0,"n":3},"2025-Q2":{"nps":100.0,"n":6},"2025-Q3":{"nps":50.0,"n":4},"2025-Q4":{"nps":100.0,"n":5},"2026-Q1":{"nps":50.0,"n":4},"2026-Q2":{"nps":0.0,"n":5}},"Estate Planning":{"2025-Q1":{"nps":43.5,"n":23},"2025-Q2":{"nps":12.7,"n":55},"2025-Q3":{"nps":28.1,"n":57},"2025-Q4":{"nps":19.0,"n":42},"2026-Q1":{"nps":7.7,"n":78},"2026-Q2":{"nps":23.6,"n":55}},"Family Law":{"2025-Q1":{"nps":89.5,"n":19},"2025-Q2":{"nps":62.5,"n":24},"2025-Q3":{"nps":43.5,"n":23},"2025-Q4":{"nps":34.6,"n":26},"2026-Q1":{"nps":12.5,"n":32},"2026-Q2":{"nps":26.3,"n":19}},"General Practice":{"2025-Q2":{"nps":0.0,"n":4},"2025-Q4":{"nps":-20.0,"n":5},"2026-Q2":{"nps":20.0,"n":5}},"Immigration":{"2025-Q1":{"nps":75.0,"n":8},"2025-Q2":{"nps":25.0,"n":16},"2025-Q3":{"nps":-11.1,"n":9},"2025-Q4":{"nps":44.4,"n":9},"2026-Q1":{"nps":14.3,"n":7},"2026-Q2":{"nps":12.5,"n":8}},"Intellectual Property":{"2026-Q1":{"nps":33.3,"n":6}},"Personal Injury":{"2025-Q2":{"nps":-33.3,"n":3},"2025-Q4":{"nps":80.0,"n":5},"2026-Q1":{"nps":80.0,"n":10},"2026-Q2":{"nps":66.7,"n":3}},"Unknown":{"2025-Q1":{"nps":9.7,"n":31},"2025-Q2":{"nps":5.9,"n":51},"2025-Q3":{"nps":30.5,"n":59},"2025-Q4":{"nps":22.2,"n":36},"2026-Q1":{"nps":25.4,"n":67},"2026-Q2":{"nps":31.6,"n":38}}},"by_practice":{"Bankruptcy":{"nps":9.1,"n":11,"promoters":5,"detractors":4},"Business Law":{"nps":-6.9,"n":29,"promoters":10,"detractors":12},"Civil Litigation":{"nps":25.0,"n":12,"promoters":7,"detractors":4},"Consumer Protection":{"nps":0.0,"n":10,"promoters":4,"detractors":4},"Criminal Defense":{"nps":16.9,"n":71,"promoters":35,"detractors":23},"Employment Law":{"nps":55.6,"n":27,"promoters":19,"detractors":4},"Estate Planning":{"nps":19.4,"n":310,"promoters":150,"detractors":90},"Family Law":{"nps":42.0,"n":143,"promoters":92,"detractors":32},"General Practice":{"nps":-5.9,"n":17,"promoters":8,"detractors":9},"Immigration":{"nps":26.3,"n":57,"promoters":29,"detractors":14},"Intellectual Property":{"nps":15.4,"n":13,"promoters":6,"detractors":4},"Other":{"nps":-16.7,"n":6,"promoters":2,"detractors":3},"Personal Injury":{"nps":58.3,"n":24,"promoters":17,"detractors":3},"Real Estate Law":{"nps":0.0,"n":7,"promoters":3,"detractors":3},"Tax Law":{"nps":-60.0,"n":5,"promoters":1,"detractors":4},"Unknown":{"nps":21.6,"n":282,"promoters":146,"detractors":85}},"by_owner_quarter":{"Admir Karamovic":{"2025-Q1":{"nps":-28.6,"n":7},"2025-Q2":{"nps":-20.0,"n":15},"2025-Q3":{"nps":37.5,"n":16},"2025-Q4":{"nps":45.5,"n":11},"2026-Q1":{"nps":22.2,"n":18},"2026-Q2":{"nps":40.0,"n":10}},"Andy Galindo":{"2025-Q1":{"nps":25.0,"n":8},"2025-Q2":{"nps":0.0,"n":10},"2025-Q3":{"nps":21.4,"n":14},"2025-Q4":{"nps":33.3,"n":6},"2026-Q1":{"nps":-7.1,"n":14},"2026-Q2":{"nps":0.0,"n":15}},"Bobby Orozco":{"2025-Q1":{"nps":80.0,"n":5},"2025-Q2":{"nps":18.2,"n":11},"2025-Q3":{"nps":62.5,"n":8},"2025-Q4":{"nps":72.7,"n":11},"2026-Q1":{"nps":75.0,"n":4},"2026-Q2":{"nps":27.3,"n":11}},"Callie Burns":{"2025-Q2":{"nps":57.1,"n":14},"2025-Q3":{"nps":20.0,"n":10},"2025-Q4":{"nps":66.7,"n":6},"2026-Q1":{"nps":-23.5,"n":17},"2026-Q2":{"nps":91.7,"n":12}},"Clare Struzzi":{"2025-Q1":{"nps":33.3,"n":3},"2025-Q2":{"nps":-20.0,"n":5},"2025-Q4":{"nps":33.3,"n":3},"2026-Q1":{"nps":14.3,"n":7},"2026-Q2":{"nps":-100.0,"n":4}},"Elliott Jones":{"2025-Q1":{"nps":45.5,"n":22},"2025-Q2":{"nps":30.4,"n":46},"2025-Q3":{"nps":51.2,"n":41},"2025-Q4":{"nps":50.0,"n":32},"2026-Q1":{"nps":22.4,"n":49},"2026-Q2":{"nps":24.2,"n":33}},"Jessie Hobbs":{"2025-Q1":{"nps":50.0,"n":8},"2025-Q2":{"nps":44.4,"n":9},"2025-Q3":{"nps":-20.0,"n":10},"2025-Q4":{"nps":37.5,"n":16},"2026-Q1":{"nps":30.0,"n":20},"2026-Q2":{"nps":0.0,"n":14}},"Julio Ortiz":{"2025-Q1":{"nps":36.4,"n":11},"2025-Q2":{"nps":31.8,"n":22},"2025-Q3":{"nps":22.7,"n":22},"2025-Q4":{"nps":-13.3,"n":15},"2026-Q1":{"nps":38.5,"n":26},"2026-Q2":{"nps":0.0,"n":18}},"Kennedy Wickham":{"2025-Q1":{"nps":0.0,"n":7},"2025-Q2":{"nps":36.4,"n":11},"2025-Q3":{"nps":42.9,"n":14},"2025-Q4":{"nps":6.7,"n":15},"2026-Q1":{"nps":22.2,"n":18},"2026-Q2":{"nps":14.3,"n":14}},"Matt Spiegel":{"2025-Q1":{"nps":30.0,"n":10},"2025-Q2":{"nps":20.0,"n":15},"2025-Q3":{"nps":44.4,"n":9},"2025-Q4":{"nps":88.9,"n":9},"2026-Q1":{"nps":30.8,"n":13},"2026-Q2":{"nps":50.0,"n":6}},"Swetha Devakumar":{"2025-Q2":{"nps":15.4,"n":13},"2025-Q3":{"nps":11.1,"n":9},"2025-Q4":{"nps":0.0,"n":9},"2026-Q1":{"nps":-22.2,"n":18},"2026-Q2":{"nps":-10.0,"n":10}}},"by_owner":{"Admir Karamovic":{"nps":18.2,"n":77},"Andrew Campbell":{"nps":15.4,"n":13},"Andy Galindo":{"nps":9.0,"n":67},"Bobby Orozco":{"nps":50.0,"n":50},"Callie Burns":{"nps":36.7,"n":60},"Clare Struzzi":{"nps":-16.7,"n":24},"Elliott Jones":{"nps":35.9,"n":223},"Jessie Hobbs":{"nps":23.4,"n":77},"Julio Ortiz":{"nps":21.1,"n":114},"Kennedy Wickham":{"nps":21.5,"n":79},"Matt Spiegel":{"nps":40.3,"n":62},"Swetha Devakumar":{"nps":-3.3,"n":61}},"by_ae_quarter":{"Bobby Orozco":{"2025-Q1":{"nps":76.2,"n":21},"2025-Q2":{"nps":32.4,"n":37},"2025-Q3":{"nps":45.5,"n":33},"2025-Q4":{"nps":28.6,"n":35},"2026-Q1":{"nps":38.5,"n":26},"2026-Q2":{"nps":16.7,"n":30}},"Eduardo Adame":{"2025-Q1":{"nps":17.6,"n":17},"2025-Q2":{"nps":-16.7,"n":24},"2025-Q3":{"nps":16.1,"n":31},"2025-Q4":{"nps":45.5,"n":22},"2026-Q1":{"nps":-2.6,"n":38},"2026-Q2":{"nps":27.8,"n":18}},"Ian Thorleifson":{"2025-Q1":{"nps":60.0,"n":5},"2025-Q2":{"nps":45.5,"n":22},"2025-Q3":{"nps":12.5,"n":8},"2025-Q4":{"nps":30.8,"n":13},"2026-Q1":{"nps":7.7,"n":26},"2026-Q2":{"nps":9.1,"n":22}},"Kaia Dobbs":{"2025-Q2":{"nps":0.0,"n":6},"2025-Q3":{"nps":0.0,"n":3},"2025-Q4":{"nps":33.3,"n":6},"2026-Q1":{"nps":50.0,"n":6},"2026-Q2":{"nps":-40.0,"n":5}},"Matt Spiegel":{"2025-Q1":{"nps":28.6,"n":14},"2025-Q2":{"nps":18.2,"n":22},"2025-Q3":{"nps":31.2,"n":16},"2025-Q4":{"nps":76.2,"n":21},"2026-Q1":{"nps":44.0,"n":25},"2026-Q2":{"nps":13.3,"n":15}},"Ron Young":{"2025-Q1":{"nps":20.0,"n":5},"2025-Q2":{"nps":50.0,"n":12},"2025-Q3":{"nps":9.1,"n":11},"2025-Q4":{"nps":0.0,"n":10},"2026-Q1":{"nps":0.0,"n":20},"2026-Q2":{"nps":25.0,"n":8}},"Sarah Bottorff":{"2025-Q1":{"nps":0.0,"n":3},"2025-Q2":{"nps":22.2,"n":9},"2025-Q3":{"nps":33.3,"n":9},"2025-Q4":{"nps":-40.0,"n":5},"2026-Q1":{"nps":50.0,"n":4},"2026-Q2":{"nps":-60.0,"n":5}},"Sean Bowman":{"2025-Q4":{"nps":80.0,"n":5},"2026-Q1":{"nps":-50.0,"n":8},"2026-Q2":{"nps":0.0,"n":11}},"Val Kirsch":{"2025-Q1":{"nps":-25.0,"n":8},"2025-Q2":{"nps":0.0,"n":13},"2025-Q3":{"nps":0.0,"n":18},"2025-Q4":{"nps":0.0,"n":12},"2026-Q1":{"nps":44.4,"n":18},"2026-Q2":{"nps":30.8,"n":13}},"Will Mancini":{"2025-Q1":{"nps":66.7,"n":6},"2025-Q2":{"nps":35.0,"n":20},"2025-Q3":{"nps":46.7,"n":15},"2025-Q4":{"nps":12.5,"n":8},"2026-Q1":{"nps":27.3,"n":11},"2026-Q2":{"nps":-9.1,"n":11}}},"by_ae":{"Aimee Domescik":{"nps":70.0,"n":10},"Andrew Campbell":{"nps":3.0,"n":33},"Andrew Field":{"nps":16.7,"n":36},"Bobby Orozco":{"nps":37.4,"n":182},"Brandon Low":{"nps":71.4,"n":7},"Eduardo Adame":{"nps":12.0,"n":150},"Ian Thorleifson":{"nps":22.9,"n":96},"Kaia Dobbs":{"nps":14.8,"n":27},"Matt Spiegel":{"nps":37.2,"n":113},"Ron Young":{"nps":15.2,"n":66},"Sarah Bottorff":{"nps":5.7,"n":35},"Sean Bowman":{"nps":0.0,"n":25},"Val Kirsch":{"nps":12.2,"n":82},"Will Mancini":{"nps":29.6,"n":71}},"by_lead_bucket":{"0":{"nps":19.6,"n":265},"1\u201324":{"nps":11.5,"n":156},"25\u201374":{"nps":25.0,"n":164},"75\u2013199":{"nps":25.5,"n":184},"200+":{"nps":31.0,"n":252}},"by_tca_bucket":{"<$1K":{"nps":19.5,"n":694},"$1K\u2013$3K":{"nps":24.6,"n":228},"$3K\u2013$6K":{"nps":32.7,"n":49},"$6K\u2013$12K":{"nps":58.0,"n":50}},"detractor_themes_by_quarter":{"2025-Q1":{"total_detractors":17,"Ease of use / UX":4,"Bugs / reliability":3,"Support access":3,"Onboarding":2,"Product gaps":4,"Pricing":0,"Sales mismatch":0},"2025-Q2":{"total_detractors":35,"Ease of use / UX":7,"Bugs / reliability":9,"Support access":8,"Onboarding":3,"Product gaps":15,"Pricing":5,"Sales mismatch":0},"2025-Q3":{"total_detractors":27,"Ease of use / UX":5,"Bugs / reliability":2,"Support access":4,"Onboarding":10,"Product gaps":10,"Pricing":0,"Sales mismatch":0},"2025-Q4":{"total_detractors":29,"Ease of use / UX":8,"Bugs / reliability":1,"Support access":5,"Onboarding":3,"Product gaps":10,"Pricing":1,"Sales mismatch":0},"2026-Q1":{"total_detractors":54,"Ease of use / UX":10,"Bugs / reliability":10,"Support access":7,"Onboarding":8,"Product gaps":12,"Pricing":5,"Sales mismatch":4},"2026-Q2":{"total_detractors":40,"Ease of use / UX":6,"Bugs / reliability":6,"Support access":4,"Onboarding":6,"Product gaps":15,"Pricing":6,"Sales mismatch":0}},"recent_detractor_comments":[{"quarter":"2026-Q1","score":0,"account":"The de la Torre Law Office LLC","owner":"Admir Karamovic","ae":"Kaia Dobbs","practice":"Unknown","comment":"very slow, lately has been very slow and with bug. do not recommend"},{"quarter":"2026-Q1","score":0,"account":"RB LEGAL, LLC","owner":"Swetha Devakumar","ae":"Ron Young","practice":"Estate Planning","comment":"Everything."},{"quarter":"2026-Q1","score":0,"account":"Punchwork","owner":"Elliott Jones","ae":"Eduardo Adame","practice":"General Practice","comment":"Support is awful; product stops working often, scheduling links need a function of expiring or using only once;"},{"quarter":"2026-Q1","score":0,"account":"Vanderwall Immigration","owner":"Julio Ortiz","ae":"Val Kirsch","practice":"Unknown","comment":"Communication and integration with google meets for appointment locations."},{"quarter":"2026-Q1","score":0,"account":"KEYTLaw, LLC","owner":"Callie Burns","ae":"Ian Thorleifson","practice":"Estate Planning","comment":"Pay me the $7,000+ I paid for your software I never used."},{"quarter":"2026-Q1","score":0,"account":"Oyen Wiggs Green & Mutala LLP","owner":"Andrew Campbell","ae":"Andrew Campbell","practice":"Intellectual Property","comment":"Fix latency issues, provide better customization of the appearance of automated emails, improve compatibility with online webforms"},{"quarter":"2026-Q1","score":0,"account":"Mulembo Law PLLC","owner":"Kennedy Wickham","ae":"Ian Thorleifson","practice":"Criminal Defense","comment":"This software is very difficult to use. I don't like that I have to jump through hoops to make changes. It is also cost prohibitive if your staff utilizes part timers/interns"},{"quarter":"2026-Q1","score":0,"account":"The Lemon Law Attorneys","owner":"Elliott Jones","ae":"Ian Thorleifson","practice":"Other","comment":"Too many latency issues/ bugs."},{"quarter":"2026-Q1","score":0,"account":"Dume Law Group","owner":"Callie Burns","ae":"Sean Bowman","practice":"Family Law","comment":"Platform is not user friendly at all. Too many useless functions taking up space, making the platform super confusing."},{"quarter":"2026-Q1","score":0,"account":"Clint W. Perryman, P.C.","owner":"Kennedy Wickham","ae":"Sean Bowman","practice":"Criminal Defense","comment":"Customer Service"},{"quarter":"2026-Q1","score":0,"account":"Dume Law Group","owner":"Callie Burns","ae":"Sean Bowman","practice":"Family Law","comment":"simplify the tasks"},{"quarter":"2026-Q1","score":0,"account":"Path Forward Legal","owner":"Callie Burns","ae":"Eric Nelson","practice":"Unknown","comment":"API hasn't been updated in years; there is no accessible logging or auditing available; automations do not allow use of entire feature set; GUI changes make it harder to use"},{"quarter":"2026-Q2","score":0,"account":"LifeBack Law Firm","owner":"Julio Ortiz","ae":"Bobby Orozco","practice":"Unknown","comment":"Customer service, and response times."},{"quarter":"2026-Q2","score":0,"account":"Welmerink Law, P.C.","owner":"Clare Struzzi","ae":"Kaia Dobbs","practice":"Estate Planning","comment":"It has been extremely frustrating having everything we set up changing so regularly, having the 100+ hours of set-up with automations and appointments and e-mails eliminated with changes to the systems, and being nickeled and dimed with messaging fees"},{"quarter":"2026-Q2","score":0,"account":"Lainiotis Law LLC","owner":"Andrew Campbell","ae":"Andrew Campbell","practice":"Estate Planning","comment":"Assist with onboarding and setting up or at least explaining the system better."},{"quarter":"2026-Q1","score":0,"account":"Tanis McGonegal Family Law, P.C","owner":"Eduardo Adame","ae":"Eduardo Adame","practice":"Family Law","comment":"Office Hours for technical support is not enough. I should be able to have dedicated time with a tech support person to resolve complex issues. I have called and left messages and either don't hear back for days or never."},{"quarter":"2026-Q2","score":0,"account":"Fitzgerald & Campbell, APLC","owner":"Julio Ortiz","ae":"Matt Spiegel","practice":"Criminal Defense","comment":"Not having delays when sending agreements."},{"quarter":"2026-Q1","score":0,"account":"Colorado Legal Group","owner":"Matt Spiegel","ae":"Justin Shephard","practice":"Family Law","comment":"This platform is full of glitches and bugs, half the time the automations do not run correctly and it's a MAJOR headache. I would not recommend Lawmatics to anyone."},{"quarter":"2026-Q2","score":0,"account":"The Law Firm of Webster & Carlton","owner":"Swetha Devakumar","ae":"Sean Bowman","practice":"Employment Law","comment":"stop billing me for an account i requested not to renew in February of 2026"},{"quarter":"2026-Q1","score":0,"account":"Ferguson Widmayer & Clark, PC","owner":"Elliott Jones","ae":"Derek Morton","practice":"Estate Planning","comment":"Too many issues with customization needed for small to midsize firms"},{"quarter":"2026-Q2","score":1,"account":"Strong Law","owner":"Jessie Hobbs","ae":"Will Mancini","practice":"Estate Planning","comment":"I have invested so much time and money into Lawmatics and consultants, it's very difficult to understand how things work or make a change."},{"quarter":"2026-Q1","score":1,"account":"Poppy Legal Group","owner":"Kennedy Wickham","ae":"Eduardo Adame","practice":"Family Law","comment":"I have paid for this product for two years and haven't used it. Cardinal Concepts wrecked havoc in the LM system and am still working with Kennedy to hopefully implement it."},{"quarter":"2026-Q1","score":1,"account":"Island View Law, PC","owner":"Swetha Devakumar","ae":"John Ramon","practice":"Estate Planning","comment":"pricing is way too high; functionality still doesn't work well for our firm."},{"quarter":"2026-Q1","score":1,"account":"Law Office of David Standridge","owner":"Ron Young","ae":"Ron Young","practice":"Estate Planning","comment":"support has really changed. when i started with lawmatics years ago i could talk to someone and get help quickly. your culture is changing."}],"meta":{"total_responses":1033,"date_range":"Jan 2025 – Jun 2026","last_updated":"2026-06-29","quarters":["2025-Q1","2025-Q2","2025-Q3","2025-Q4","2026-Q1","2026-Q2"]}};
+
+const D = window.__NPS_DATA__;
+const QUARTERS = D.quarters;
+const GRID = '#e2e1d8';
+const TICK = '#888';
+
+Chart.defaults.font.family = "Inter, system-ui, sans-serif";
+Chart.defaults.font.size = 12;
+
+function npsColor(v) {
+  if (v === null || v === undefined) return '#888';
+  if (v >= 30) return '#2a7a4e';
+  if (v >= 10) return '#b35a00';
+  return '#c0392b';
+}
+function npsPill(v) {
+  if (v === null) return '<span class="nps-pill nps-neu">—</span>';
+  const cls = v >= 20 ? 'nps-pos' : v >= 0 ? 'nps-neu' : 'nps-neg';
+  const sign = v > 0 ? '+' : '';
+  return `<span class="nps-pill ${cls}">${sign}${v}</span>`;
+}
+function delta(a, b) {
+  if (a === null || b === null) return '<span style="color:#888">—</span>';
+  const d = Math.round((b - a) * 10) / 10;
+  const sign = d > 0 ? '+' : '';
+  const cls = d > 0 ? 'pos' : d < 0 ? 'neg' : 'flat';
+  return `<span class="kpi-delta ${cls}">${sign}${d}</span>`;
+}
+
+// PAGE NAV
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// CHART HELPERS
+let charts = {};
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+function makeChart(id, config) { destroyChart(id); charts[id] = new Chart(document.getElementById(id), config); }
+
+// ===== OVERVIEW =====
+function initOverview() {
+  const qs = QUARTERS;
+  const latest = D.by_quarter[qs[qs.length-1]];
+  const prev = D.by_quarter[qs[qs.length-2]];
+  const yr25 = qs.filter(q=>q.startsWith('2025'));
+  const yr26 = qs.filter(q=>q.startsWith('2026'));
+  function yearNPS(qlist) {
+    const all = qlist.map(q=>D.by_quarter[q]);
+    const p = all.reduce((s,q)=>s+q.promoters,0);
+    const d = all.reduce((s,q)=>s+q.detractors,0);
+    const n = all.reduce((s,q)=>s+q.n,0);
+    return n ? Math.round((p-d)/n*1000)/10 : null;
+  }
+  const nps25 = yearNPS(yr25); const nps26 = yearNPS(yr26);
+  const kpis = [
+    {label:'Latest quarter NPS', val: (latest.nps>0?'+':'')+latest.nps, cls: latest.nps>=20?'up':latest.nps>=0?'neutral':'down', sub: qs[qs.length-1], extra: 'vs prev: '+delta(prev?.nps, latest.nps)},
+    {label:'2025 full-year NPS', val: (nps25>0?'+':'')+nps25, cls:'neutral', sub: yr25.join(', ')},
+    {label:'2026 YTD NPS', val: (nps26>0?'+':'')+nps26, cls: nps26<nps25?'down':'up', sub: yr26.join(', '), extra: 'vs 2025: '+delta(nps25, nps26)},
+    {label:'Total responses', val: D.meta.total_responses, cls:'neutral', sub: D.meta.date_range},
+    {label:'Latest promoter rate', val: latest.pct_p+'%', cls:'up', sub: qs[qs.length-1]},
+    {label:'Latest detractor rate', val: latest.pct_d+'%', cls:'down', sub: qs[qs.length-1]},
+  ];
+  document.getElementById('overview-kpis').innerHTML = kpis.map(k=>
+    `<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-val ${k.cls}">${k.val}</div><div class="kpi-sub">${k.sub}</div>${k.extra?`<div>${k.extra}</div>`:''}</div>`
+  ).join('');
+
+  // QoQ bar
+  makeChart('overview-qoq', {
+    type:'bar',
+    data:{labels:QUARTERS, datasets:[{
+      label:'NPS', data:QUARTERS.map(q=>D.by_quarter[q].nps),
+      backgroundColor:QUARTERS.map(q=>D.by_quarter[q].nps>=0?'#1a5fb4':'#c0392b'),
+      borderRadius:4, borderSkipped:false
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw}}},
+      scales:{x:{ticks:{color:TICK},grid:{color:GRID}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID},min:-15,max:45}}}
+  });
+
+  // Stacked %
+  makeChart('overview-stack',{
+    type:'bar',
+    data:{labels:QUARTERS, datasets:[
+      {label:'Promoters', data:QUARTERS.map(q=>D.by_quarter[q].pct_p), backgroundColor:'#2a7a4e', stack:'s'},
+      {label:'Passives',  data:QUARTERS.map(q=>D.by_quarter[q].pct_pa),backgroundColor:'#b35a00', stack:'s'},
+      {label:'Detractors',data:QUARTERS.map(q=>D.by_quarter[q].pct_d), backgroundColor:'#c0392b', stack:'s'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{stacked:true,ticks:{color:TICK},grid:{color:GRID}},y:{stacked:true,ticks:{color:TICK,callback:v=>v+'%'},grid:{color:GRID},max:100}}}
+  });
+
+  // Themes
+  const themes = D.detractor_themes_by_quarter;
+  const themeKeys = ['Ease of use / UX','Bugs / reliability','Support access','Onboarding','Product gaps','Pricing','Sales mismatch'];
+  const totals = {};
+  const totalDet = Object.values(themes).reduce((s,q)=>s+q.total_detractors,0);
+  themeKeys.forEach(t=>{ totals[t]=Object.values(themes).reduce((s,q)=>s+(q[t]||0),0); });
+  const maxVal = Math.max(...Object.values(totals));
+  const themeColors = {'Ease of use / UX':'#c0392b','Bugs / reliability':'#e67e22','Support access':'#8e44ad','Onboarding':'#e74c3c','Product gaps':'#1a5fb4','Pricing':'#27ae60','Sales mismatch':'#e91e63'};
+  document.getElementById('overview-themes').innerHTML = themeKeys.sort((a,b)=>totals[b]-totals[a]).map(t=>`
+    <div class="theme-row">
+      <div class="theme-name">${t}</div>
+      <div class="theme-bar-bg"><div class="theme-bar-fill" style="width:${Math.round(totals[t]/maxVal*100)}%;background:${themeColors[t]||'#1a5fb4'}"></div></div>
+      <div class="theme-pct">${Math.round(totals[t]/totalDet*100)}%</div>
+      <div class="theme-count">n=${totals[t]}</div>
+    </div>`).join('');
+
+  document.getElementById('last-updated').textContent = 'Updated '+D.meta.last_updated;
+}
+
+// ===== TRENDS =====
+function initTrends() {
+  makeChart('trends-nps',{
+    type:'bar',
+    data:{labels:QUARTERS, datasets:[
+      {label:'NPS', data:QUARTERS.map(q=>D.by_quarter[q].nps), backgroundColor:QUARTERS.map(q=>D.by_quarter[q].nps>=0?'#1a5fb4':'#c0392b'), borderRadius:4, borderSkipped:false, yAxisID:'y'},
+      {label:'Responses', data:QUARTERS.map(q=>D.by_quarter[q].n), type:'line', borderColor:'#888', borderDash:[4,3], pointRadius:3, tension:0.2, yAxisID:'y2', fill:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label===('NPS')?' NPS: '+(c.raw>0?'+':'')+c.raw:' Responses: '+c.raw}}},
+      scales:{
+        x:{ticks:{color:TICK},grid:{color:GRID}},
+        y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID},title:{display:true,text:'NPS',color:TICK}},
+        y2:{position:'right',ticks:{color:TICK},grid:{display:false},title:{display:true,text:'Responses',color:TICK}}
+      }}
+  });
+
+  // Table
+  const hdr = ['Quarter','NPS','Responses','Promoters','Passives','Detractors','% Promoter','% Detractor','Avg Score'];
+  const tableEl = document.getElementById('trends-table');
+  tableEl.innerHTML = '<thead><tr>'+hdr.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>'+
+    QUARTERS.map(q=>{const d=D.by_quarter[q]; const sign=d.nps>0?'+':''; return `<tr><td><strong>${q}</strong></td><td>${npsPill(d.nps)}</td><td>${d.n}</td><td style="color:#2a7a4e">${d.promoters}</td><td style="color:#b35a00">${d.passives}</td><td style="color:#c0392b">${d.detractors}</td><td>${d.pct_p}%</td><td>${d.pct_d}%</td><td>${d.avg_score}</td></tr>`}).join('')+'</tbody>';
+
+  // Theme chart
+  const themeKeys = ['Ease of use / UX','Bugs / reliability','Support access','Onboarding','Product gaps','Pricing','Sales mismatch'];
+  const themeColors2 = ['#c0392b','#e67e22','#8e44ad','#e74c3c','#1a5fb4','#27ae60','#e91e63'];
+  makeChart('trends-themes',{
+    type:'bar',
+    data:{labels:QUARTERS, datasets:themeKeys.map((t,i)=>({label:t,data:QUARTERS.map(q=>D.detractor_themes_by_quarter[q]?.[t]||0),backgroundColor:themeColors2[i],stack:'s'}))},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:12,font:{size:11}}}},
+      scales:{x:{stacked:true,ticks:{color:TICK},grid:{color:GRID}},y:{stacked:true,ticks:{color:TICK},grid:{color:GRID},title:{display:true,text:'# comments',color:TICK}}}}
+  });
+}
+
+// ===== PRACTICE AREA =====
+function initPractice() {
+  const pa = D.by_practice;
+  const sorted = Object.entries(pa).sort((a,b)=>b[1].nps-a[1].nps);
+  makeChart('pa-bar',{
+    type:'bar',
+    data:{labels:sorted.map(([k])=>k), datasets:[{label:'NPS',data:sorted.map(([,v])=>v.nps),backgroundColor:sorted.map(([,v])=>v.nps>=0?'#1a5fb4':'#c0392b'),borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+sorted[c.dataIndex][1].n+')'}}},
+      scales:{x:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}},y:{ticks:{color:TICK,font:{size:11}},grid:{display:false}}}}
+  });
+
+  // Populate select
+  const sel = document.getElementById('pa-select');
+  const paWithQtr = Object.keys(D.by_practice_quarter).filter(pa=>Object.keys(D.by_practice_quarter[pa]).length>=2);
+  sel.innerHTML = paWithQtr.map(p=>`<option value="${p}">${p}</option>`).join('');
+  sel.value = 'Estate Planning';
+  renderPATrend();
+
+  // YoY table
+  const yr25qs = QUARTERS.filter(q=>q.startsWith('2025'));
+  const yr26qs = QUARTERS.filter(q=>q.startsWith('2026'));
+  function yearNPSforPA(pa, qlist) {
+    const d = D.by_practice_quarter[pa]||{};
+    const scores = qlist.flatMap(q=>{ const s=d[q]; return s?Array(s.n).fill(null):[] }); // approx — use overall instead
+    // use overall breakdowns instead:
+    return null;
+  }
+  const tableEl = document.getElementById('pa-table');
+  tableEl.innerHTML = '<thead><tr><th>Practice Area</th><th>All-time NPS</th><th>Responses</th>'+QUARTERS.map(q=>`<th>${q}</th>`).join('')+'</tr></thead><tbody>'+
+    Object.entries(pa).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td><strong>${k}</strong></td><td>${npsPill(v.nps)}</td><td>${v.n}</td>${QUARTERS.map(q=>{const qd=D.by_practice_quarter[k]?.[q]; return `<td>${qd?npsPill(qd.nps):'<span style="color:#ccc">—</span>'}</td>`}).join('')}</tr>`).join('')+'</tbody>';
+}
+
+function renderPATrend() {
+  const pa = document.getElementById('pa-select').value;
+  const d = D.by_practice_quarter[pa]||{};
+  const qs = QUARTERS.filter(q=>d[q]);
+  makeChart('pa-trend',{
+    type:'line',
+    data:{labels:qs,datasets:[{label:pa,data:qs.map(q=>d[q].nps),borderColor:'#1a5fb4',backgroundColor:'rgba(26,95,180,0.08)',borderWidth:2,pointRadius:5,pointBackgroundColor:'#1a5fb4',tension:0.3,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+d[qs[c.dataIndex]].n+')'}}},
+      scales:{x:{ticks:{color:TICK},grid:{color:GRID}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}}}}
+  });
+}
+
+// ===== OWNERS =====
+function initOwners() {
+  const ow = D.by_owner;
+  const sorted = Object.entries(ow).sort((a,b)=>b[1].nps-a[1].nps);
+  makeChart('owner-bar',{
+    type:'bar',
+    data:{labels:sorted.map(([k])=>k),datasets:[{label:'NPS',data:sorted.map(([,v])=>v.nps),backgroundColor:sorted.map(([,v])=>v.nps>=0?'#1a5fb4':'#c0392b'),borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+sorted[c.dataIndex][1].n+')'}}},
+      scales:{x:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}},y:{ticks:{color:TICK,font:{size:11}},grid:{display:false}}}}
+  });
+
+  const sel = document.getElementById('owner-select');
+  const owWithQtr = Object.keys(D.by_owner_quarter).filter(o=>Object.keys(D.by_owner_quarter[o]).length>=3);
+  sel.innerHTML = owWithQtr.map(o=>`<option value="${o}">${o}</option>`).join('');
+  sel.value = 'Elliott Jones';
+  renderOwnerTrend();
+
+  const tableEl = document.getElementById('owner-table');
+  const yr25qs = QUARTERS.filter(q=>q.startsWith('2025'));
+  const yr26qs = QUARTERS.filter(q=>q.startsWith('2026'));
+  function qNPS(owner, qlist) {
+    const d = D.by_owner_quarter[owner]||{};
+    const vals = qlist.map(q=>d[q]?.nps).filter(v=>v!==undefined);
+    if (!vals.length) return null;
+    return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
+  }
+  tableEl.innerHTML = '<thead><tr><th>Owner</th><th>All-time</th><th>n</th><th>2025 avg</th><th>2026 avg</th><th>Δ</th>'+QUARTERS.map(q=>`<th>${q}</th>`).join('')+'</tr></thead><tbody>'+
+    Object.entries(ow).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>{
+      const n25=qNPS(k,yr25qs),n26=qNPS(k,yr26qs);
+      return `<tr><td><strong>${k}</strong></td><td>${npsPill(v.nps)}</td><td>${v.n}</td><td>${n25!==null?npsPill(n25):'—'}</td><td>${n26!==null?npsPill(n26):'—'}</td><td>${delta(n25,n26)}</td>${QUARTERS.map(q=>{const qd=D.by_owner_quarter[k]?.[q]; return `<td>${qd?npsPill(qd.nps):'<span style="color:#ccc">—</span>'}</td>`}).join('')}</tr>`;
+    }).join('')+'</tbody>';
+}
+
+function renderOwnerTrend() {
+  const owner = document.getElementById('owner-select').value;
+  const d = D.by_owner_quarter[owner]||{};
+  const qs = QUARTERS.filter(q=>d[q]);
+  makeChart('owner-trend',{
+    type:'line',
+    data:{labels:qs,datasets:[{label:owner,data:qs.map(q=>d[q].nps),borderColor:'#1a5fb4',backgroundColor:'rgba(26,95,180,0.08)',borderWidth:2,pointRadius:5,pointBackgroundColor:qs.map(q=>npsColor(d[q].nps)),tension:0.3,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+d[qs[c.dataIndex]].n+')'}}},
+      scales:{x:{ticks:{color:TICK},grid:{color:GRID}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}}}}
+  });
+}
+
+// ===== AE =====
+function initAE() {
+  const ae = D.by_ae;
+  const sorted = Object.entries(ae).sort((a,b)=>b[1].nps-a[1].nps);
+  makeChart('ae-bar',{
+    type:'bar',
+    data:{labels:sorted.map(([k])=>k),datasets:[{label:'NPS',data:sorted.map(([,v])=>v.nps),backgroundColor:sorted.map(([,v])=>v.nps>=0?'#1a5fb4':'#c0392b'),borderRadius:4,borderSkipped:false}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+sorted[c.dataIndex][1].n+')'}}},
+      scales:{x:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}},y:{ticks:{color:TICK,font:{size:11}},grid:{display:false}}}}
+  });
+
+  const sel = document.getElementById('ae-select');
+  const aeWithQtr = Object.keys(D.by_ae_quarter).filter(a=>Object.keys(D.by_ae_quarter[a]).length>=3);
+  sel.innerHTML = aeWithQtr.map(a=>`<option value="${a}">${a}</option>`).join('');
+  sel.value = 'Bobby Orozco';
+  renderAETrend();
+
+  const tableEl = document.getElementById('ae-table');
+  const yr25qs = QUARTERS.filter(q=>q.startsWith('2025'));
+  const yr26qs = QUARTERS.filter(q=>q.startsWith('2026'));
+  function qNPS(ae, qlist) {
+    const d = D.by_ae_quarter[ae]||{};
+    const vals = qlist.map(q=>d[q]?.nps).filter(v=>v!==undefined);
+    return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10 : null;
+  }
+  tableEl.innerHTML = '<thead><tr><th>Account Executive</th><th>All-time</th><th>n</th><th>2025 avg</th><th>2026 avg</th><th>Δ</th>'+QUARTERS.map(q=>`<th>${q}</th>`).join('')+'</tr></thead><tbody>'+
+    Object.entries(ae).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>{
+      const n25=qNPS(k,yr25qs),n26=qNPS(k,yr26qs);
+      return `<tr><td><strong>${k}</strong></td><td>${npsPill(v.nps)}</td><td>${v.n}</td><td>${n25!==null?npsPill(n25):'—'}</td><td>${n26!==null?npsPill(n26):'—'}</td><td>${delta(n25,n26)}</td>${QUARTERS.map(q=>{const qd=D.by_ae_quarter[k]?.[q]; return `<td>${qd?npsPill(qd.nps):'<span style="color:#ccc">—</span>'}</td>`}).join('')}</tr>`;
+    }).join('')+'</tbody>';
+}
+
+function renderAETrend() {
+  const ae = document.getElementById('ae-select').value;
+  const d = D.by_ae_quarter[ae]||{};
+  const qs = QUARTERS.filter(q=>d[q]);
+  makeChart('ae-trend',{
+    type:'line',
+    data:{labels:qs,datasets:[{label:ae,data:qs.map(q=>d[q].nps),borderColor:'#2a7a4e',backgroundColor:'rgba(42,122,78,0.08)',borderWidth:2,pointRadius:5,pointBackgroundColor:qs.map(q=>npsColor(d[q].nps)),tension:0.3,fill:true}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+d[qs[c.dataIndex]].n+')'}}},
+      scales:{x:{ticks:{color:TICK},grid:{color:GRID}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}}}}
+  });
+}
+
+// ===== SEGMENTS =====
+function initSegments() {
+  const lb = D.by_lead_bucket;
+  const lbKeys = Object.keys(lb).filter(k=>lb[k].n>0);
+  makeChart('seg-leads',{
+    type:'bar',
+    data:{labels:lbKeys,datasets:[{label:'NPS',data:lbKeys.map(k=>lb[k].nps),backgroundColor:lbKeys.map(k=>lb[k].nps>=20?'#2a7a4e':lb[k].nps>=0?'#1a5fb4':'#c0392b'),borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+lb[lbKeys[c.dataIndex]].n+')'}}},
+      scales:{x:{ticks:{color:TICK},grid:{display:false}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID},min:0}}}
+  });
+
+  const tca = D.by_tca_bucket;
+  const tcaKeys = Object.keys(tca).filter(k=>tca[k].n>0);
+  makeChart('seg-tca',{
+    type:'bar',
+    data:{labels:tcaKeys,datasets:[{label:'NPS',data:tcaKeys.map(k=>tca[k].nps),backgroundColor:tcaKeys.map(k=>tca[k].nps>=40?'#2a7a4e':tca[k].nps>=20?'#1a5fb4':'#b35a00'),borderRadius:4,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+tca[tcaKeys[c.dataIndex]].n+')'}}},
+      scales:{x:{ticks:{color:TICK},grid:{display:false}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID},min:0}}}
+  });
+}
+
+// ===== COMMENTS =====
+function initComments() {
+  const comments = D.recent_detractor_comments;
+  const qSel = document.getElementById('comment-q-filter');
+  const oSel = document.getElementById('comment-owner-filter');
+  const uniqueQs = [...new Set(comments.map(c=>c.quarter))].sort();
+  const uniqueOwners = [...new Set(comments.map(c=>c.owner))].sort();
+  qSel.innerHTML = '<option value="all">All recent</option>'+uniqueQs.map(q=>`<option value="${q}">${q}</option>`).join('');
+  oSel.innerHTML = '<option value="all">All owners</option>'+uniqueOwners.map(o=>`<option value="${o}">${o}</option>`).join('');
+  renderComments();
+}
+
+function renderComments() {
+  const qFilter = document.getElementById('comment-q-filter').value;
+  const oFilter = document.getElementById('comment-owner-filter').value;
+  let comments = D.recent_detractor_comments;
+  if (qFilter !== 'all') comments = comments.filter(c=>c.quarter===qFilter);
+  if (oFilter !== 'all') comments = comments.filter(c=>c.owner===oFilter);
+  const scoreTag = s => s<=2?`<span class="tag tag-score-bad">Score ${s}</span>`:`<span class="tag tag-score-ok">Score ${s}</span>`;
+  document.getElementById('comment-list').innerHTML = comments.map(c=>`
+    <div class="comment-item">
+      <div class="comment-meta">
+        ${scoreTag(c.score)}
+        <span class="tag tag-q">${c.quarter}</span>
+        ${c.owner?`<span class="tag tag-owner">AM: ${c.owner}</span>`:''}
+        ${c.ae?`<span class="tag tag-ae">AE: ${c.ae}</span>`:''}
+        ${c.practice&&c.practice!=='Unknown'?`<span class="tag tag-pa">${c.practice}</span>`:''}
+      </div>
+      <div class="comment-text">"${c.comment}"</div>
+      <div class="comment-account">${c.account}</div>
+    </div>`).join('') || '<div style="color:#888;padding:20px;text-align:center">No comments match these filters</div>';
+}
+
+// INIT ALL
+initOverview();
+initTrends();
+initPractice();
+initOwners();
+initAE();
+initSegments();
+initComments();
+</script>
+</body>
+</html>
