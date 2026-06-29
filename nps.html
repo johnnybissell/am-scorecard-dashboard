@@ -124,6 +124,33 @@ code{font-family:'JetBrains Mono','Fira Code',monospace}
 
 /* SCROLLABLE TABLE WRAP */
 .table-wrap{overflow-x:auto}
+
+/* WRITTEN BREAKDOWN */
+.breakdown-section { margin-bottom: 40px; }
+.breakdown-section:last-child { margin-bottom: 0; }
+.qtr-header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
+.qtr-label { font-size: 20px; font-weight: 700; color: var(--text); }
+.qtr-nps { font-size: 14px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+.qtr-n { font-size: 13px; color: var(--text3); }
+.qtr-delta { font-size: 13px; font-weight: 600; }
+.qtr-delta.pos { color: var(--green); }
+.qtr-delta.neg { color: var(--red); }
+.insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-bottom: var(--gap); }
+@media(max-width:700px){ .insights-grid { grid-template-columns: 1fr; } }
+.insight-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.insight-block-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+.insight-block-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.insight-block-body { font-size: 13px; color: var(--text2); line-height: 1.65; }
+.theme-pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin: 2px 2px 2px 0; background: var(--blue-bg); color: var(--blue); }
+.theme-pill.red { background: var(--red-bg); color: var(--red); }
+.theme-pill.amber { background: var(--amber-bg); color: var(--amber); }
+.theme-pill.green { background: var(--green-bg); color: var(--green); }
+.theme-pill.purple { background: #f3f0ff; color: #5b35b5; }
+.qtr-narrative { font-size: 14px; color: var(--text2); line-height: 1.75; margin-bottom: var(--gap); padding: 14px 16px; background: var(--surface2); border-radius: var(--radius); border-left: 3px solid var(--border2); }
+.qtr-narrative strong { color: var(--text); }
+.quote-block { margin-top: 10px; padding: 10px 12px; background: var(--surface2); border-radius: 6px; font-size: 12px; color: var(--text2); line-height: 1.55; border-left: 3px solid var(--border2); }
+.quote-meta { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+.signal-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -137,7 +164,9 @@ code{font-family:'JetBrains Mono','Fira Code',monospace}
     <button class="nav-link" onclick="showPage('owners')">Account Owners</button>
     <button class="nav-link" onclick="showPage('ae')">Account Executives</button>
     <button class="nav-link" onclick="showPage('segments')">Segments</button>
+    <button class="nav-link" onclick="showPage('tenure')">Tenure</button>
     <button class="nav-link" onclick="showPage('comments')">Comments</button>
+    <button class="nav-link" onclick="showPage('breakdown')">Written Analysis</button>
     <button class="nav-link" onclick="showPage('setup')">Setup Guide</button>
   </div>
   <div class="nav-right" id="last-updated">—</div>
@@ -527,10 +556,338 @@ function getGitHubFile_() {
   </div>
 </div>
 
+
+<!-- WRITTEN BREAKDOWN PAGE -->
+<div class="page" id="page-breakdown">
+<div class="section">
+  <div class="section-title">Quarter-over-quarter written analysis</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.65">Written synthesis of detractor feedback patterns each quarter, cross-referenced by TCA tier, lead volume, and practice area. Based on comments from customers who scored 0–6 and left written feedback.</p>
+
+  <!-- Q1 2025 -->
+  <div class="breakdown-section">
+    <div class="qtr-header">
+      <span class="qtr-label">2025 Q1</span>
+      <span class="qtr-nps nps-pos">NPS +38.1</span>
+      <span class="qtr-n">97 responses · 17 detractor comments</span>
+    </div>
+    <div class="qtr-narrative">
+      The highest-performing quarter in the dataset. Complaints were diffuse with no single dominant theme — a healthy sign that no systemic failure had taken hold. Detractors were evenly split between <strong>ease of use / UX, product gaps, bugs, and support access</strong>. Small sample sizes per theme make it hard to draw firm conclusions, but the pattern points to individual friction points rather than structural problems.
+    </div>
+    <div class="insights-grid">
+      <div class="insight-block">
+        <div class="insight-block-label">By TCA tier</div>
+        <div class="insight-block-body">
+          Detractors were concentrated in <strong>&lt;$1K TCA</strong> (10 of 17). Their complaints leaned toward product gaps and UX — consistent with lower-investment firms who haven't unlocked full platform value. The $1K–$3K tier cited support access more, suggesting mid-tier firms were hitting walls when they needed help configuring the product.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By lead volume</div>
+        <div class="insight-block-body">
+          <strong>0-lead firms</strong> (likely inactive or early-stage) complained most about support access. <strong>25–74 lead firms</strong> hit onboarding friction — mid-volume firms with enough complexity to need setup help but not enough scale to have dedicated staff for it. High-volume (200+) firms were quiet, with only scattered reliability mentions.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By practice area</div>
+        <div class="insight-block-body">
+          Low detractor counts across all practices — no single area was a problem. Estate Planning had the most detractors (2), focused on UX. Business Law flagged bugs and support. <strong>No red flags by practice area this quarter.</strong>
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">Top signal</div>
+        <div class="insight-block-body">
+          One comment stands out as a leading indicator: <em>"The core functionality hasn't changed in six years... Marketing tracking is still not good. Doc automation isn't good enough."</em> This product staleness complaint would grow louder in subsequent quarters.
+          <div class="signal-row">
+            <span class="theme-pill">Ease of use / UX 24%</span>
+            <span class="theme-pill">Product gaps 24%</span>
+            <span class="theme-pill amber">Bugs 18%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2 2025 -->
+  <div class="breakdown-section">
+    <div class="qtr-header">
+      <span class="qtr-label">2025 Q2</span>
+      <span class="qtr-nps nps-neu">NPS +22.6</span>
+      <span class="qtr-n">195 responses · 35 detractor comments</span>
+      <span class="qtr-delta neg">▼ 15.5 pts from Q1</span>
+    </div>
+    <div class="qtr-narrative">
+      The first significant drop — NPS fell 15.5 points as response volume doubled. <strong>Product gaps became the dominant complaint at 43%</strong>, nearly doubling the share from Q1. Bugs and UX complaints also grew. This is the quarter where the gap between what customers expected and what the platform delivered became visible at scale. Support access complaints were high (17%), likely reflecting a support team not scaled to match customer growth.
+    </div>
+    <div class="insights-grid">
+      <div class="insight-block">
+        <div class="insight-block-label">By TCA tier</div>
+        <div class="insight-block-body">
+          The &lt;$1K tier (26 of 35 detractors) drove both product gaps (12 comments) and bugs (7). These are small firms with low contract value but high frustration — a churn-prone cohort. The $3K–$6K tier showed up briefly with product gap complaints, a notable signal that even higher-investment firms were hitting feature ceilings. Mid-tier ($1K–$3K) split between UX and bugs.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By lead volume</div>
+        <div class="insight-block-body">
+          Product gaps were the top complaint <strong>across every lead volume tier</strong> — no bucket was spared. Low-volume (0-lead) firms split between bugs and product gaps. The 25–74 lead tier had the highest product gap concentration (4 of 7 detractors), suggesting mid-volume firms were actively trying to build workflows and running into missing functionality.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By practice area</div>
+        <div class="insight-block-body">
+          <strong>Estate Planning</strong> emerged as the largest detractor source (11 comments) with UX and product gaps leading. Business Law was disproportionately negative, driven by bugs and feature gaps. This is also when Business Law's NPS hit <strong>−60</strong>, its lowest point. Bankruptcy firms (small n) flagged product gaps and UX.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">Top signal</div>
+        <div class="insight-block-body">
+          <em>"Every firm I work with that uses you complains about ease of use. It is so hard to manage everything in the current interface. Also, very limited options and features."</em> — A consultant speaking for multiple firms. This is the kind of comment that compounds: one dissatisfied consultant poisons multiple pipeline accounts.
+          <div class="signal-row">
+            <span class="theme-pill red">Product gaps 43%</span>
+            <span class="theme-pill amber">Bugs 26%</span>
+            <span class="theme-pill">UX 23%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q3 2025 -->
+  <div class="breakdown-section">
+    <div class="qtr-header">
+      <span class="qtr-label">2025 Q3</span>
+      <span class="qtr-nps nps-pos">NPS +29.2</span>
+      <span class="qtr-n">178 responses · 27 detractor comments</span>
+      <span class="qtr-delta pos">▲ 6.6 pts from Q2</span>
+    </div>
+    <div class="qtr-narrative">
+      A partial recovery — NPS bounced back 6.6 points. Bugs nearly disappeared from the detractor comments (7% vs 26% last quarter), suggesting reliability improved. However, <strong>onboarding spiked to 37%</strong>, tying with product gaps as the top complaint. This is the first quarter where "I can't get set up" became as loud as "the product is missing features." The shift is meaningful: it suggests the customer base had grown faster than CS capacity to activate them.
+    </div>
+    <div class="insights-grid">
+      <div class="insight-block">
+        <div class="insight-block-label">By TCA tier</div>
+        <div class="insight-block-body">
+          Almost all detractors were in the &lt;$1K tier (25 of 27). Onboarding dominated (10 comments) — these are low-investment firms who couldn't get set up and didn't have the resources to invest in consultants. This points to a structural gap: the standard onboarding package wasn't sufficient for customers who needed more hand-holding but weren't paying for it.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By lead volume</div>
+        <div class="insight-block-body">
+          <strong>Mid-volume firms (25–74 leads)</strong> had the highest onboarding complaint rate (3 of 6 detractors). These firms are generating real intake volume but haven't mastered the platform — the most dangerous combination for churn. 0-lead firms complained about product gaps, consistent with inactive firms who explored the product and found it lacking.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By practice area</div>
+        <div class="insight-block-body">
+          Estate Planning (8 detractors) split evenly between onboarding and product gaps. Family Law (4) was also heavy on onboarding. This is notable: <strong>Family Law's NPS was still +43 this quarter</strong>, but the onboarding signal emerging here foreshadowed its later decline. Business Law's NPS recovered to +40 — the one bright spot.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">Top signal</div>
+        <div class="insight-block-body">
+          <em>"I feel like I am using a fraction of Lawmatics' capabilities, just because I don't know how to set it up or am unaware of what's available."</em> This is the activation gap in plain language. The product may be capable — but customers aren't discovering that capability on their own.
+          <div class="signal-row">
+            <span class="theme-pill red">Onboarding 37%</span>
+            <span class="theme-pill red">Product gaps 37%</span>
+            <span class="theme-pill">UX 22%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q4 2025 -->
+  <div class="breakdown-section">
+    <div class="qtr-header">
+      <span class="qtr-label">2025 Q4</span>
+      <span class="qtr-nps nps-pos">NPS +29.9</span>
+      <span class="qtr-n">164 responses · 29 detractor comments</span>
+      <span class="qtr-delta pos">▲ 0.7 pts from Q3</span>
+    </div>
+    <div class="qtr-narrative">
+      Effectively flat quarter-over-quarter. NPS stabilized at ~30, a holding pattern heading into year-end. Onboarding complaints retreated; <strong>product gaps (38%) and ease of use (28%) returned as co-leaders</strong>. Support access held steady at 17%. The complaint profile was consistent with Q2 — feature gaps and UX friction — but without the bug spike that had hit Q2. This was the last stable quarter before 2026's deterioration.
+    </div>
+    <div class="insights-grid">
+      <div class="insight-block">
+        <div class="insight-block-label">By TCA tier</div>
+        <div class="insight-block-body">
+          The &lt;$1K tier continued to dominate (22 of 29), with UX and product gaps splitting evenly (7 each). Crucially, <strong>$6K–$12K TCA accounts registered their first detractor comment</strong> — a product gap complaint. This tier normally scores +58 NPS; any detractor signal there is worth tracking. Mid-tier ($1K–$3K) flagged support access more than product issues.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By lead volume</div>
+        <div class="insight-block-body">
+          <strong>0-lead firms</strong> shifted their complaint to support access (3 of 10), consistent with inactive firms who reach out when stuck and can't get help. <strong>High-volume firms (200+)</strong> complained about product gaps (3 of 6) — firms generating real volume running into feature ceilings, especially reporting. The 25–74 tier had the most concentrated product gap signal (5 of 6 detractors).
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By practice area</div>
+        <div class="insight-block-body">
+          Estate Planning (11 detractors) stayed consistent with product gaps and UX. <strong>Family Law's NPS dropped to +34.6</strong> — its third consecutive quarterly decline — with UX and support access as primary drivers. Criminal Defense hit +60 this quarter, masking the collapse that would come in Q1 2026.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">Top signal</div>
+        <div class="insight-block-body">
+          <em>"Make it more intuitive and user friendly so that I don't have to hire a third party to create and edit my automations."</em> The third-party dependency complaint — where firms need consultants to use the core product — was growing. That's a product usability failure, not a missing feature.
+          <div class="signal-row">
+            <span class="theme-pill red">Product gaps 38%</span>
+            <span class="theme-pill amber">UX 28%</span>
+            <span class="theme-pill">Support 17%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q1 2026 -->
+  <div class="breakdown-section">
+    <div class="qtr-header">
+      <span class="qtr-label">2026 Q1</span>
+      <span class="qtr-nps nps-neu">NPS +15.6</span>
+      <span class="qtr-n">231 responses · 54 detractor comments</span>
+      <span class="qtr-delta neg">▼ 14.3 pts from Q4 2025</span>
+    </div>
+    <div class="qtr-narrative">
+      The sharpest single-quarter drop in the dataset. Response volume hit its highest point (231) while NPS fell 14 points. <strong>Detractor comments nearly doubled from 29 to 54.</strong> Three themes surged simultaneously: product gaps, ease of use, and bugs — all at 19–22%. Onboarding also rose (15%). This wasn't one problem getting worse; it was multiple problems hitting at once. March 2026 specifically recorded NPS of −7.0, consistent with a platform reliability event. The new-account cohort that entered the survey pool this quarter (−1.0 NPS) was the primary driver, but existing customers also deteriorated.
+    </div>
+    <div class="insights-grid">
+      <div class="insight-block">
+        <div class="insight-block-label">By TCA tier</div>
+        <div class="insight-block-body">
+          The &lt;$1K tier remained the largest bucket (38 of 54), but <strong>the $1K–$3K tier saw a major bug spike</strong> — 6 bug complaints vs. 0 in Q4. This is significant: mid-investment firms don't usually lead on bugs. It points to a platform reliability issue that cut across spend levels, not just low-engagement fringe accounts. Sales mismatch appeared exclusively in the &lt;$1K tier (4 comments), all from new accounts.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By lead volume</div>
+        <div class="insight-block-body">
+          The most telling pattern: <strong>high-volume (200+) firms drove the bug surge</strong> — 6 of 14 detractors in that bucket cited reliability. These are operationally dependent firms where downtime directly impacts client intake. Low-volume (1–24) firms had the highest sales mismatch rate (3 of 9) — new small firms who felt overpromised. Onboarding complaints concentrated in the 1–24 bucket, suggesting newly-signed small firms weren't being activated.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By practice area</div>
+        <div class="insight-block-body">
+          <strong>Criminal Defense collapsed</strong>: NPS went from +60 in Q4 2025 to −20 this quarter. Their detractor comments cited ease of use and support access — not bugs — suggesting the redesign or a product change hit this practice area particularly hard. Estate Planning (20 detractors) was dominated by onboarding (6) and UX (4), a shift from prior product gap focus. <strong>Family Law's NPS fell to +12.5</strong>, continuing its multi-quarter slide.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">Top signal</div>
+        <div class="insight-block-body">
+          <em>"Not force people to purchase 3 seats they don't know, be dishonest in your sales pitch meetings, and let people try the product before locking them into an annual contract."</em> The only quarter where sales mismatch appeared as a measurable theme (4 comments, all new accounts). A leading indicator for future churn from this cohort.
+          <div class="signal-row">
+            <span class="theme-pill red">Product gaps 22%</span>
+            <span class="theme-pill red">Bugs 19%</span>
+            <span class="theme-pill amber">UX 19%</span>
+            <span class="theme-pill amber">Onboarding 15%</span>
+            <span class="theme-pill purple">Sales mismatch 7%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Q2 2026 -->
+  <div class="breakdown-section">
+    <div class="qtr-header">
+      <span class="qtr-label">2026 Q2</span>
+      <span class="qtr-nps nps-neu">NPS +13.1</span>
+      <span class="qtr-n">168 responses · 40 detractor comments</span>
+      <span class="qtr-delta neg">▼ 2.5 pts from Q1</span>
+    </div>
+    <div class="qtr-narrative">
+      NPS continued to slip, reaching its lowest sustained level. The bug surge from Q1 partially receded, but <strong>product gaps returned to dominance at 38%</strong> — matching Q2 2025's peak. Pricing complaints hit their highest level (15%), a new signal that hadn't registered before. Onboarding held elevated (18%). The story of this quarter is that the reliability crisis of Q1 passed, but the underlying product and activation problems remain unresolved — and customers are now questioning value for money as a result.
+    </div>
+    <div class="insights-grid">
+      <div class="insight-block">
+        <div class="insight-block-label">By TCA tier</div>
+        <div class="insight-block-body">
+          The &lt;$1K tier (30 of 40 detractors) was dominated by product gaps (11) and onboarding (6). <strong>Pricing complaints emerged most strongly here</strong> — 5 of 6 total pricing mentions came from &lt;$1K accounts. These are small firms who feel they're not getting enough for what they pay, and onboarding hasn't helped them see the value. The $1K–$3K tier was quieter but still flagged product gaps and UX.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By lead volume</div>
+        <div class="insight-block-body">
+          <strong>High-volume (200+) firms</strong> shifted from bugs back to product gaps (5 of 9) and UX (4 of 9). The reliability crisis resolved, but feature gaps remain. <strong>Mid-volume (75–199) firms</strong> showed elevated bugs (2) and support access (2) — persistent issues for firms with active intake operations. Low-volume firms split between product gaps and pricing, consistent with inactive firms questioning whether to renew.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">By practice area</div>
+        <div class="insight-block-body">
+          <strong>Criminal Defense hit −50 NPS</strong>, its worst reading in the dataset. UX and bugs were the top themes — the redesign may be disproportionately disrupting how Criminal Defense firms manage consultations. Estate Planning (11 detractors) was dominated by product gaps and onboarding. <strong>Personal Injury remained the strongest segment at +67</strong>, suggesting simpler intake workflows that don't expose platform friction.
+        </div>
+      </div>
+      <div class="insight-block">
+        <div class="insight-block-label">Top signal</div>
+        <div class="insight-block-body">
+          <em>"It has been extremely frustrating having everything we set up changing so regularly, having 100+ hours of set-up eliminated with changes to the system, and being nickeled and dimed with messaging fees."</em> Three distinct grievances in one comment: product instability, onboarding ROI destruction, and pricing. This firm's experience is the clearest articulation of the 2026 customer problem.
+          <div class="signal-row">
+            <span class="theme-pill red">Product gaps 38%</span>
+            <span class="theme-pill amber">UX 18%</span>
+            <span class="theme-pill amber">Onboarding 18%</span>
+            <span class="theme-pill red">Pricing 15%</span>
+            <span class="theme-pill">Bugs 10%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CROSS-CUTTING SUMMARY -->
+  <div class="section">
+    <div class="section-title">Cross-cutting patterns</div>
+    <div class="card">
+      <div class="card-title">What the full arc tells you</div>
+      <div class="card-sub">Six-quarter synthesis across all dimensions</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.8;display:flex;flex-direction:column;gap:14px;">
+        <p><strong style="color:var(--text)">The &lt;$1K TCA cohort is your NPS floor.</strong> They represent 67% of all responses and disproportionately drive every negative theme. Their complaint profile has been consistent for six quarters: product gaps, UX friction, and inability to get help. They're not a new problem — they've always been there. What changed in 2026 is that more of them entered the survey pool (new accounts) while existing ones grew louder about pricing and value.</p>
+        <p><strong style="color:var(--text)">High-volume firms (200+ leads) are your most important bellwether.</strong> When they complain about bugs — as they did in Q1 2026 — it signals a real reliability event. When they shift to product gaps — as in Q2 2026 — it signals feature ceiling. These firms have operational dependency on the platform and will churn if either problem isn't resolved. They're also your highest NPS segment overall, so protecting them is protecting the score.</p>
+        <p><strong style="color:var(--text)">Criminal Defense is a practice-area emergency.</strong> NPS went from +77 (Q2 2025) to −50 (Q2 2026) in four quarters. The UX and redesign complaints skew heavily toward this segment, suggesting the interface changes disrupted how Criminal Defense attorneys run consultations specifically. Worth a dedicated outreach campaign to the 31 Criminal Defense accounts in your book to understand what broke.</p>
+        <p><strong style="color:var(--text)">Onboarding complaints are structural, not seasonal.</strong> They appeared in every single quarter, peaking in Q3 2025 and remaining elevated through 2026. The profile is consistent: small firms (&lt;$1K TCA, 1–24 leads) who paid for onboarding and couldn't get activated. Estate Planning and Family Law are the most affected practice areas. A 90-day activation check-in tied to actual platform usage metrics would catch these before they hit the survey.</p>
+        <p><strong style="color:var(--text)">Pricing as a complaint is new and worth watching.</strong> It barely registered before Q1 2026 (0–5%) and hit 15% in Q2 2026. It's concentrated in &lt;$1K TCA accounts — firms that haven't found value and are now questioning the bill. If this continues trending up, it will compound churn in the next renewal cycle.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div class="page" id="page-tenure">
+  <div class="section">
+    <div class="section-title">NPS by customer tenure — all time</div>
+    <div class="kpi-row" id="tenure-kpis"></div>
+    <div class="card" style="margin-top:var(--gap)">
+      <div class="card-title">NPS by months since start date</div>
+      <div class="card-sub">How customer satisfaction evolves through the first year and beyond</div>
+      <div class="chart-wrap h200"><canvas id="tenure-bar" role="img" aria-label="NPS by tenure bucket"></canvas></div>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Tenure cohorts tracked QoQ</div>
+    <div class="card">
+      <div class="card-title">NPS by tenure cohort — quarter over quarter</div>
+      <div class="card-sub">Each line is a tenure cohort (min 3 responses per quarter shown)</div>
+      <div class="chart-wrap h280"><canvas id="tenure-lines" role="img" aria-label="Tenure cohort NPS by quarter"></canvas></div>
+    </div>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <div class="card-title">Detractor themes by tenure</div>
+      <div class="card-sub">What customers complain about at each stage — % of detractor comments mentioning theme</div>
+      <div class="table-wrap"><table class="data-table" id="tenure-themes-table"></table></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Tenure x practice area</div>
+      <div class="card-sub">NPS at each tenure stage by practice area</div>
+      <div class="table-wrap"><table class="data-table" id="tenure-pa-table"></table></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">What the tenure curve tells you</div>
+    <div id="tenure-narrative" style="font-size:13px;color:var(--text2);line-height:1.8;display:flex;flex-direction:column;gap:12px;"></div>
+  </div>
+</div>
 </main>
 
 <script>
-window.__NPS_DATA__ = {"quarters":["2025-Q1","2025-Q2","2025-Q3","2025-Q4","2026-Q1","2026-Q2"],"by_quarter":{"2025-Q1":{"nps":38.1,"n":97,"promoters":58,"passives":18,"detractors":21,"pct_p":59.8,"pct_pa":18.6,"pct_d":21.6,"avg_score":7.69},"2025-Q2":{"nps":22.6,"n":195,"promoters":103,"passives":33,"detractors":59,"pct_p":52.8,"pct_pa":16.9,"pct_d":30.3,"avg_score":7.28},"2025-Q3":{"nps":29.2,"n":178,"promoters":94,"passives":42,"detractors":42,"pct_p":52.8,"pct_pa":23.6,"pct_d":23.6,"avg_score":7.56},"2025-Q4":{"nps":29.9,"n":164,"promoters":92,"passives":29,"detractors":43,"pct_p":56.1,"pct_pa":17.7,"pct_d":26.2,"avg_score":7.63},"2026-Q1":{"nps":15.6,"n":231,"promoters":112,"passives":43,"detractors":76,"pct_p":48.5,"pct_pa":18.6,"pct_d":32.9,"avg_score":6.81},"2026-Q2":{"nps":13.1,"n":168,"promoters":81,"passives":28,"detractors":59,"pct_p":48.2,"pct_pa":16.7,"pct_d":35.1,"avg_score":6.8}},"by_practice_quarter":{"Bankruptcy":{"2025-Q2":{"nps":0.0,"n":5}},"Business Law":{"2025-Q2":{"nps":-60.0,"n":5},"2025-Q3":{"nps":40.0,"n":5},"2025-Q4":{"nps":-12.5,"n":8},"2026-Q1":{"nps":0.0,"n":3},"2026-Q2":{"nps":16.7,"n":6}},"Civil Litigation":{"2025-Q3":{"nps":33.3,"n":3},"2026-Q2":{"nps":50.0,"n":4}},"Consumer Protection":{"2025-Q1":{"nps":66.7,"n":3}},"Criminal Defense":{"2025-Q2":{"nps":76.9,"n":13},"2025-Q3":{"nps":20.0,"n":10},"2025-Q4":{"nps":60.0,"n":15},"2026-Q1":{"nps":-20.0,"n":15},"2026-Q2":{"nps":-50.0,"n":16}},"Employment Law":{"2025-Q1":{"nps":0.0,"n":3},"2025-Q2":{"nps":100.0,"n":6},"2025-Q3":{"nps":50.0,"n":4},"2025-Q4":{"nps":100.0,"n":5},"2026-Q1":{"nps":50.0,"n":4},"2026-Q2":{"nps":0.0,"n":5}},"Estate Planning":{"2025-Q1":{"nps":43.5,"n":23},"2025-Q2":{"nps":12.7,"n":55},"2025-Q3":{"nps":28.1,"n":57},"2025-Q4":{"nps":19.0,"n":42},"2026-Q1":{"nps":7.7,"n":78},"2026-Q2":{"nps":23.6,"n":55}},"Family Law":{"2025-Q1":{"nps":89.5,"n":19},"2025-Q2":{"nps":62.5,"n":24},"2025-Q3":{"nps":43.5,"n":23},"2025-Q4":{"nps":34.6,"n":26},"2026-Q1":{"nps":12.5,"n":32},"2026-Q2":{"nps":26.3,"n":19}},"General Practice":{"2025-Q2":{"nps":0.0,"n":4},"2025-Q4":{"nps":-20.0,"n":5},"2026-Q2":{"nps":20.0,"n":5}},"Immigration":{"2025-Q1":{"nps":75.0,"n":8},"2025-Q2":{"nps":25.0,"n":16},"2025-Q3":{"nps":-11.1,"n":9},"2025-Q4":{"nps":44.4,"n":9},"2026-Q1":{"nps":14.3,"n":7},"2026-Q2":{"nps":12.5,"n":8}},"Intellectual Property":{"2026-Q1":{"nps":33.3,"n":6}},"Personal Injury":{"2025-Q2":{"nps":-33.3,"n":3},"2025-Q4":{"nps":80.0,"n":5},"2026-Q1":{"nps":80.0,"n":10},"2026-Q2":{"nps":66.7,"n":3}},"Unknown":{"2025-Q1":{"nps":9.7,"n":31},"2025-Q2":{"nps":5.9,"n":51},"2025-Q3":{"nps":30.5,"n":59},"2025-Q4":{"nps":22.2,"n":36},"2026-Q1":{"nps":25.4,"n":67},"2026-Q2":{"nps":31.6,"n":38}}},"by_practice":{"Bankruptcy":{"nps":9.1,"n":11,"promoters":5,"detractors":4},"Business Law":{"nps":-6.9,"n":29,"promoters":10,"detractors":12},"Civil Litigation":{"nps":25.0,"n":12,"promoters":7,"detractors":4},"Consumer Protection":{"nps":0.0,"n":10,"promoters":4,"detractors":4},"Criminal Defense":{"nps":16.9,"n":71,"promoters":35,"detractors":23},"Employment Law":{"nps":55.6,"n":27,"promoters":19,"detractors":4},"Estate Planning":{"nps":19.4,"n":310,"promoters":150,"detractors":90},"Family Law":{"nps":42.0,"n":143,"promoters":92,"detractors":32},"General Practice":{"nps":-5.9,"n":17,"promoters":8,"detractors":9},"Immigration":{"nps":26.3,"n":57,"promoters":29,"detractors":14},"Intellectual Property":{"nps":15.4,"n":13,"promoters":6,"detractors":4},"Other":{"nps":-16.7,"n":6,"promoters":2,"detractors":3},"Personal Injury":{"nps":58.3,"n":24,"promoters":17,"detractors":3},"Real Estate Law":{"nps":0.0,"n":7,"promoters":3,"detractors":3},"Tax Law":{"nps":-60.0,"n":5,"promoters":1,"detractors":4},"Unknown":{"nps":21.6,"n":282,"promoters":146,"detractors":85}},"by_owner_quarter":{"Admir Karamovic":{"2025-Q1":{"nps":-28.6,"n":7},"2025-Q2":{"nps":-20.0,"n":15},"2025-Q3":{"nps":37.5,"n":16},"2025-Q4":{"nps":45.5,"n":11},"2026-Q1":{"nps":22.2,"n":18},"2026-Q2":{"nps":40.0,"n":10}},"Andy Galindo":{"2025-Q1":{"nps":25.0,"n":8},"2025-Q2":{"nps":0.0,"n":10},"2025-Q3":{"nps":21.4,"n":14},"2025-Q4":{"nps":33.3,"n":6},"2026-Q1":{"nps":-7.1,"n":14},"2026-Q2":{"nps":0.0,"n":15}},"Bobby Orozco":{"2025-Q1":{"nps":80.0,"n":5},"2025-Q2":{"nps":18.2,"n":11},"2025-Q3":{"nps":62.5,"n":8},"2025-Q4":{"nps":72.7,"n":11},"2026-Q1":{"nps":75.0,"n":4},"2026-Q2":{"nps":27.3,"n":11}},"Callie Burns":{"2025-Q2":{"nps":57.1,"n":14},"2025-Q3":{"nps":20.0,"n":10},"2025-Q4":{"nps":66.7,"n":6},"2026-Q1":{"nps":-23.5,"n":17},"2026-Q2":{"nps":91.7,"n":12}},"Clare Struzzi":{"2025-Q1":{"nps":33.3,"n":3},"2025-Q2":{"nps":-20.0,"n":5},"2025-Q4":{"nps":33.3,"n":3},"2026-Q1":{"nps":14.3,"n":7},"2026-Q2":{"nps":-100.0,"n":4}},"Elliott Jones":{"2025-Q1":{"nps":45.5,"n":22},"2025-Q2":{"nps":30.4,"n":46},"2025-Q3":{"nps":51.2,"n":41},"2025-Q4":{"nps":50.0,"n":32},"2026-Q1":{"nps":22.4,"n":49},"2026-Q2":{"nps":24.2,"n":33}},"Jessie Hobbs":{"2025-Q1":{"nps":50.0,"n":8},"2025-Q2":{"nps":44.4,"n":9},"2025-Q3":{"nps":-20.0,"n":10},"2025-Q4":{"nps":37.5,"n":16},"2026-Q1":{"nps":30.0,"n":20},"2026-Q2":{"nps":0.0,"n":14}},"Julio Ortiz":{"2025-Q1":{"nps":36.4,"n":11},"2025-Q2":{"nps":31.8,"n":22},"2025-Q3":{"nps":22.7,"n":22},"2025-Q4":{"nps":-13.3,"n":15},"2026-Q1":{"nps":38.5,"n":26},"2026-Q2":{"nps":0.0,"n":18}},"Kennedy Wickham":{"2025-Q1":{"nps":0.0,"n":7},"2025-Q2":{"nps":36.4,"n":11},"2025-Q3":{"nps":42.9,"n":14},"2025-Q4":{"nps":6.7,"n":15},"2026-Q1":{"nps":22.2,"n":18},"2026-Q2":{"nps":14.3,"n":14}},"Matt Spiegel":{"2025-Q1":{"nps":30.0,"n":10},"2025-Q2":{"nps":20.0,"n":15},"2025-Q3":{"nps":44.4,"n":9},"2025-Q4":{"nps":88.9,"n":9},"2026-Q1":{"nps":30.8,"n":13},"2026-Q2":{"nps":50.0,"n":6}},"Swetha Devakumar":{"2025-Q2":{"nps":15.4,"n":13},"2025-Q3":{"nps":11.1,"n":9},"2025-Q4":{"nps":0.0,"n":9},"2026-Q1":{"nps":-22.2,"n":18},"2026-Q2":{"nps":-10.0,"n":10}}},"by_owner":{"Admir Karamovic":{"nps":18.2,"n":77},"Andrew Campbell":{"nps":15.4,"n":13},"Andy Galindo":{"nps":9.0,"n":67},"Bobby Orozco":{"nps":50.0,"n":50},"Callie Burns":{"nps":36.7,"n":60},"Clare Struzzi":{"nps":-16.7,"n":24},"Elliott Jones":{"nps":35.9,"n":223},"Jessie Hobbs":{"nps":23.4,"n":77},"Julio Ortiz":{"nps":21.1,"n":114},"Kennedy Wickham":{"nps":21.5,"n":79},"Matt Spiegel":{"nps":40.3,"n":62},"Swetha Devakumar":{"nps":-3.3,"n":61}},"by_ae_quarter":{"Bobby Orozco":{"2025-Q1":{"nps":76.2,"n":21},"2025-Q2":{"nps":32.4,"n":37},"2025-Q3":{"nps":45.5,"n":33},"2025-Q4":{"nps":28.6,"n":35},"2026-Q1":{"nps":38.5,"n":26},"2026-Q2":{"nps":16.7,"n":30}},"Eduardo Adame":{"2025-Q1":{"nps":17.6,"n":17},"2025-Q2":{"nps":-16.7,"n":24},"2025-Q3":{"nps":16.1,"n":31},"2025-Q4":{"nps":45.5,"n":22},"2026-Q1":{"nps":-2.6,"n":38},"2026-Q2":{"nps":27.8,"n":18}},"Ian Thorleifson":{"2025-Q1":{"nps":60.0,"n":5},"2025-Q2":{"nps":45.5,"n":22},"2025-Q3":{"nps":12.5,"n":8},"2025-Q4":{"nps":30.8,"n":13},"2026-Q1":{"nps":7.7,"n":26},"2026-Q2":{"nps":9.1,"n":22}},"Kaia Dobbs":{"2025-Q2":{"nps":0.0,"n":6},"2025-Q3":{"nps":0.0,"n":3},"2025-Q4":{"nps":33.3,"n":6},"2026-Q1":{"nps":50.0,"n":6},"2026-Q2":{"nps":-40.0,"n":5}},"Matt Spiegel":{"2025-Q1":{"nps":28.6,"n":14},"2025-Q2":{"nps":18.2,"n":22},"2025-Q3":{"nps":31.2,"n":16},"2025-Q4":{"nps":76.2,"n":21},"2026-Q1":{"nps":44.0,"n":25},"2026-Q2":{"nps":13.3,"n":15}},"Ron Young":{"2025-Q1":{"nps":20.0,"n":5},"2025-Q2":{"nps":50.0,"n":12},"2025-Q3":{"nps":9.1,"n":11},"2025-Q4":{"nps":0.0,"n":10},"2026-Q1":{"nps":0.0,"n":20},"2026-Q2":{"nps":25.0,"n":8}},"Sarah Bottorff":{"2025-Q1":{"nps":0.0,"n":3},"2025-Q2":{"nps":22.2,"n":9},"2025-Q3":{"nps":33.3,"n":9},"2025-Q4":{"nps":-40.0,"n":5},"2026-Q1":{"nps":50.0,"n":4},"2026-Q2":{"nps":-60.0,"n":5}},"Sean Bowman":{"2025-Q4":{"nps":80.0,"n":5},"2026-Q1":{"nps":-50.0,"n":8},"2026-Q2":{"nps":0.0,"n":11}},"Val Kirsch":{"2025-Q1":{"nps":-25.0,"n":8},"2025-Q2":{"nps":0.0,"n":13},"2025-Q3":{"nps":0.0,"n":18},"2025-Q4":{"nps":0.0,"n":12},"2026-Q1":{"nps":44.4,"n":18},"2026-Q2":{"nps":30.8,"n":13}},"Will Mancini":{"2025-Q1":{"nps":66.7,"n":6},"2025-Q2":{"nps":35.0,"n":20},"2025-Q3":{"nps":46.7,"n":15},"2025-Q4":{"nps":12.5,"n":8},"2026-Q1":{"nps":27.3,"n":11},"2026-Q2":{"nps":-9.1,"n":11}}},"by_ae":{"Aimee Domescik":{"nps":70.0,"n":10},"Andrew Campbell":{"nps":3.0,"n":33},"Andrew Field":{"nps":16.7,"n":36},"Bobby Orozco":{"nps":37.4,"n":182},"Brandon Low":{"nps":71.4,"n":7},"Eduardo Adame":{"nps":12.0,"n":150},"Ian Thorleifson":{"nps":22.9,"n":96},"Kaia Dobbs":{"nps":14.8,"n":27},"Matt Spiegel":{"nps":37.2,"n":113},"Ron Young":{"nps":15.2,"n":66},"Sarah Bottorff":{"nps":5.7,"n":35},"Sean Bowman":{"nps":0.0,"n":25},"Val Kirsch":{"nps":12.2,"n":82},"Will Mancini":{"nps":29.6,"n":71}},"by_lead_bucket":{"0":{"nps":19.6,"n":265},"1\u201324":{"nps":11.5,"n":156},"25\u201374":{"nps":25.0,"n":164},"75\u2013199":{"nps":25.5,"n":184},"200+":{"nps":31.0,"n":252}},"by_tca_bucket":{"<$1K":{"nps":19.5,"n":694},"$1K\u2013$3K":{"nps":24.6,"n":228},"$3K\u2013$6K":{"nps":32.7,"n":49},"$6K\u2013$12K":{"nps":58.0,"n":50}},"detractor_themes_by_quarter":{"2025-Q1":{"total_detractors":17,"Ease of use / UX":4,"Bugs / reliability":3,"Support access":3,"Onboarding":2,"Product gaps":4,"Pricing":0,"Sales mismatch":0},"2025-Q2":{"total_detractors":35,"Ease of use / UX":7,"Bugs / reliability":9,"Support access":8,"Onboarding":3,"Product gaps":15,"Pricing":5,"Sales mismatch":0},"2025-Q3":{"total_detractors":27,"Ease of use / UX":5,"Bugs / reliability":2,"Support access":4,"Onboarding":10,"Product gaps":10,"Pricing":0,"Sales mismatch":0},"2025-Q4":{"total_detractors":29,"Ease of use / UX":8,"Bugs / reliability":1,"Support access":5,"Onboarding":3,"Product gaps":10,"Pricing":1,"Sales mismatch":0},"2026-Q1":{"total_detractors":54,"Ease of use / UX":10,"Bugs / reliability":10,"Support access":7,"Onboarding":8,"Product gaps":12,"Pricing":5,"Sales mismatch":4},"2026-Q2":{"total_detractors":40,"Ease of use / UX":6,"Bugs / reliability":6,"Support access":4,"Onboarding":6,"Product gaps":15,"Pricing":6,"Sales mismatch":0}},"recent_detractor_comments":[{"quarter":"2026-Q1","score":0,"account":"The de la Torre Law Office LLC","owner":"Admir Karamovic","ae":"Kaia Dobbs","practice":"Unknown","comment":"very slow, lately has been very slow and with bug. do not recommend"},{"quarter":"2026-Q1","score":0,"account":"RB LEGAL, LLC","owner":"Swetha Devakumar","ae":"Ron Young","practice":"Estate Planning","comment":"Everything."},{"quarter":"2026-Q1","score":0,"account":"Punchwork","owner":"Elliott Jones","ae":"Eduardo Adame","practice":"General Practice","comment":"Support is awful; product stops working often, scheduling links need a function of expiring or using only once;"},{"quarter":"2026-Q1","score":0,"account":"Vanderwall Immigration","owner":"Julio Ortiz","ae":"Val Kirsch","practice":"Unknown","comment":"Communication and integration with google meets for appointment locations."},{"quarter":"2026-Q1","score":0,"account":"KEYTLaw, LLC","owner":"Callie Burns","ae":"Ian Thorleifson","practice":"Estate Planning","comment":"Pay me the $7,000+ I paid for your software I never used."},{"quarter":"2026-Q1","score":0,"account":"Oyen Wiggs Green & Mutala LLP","owner":"Andrew Campbell","ae":"Andrew Campbell","practice":"Intellectual Property","comment":"Fix latency issues, provide better customization of the appearance of automated emails, improve compatibility with online webforms"},{"quarter":"2026-Q1","score":0,"account":"Mulembo Law PLLC","owner":"Kennedy Wickham","ae":"Ian Thorleifson","practice":"Criminal Defense","comment":"This software is very difficult to use. I don't like that I have to jump through hoops to make changes. It is also cost prohibitive if your staff utilizes part timers/interns"},{"quarter":"2026-Q1","score":0,"account":"The Lemon Law Attorneys","owner":"Elliott Jones","ae":"Ian Thorleifson","practice":"Other","comment":"Too many latency issues/ bugs."},{"quarter":"2026-Q1","score":0,"account":"Dume Law Group","owner":"Callie Burns","ae":"Sean Bowman","practice":"Family Law","comment":"Platform is not user friendly at all. Too many useless functions taking up space, making the platform super confusing."},{"quarter":"2026-Q1","score":0,"account":"Clint W. Perryman, P.C.","owner":"Kennedy Wickham","ae":"Sean Bowman","practice":"Criminal Defense","comment":"Customer Service"},{"quarter":"2026-Q1","score":0,"account":"Dume Law Group","owner":"Callie Burns","ae":"Sean Bowman","practice":"Family Law","comment":"simplify the tasks"},{"quarter":"2026-Q1","score":0,"account":"Path Forward Legal","owner":"Callie Burns","ae":"Eric Nelson","practice":"Unknown","comment":"API hasn't been updated in years; there is no accessible logging or auditing available; automations do not allow use of entire feature set; GUI changes make it harder to use"},{"quarter":"2026-Q2","score":0,"account":"LifeBack Law Firm","owner":"Julio Ortiz","ae":"Bobby Orozco","practice":"Unknown","comment":"Customer service, and response times."},{"quarter":"2026-Q2","score":0,"account":"Welmerink Law, P.C.","owner":"Clare Struzzi","ae":"Kaia Dobbs","practice":"Estate Planning","comment":"It has been extremely frustrating having everything we set up changing so regularly, having the 100+ hours of set-up with automations and appointments and e-mails eliminated with changes to the systems, and being nickeled and dimed with messaging fees"},{"quarter":"2026-Q2","score":0,"account":"Lainiotis Law LLC","owner":"Andrew Campbell","ae":"Andrew Campbell","practice":"Estate Planning","comment":"Assist with onboarding and setting up or at least explaining the system better."},{"quarter":"2026-Q1","score":0,"account":"Tanis McGonegal Family Law, P.C","owner":"Eduardo Adame","ae":"Eduardo Adame","practice":"Family Law","comment":"Office Hours for technical support is not enough. I should be able to have dedicated time with a tech support person to resolve complex issues. I have called and left messages and either don't hear back for days or never."},{"quarter":"2026-Q2","score":0,"account":"Fitzgerald & Campbell, APLC","owner":"Julio Ortiz","ae":"Matt Spiegel","practice":"Criminal Defense","comment":"Not having delays when sending agreements."},{"quarter":"2026-Q1","score":0,"account":"Colorado Legal Group","owner":"Matt Spiegel","ae":"Justin Shephard","practice":"Family Law","comment":"This platform is full of glitches and bugs, half the time the automations do not run correctly and it's a MAJOR headache. I would not recommend Lawmatics to anyone."},{"quarter":"2026-Q2","score":0,"account":"The Law Firm of Webster & Carlton","owner":"Swetha Devakumar","ae":"Sean Bowman","practice":"Employment Law","comment":"stop billing me for an account i requested not to renew in February of 2026"},{"quarter":"2026-Q1","score":0,"account":"Ferguson Widmayer & Clark, PC","owner":"Elliott Jones","ae":"Derek Morton","practice":"Estate Planning","comment":"Too many issues with customization needed for small to midsize firms"},{"quarter":"2026-Q2","score":1,"account":"Strong Law","owner":"Jessie Hobbs","ae":"Will Mancini","practice":"Estate Planning","comment":"I have invested so much time and money into Lawmatics and consultants, it's very difficult to understand how things work or make a change."},{"quarter":"2026-Q1","score":1,"account":"Poppy Legal Group","owner":"Kennedy Wickham","ae":"Eduardo Adame","practice":"Family Law","comment":"I have paid for this product for two years and haven't used it. Cardinal Concepts wrecked havoc in the LM system and am still working with Kennedy to hopefully implement it."},{"quarter":"2026-Q1","score":1,"account":"Island View Law, PC","owner":"Swetha Devakumar","ae":"John Ramon","practice":"Estate Planning","comment":"pricing is way too high; functionality still doesn't work well for our firm."},{"quarter":"2026-Q1","score":1,"account":"Law Office of David Standridge","owner":"Ron Young","ae":"Ron Young","practice":"Estate Planning","comment":"support has really changed. when i started with lawmatics years ago i could talk to someone and get help quickly. your culture is changing."}],"meta":{"total_responses":1033,"date_range":"Jan 2025 – Jun 2026","last_updated":"2026-06-29","quarters":["2025-Q1","2025-Q2","2025-Q3","2025-Q4","2026-Q1","2026-Q2"]}};
+window.__NPS_DATA__ = {"quarters":["2025-Q1","2025-Q2","2025-Q3","2025-Q4","2026-Q1","2026-Q2"],"tenure_buckets":["0\u20132 mo","3\u20135 mo","6\u201311 mo","12\u201323 mo","24+ mo"],"by_quarter":{"2025-Q1":{"nps":38.1,"n":97,"promoters":58,"passives":18,"detractors":21,"pct_p":59.8,"pct_pa":18.6,"pct_d":21.6,"avg_score":7.69},"2025-Q2":{"nps":22.6,"n":195,"promoters":103,"passives":33,"detractors":59,"pct_p":52.8,"pct_pa":16.9,"pct_d":30.3,"avg_score":7.28},"2025-Q3":{"nps":29.2,"n":178,"promoters":94,"passives":42,"detractors":42,"pct_p":52.8,"pct_pa":23.6,"pct_d":23.6,"avg_score":7.56},"2025-Q4":{"nps":29.9,"n":164,"promoters":92,"passives":29,"detractors":43,"pct_p":56.1,"pct_pa":17.7,"pct_d":26.2,"avg_score":7.63},"2026-Q1":{"nps":15.6,"n":231,"promoters":112,"passives":43,"detractors":76,"pct_p":48.5,"pct_pa":18.6,"pct_d":32.9,"avg_score":6.81},"2026-Q2":{"nps":13.1,"n":168,"promoters":81,"passives":28,"detractors":59,"pct_p":48.2,"pct_pa":16.7,"pct_d":35.1,"avg_score":6.8}},"by_tenure":{"0\u20132 mo":{"nps":-100.0,"n":1,"promoters":0,"detractors":1,"pct_p":0.0,"pct_d":100.0},"3\u20135 mo":{"nps":-3.2,"n":31,"promoters":13,"detractors":14,"pct_p":41.9,"pct_d":45.2},"6\u201311 mo":{"nps":4.2,"n":143,"promoters":64,"detractors":58,"pct_p":44.8,"pct_d":40.6},"12\u201323 mo":{"nps":24.6,"n":256,"promoters":138,"detractors":75,"pct_p":53.9,"pct_d":29.3},"24+ mo":{"nps":27.8,"n":579,"promoters":309,"detractors":148,"pct_p":53.4,"pct_d":25.6}},"by_tenure_quarter":{"0\u20132 mo":{},"3\u20135 mo":{"2025-Q1":{"nps":-20.0,"n":5},"2025-Q3":{"nps":-33.3,"n":3},"2025-Q4":{"nps":50.0,"n":4},"2026-Q1":{"nps":0.0,"n":8},"2026-Q2":{"nps":-33.3,"n":9}},"6\u201311 mo":{"2025-Q1":{"nps":46.2,"n":13},"2025-Q2":{"nps":-9.8,"n":41},"2025-Q3":{"nps":42.1,"n":19},"2025-Q4":{"nps":-7.1,"n":14},"2026-Q1":{"nps":-30.0,"n":30},"2026-Q2":{"nps":23.1,"n":26}},"12\u201323 mo":{"2025-Q1":{"nps":29.2,"n":24},"2025-Q2":{"nps":39.1,"n":46},"2025-Q3":{"nps":28.9,"n":45},"2025-Q4":{"nps":25.0,"n":44},"2026-Q1":{"nps":16.9,"n":71},"2026-Q2":{"nps":7.7,"n":26}},"24+ mo":{"2025-Q1":{"nps":45.1,"n":51},"2025-Q2":{"nps":25.2,"n":103},"2025-Q3":{"nps":26.7,"n":105},"2025-Q4":{"nps":36.8,"n":95},"2026-Q1":{"nps":27.1,"n":118},"2026-Q2":{"nps":15.9,"n":107}}},"tenure_themes":{"0\u20132 mo":{"total":0,"themes":{"Ease of use / UX":0,"Bugs / reliability":0,"Support access":0,"Onboarding / setup":0,"Product gaps":0,"Pricing / value":0,"Sales mismatch":0}},"3\u20135 mo":{"total":9,"themes":{"Ease of use / UX":0,"Bugs / reliability":0,"Support access":1,"Onboarding / setup":1,"Product gaps":2,"Pricing / value":0,"Sales mismatch":0}},"6\u201311 mo":{"total":40,"themes":{"Ease of use / UX":9,"Bugs / reliability":8,"Support access":7,"Onboarding / setup":9,"Product gaps":8,"Pricing / value":3,"Sales mismatch":1}},"12\u201323 mo":{"total":49,"themes":{"Ease of use / UX":11,"Bugs / reliability":5,"Support access":10,"Onboarding / setup":10,"Product gaps":12,"Pricing / value":6,"Sales mismatch":1}},"24+ mo":{"total":100,"themes":{"Ease of use / UX":22,"Bugs / reliability":15,"Support access":13,"Onboarding / setup":13,"Product gaps":37,"Pricing / value":8,"Sales mismatch":0}}},"by_practice":{"Bankruptcy":{"nps":9.1,"n":11,"promoters":5,"detractors":4},"Business Law":{"nps":-6.9,"n":29,"promoters":10,"detractors":12},"Civil Litigation":{"nps":25.0,"n":12,"promoters":7,"detractors":4},"Consumer Protection":{"nps":0.0,"n":10,"promoters":4,"detractors":4},"Criminal Defense":{"nps":16.9,"n":71,"promoters":35,"detractors":23},"Employment Law":{"nps":55.6,"n":27,"promoters":19,"detractors":4},"Estate Planning":{"nps":19.4,"n":310,"promoters":150,"detractors":90},"Family Law":{"nps":42.0,"n":143,"promoters":92,"detractors":32},"General Practice":{"nps":-5.9,"n":17,"promoters":8,"detractors":9},"Immigration":{"nps":26.3,"n":57,"promoters":29,"detractors":14},"Intellectual Property":{"nps":15.4,"n":13,"promoters":6,"detractors":4},"Other":{"nps":-16.7,"n":6,"promoters":2,"detractors":3},"Personal Injury":{"nps":58.3,"n":24,"promoters":17,"detractors":3},"Real Estate Law":{"nps":0.0,"n":7,"promoters":3,"detractors":3},"Tax Law":{"nps":-60.0,"n":5,"promoters":1,"detractors":4},"Unknown":{"nps":21.6,"n":282,"promoters":146,"detractors":85}},"by_practice_quarter":{"Bankruptcy":{"2025-Q2":{"nps":0.0,"n":5}},"Business Law":{"2025-Q2":{"nps":-60.0,"n":5},"2025-Q3":{"nps":40.0,"n":5},"2025-Q4":{"nps":-12.5,"n":8},"2026-Q1":{"nps":0.0,"n":3},"2026-Q2":{"nps":16.7,"n":6}},"Civil Litigation":{"2025-Q3":{"nps":33.3,"n":3},"2026-Q2":{"nps":50.0,"n":4}},"Consumer Protection":{"2025-Q1":{"nps":66.7,"n":3}},"Criminal Defense":{"2025-Q2":{"nps":76.9,"n":13},"2025-Q3":{"nps":20.0,"n":10},"2025-Q4":{"nps":60.0,"n":15},"2026-Q1":{"nps":-20.0,"n":15},"2026-Q2":{"nps":-50.0,"n":16}},"Employment Law":{"2025-Q1":{"nps":0.0,"n":3},"2025-Q2":{"nps":100.0,"n":6},"2025-Q3":{"nps":50.0,"n":4},"2025-Q4":{"nps":100.0,"n":5},"2026-Q1":{"nps":50.0,"n":4},"2026-Q2":{"nps":0.0,"n":5}},"Estate Planning":{"2025-Q1":{"nps":43.5,"n":23},"2025-Q2":{"nps":12.7,"n":55},"2025-Q3":{"nps":28.1,"n":57},"2025-Q4":{"nps":19.0,"n":42},"2026-Q1":{"nps":7.7,"n":78},"2026-Q2":{"nps":23.6,"n":55}},"Family Law":{"2025-Q1":{"nps":89.5,"n":19},"2025-Q2":{"nps":62.5,"n":24},"2025-Q3":{"nps":43.5,"n":23},"2025-Q4":{"nps":34.6,"n":26},"2026-Q1":{"nps":12.5,"n":32},"2026-Q2":{"nps":26.3,"n":19}},"General Practice":{"2025-Q2":{"nps":0.0,"n":4},"2025-Q4":{"nps":-20.0,"n":5},"2026-Q2":{"nps":20.0,"n":5}},"Immigration":{"2025-Q1":{"nps":75.0,"n":8},"2025-Q2":{"nps":25.0,"n":16},"2025-Q3":{"nps":-11.1,"n":9},"2025-Q4":{"nps":44.4,"n":9},"2026-Q1":{"nps":14.3,"n":7},"2026-Q2":{"nps":12.5,"n":8}},"Intellectual Property":{"2026-Q1":{"nps":33.3,"n":6}},"Other":{},"Personal Injury":{"2025-Q2":{"nps":-33.3,"n":3},"2025-Q4":{"nps":80.0,"n":5},"2026-Q1":{"nps":80.0,"n":10},"2026-Q2":{"nps":66.7,"n":3}},"Real Estate Law":{},"Tax Law":{},"Unknown":{"2025-Q1":{"nps":9.7,"n":31},"2025-Q2":{"nps":5.9,"n":51},"2025-Q3":{"nps":30.5,"n":59},"2025-Q4":{"nps":22.2,"n":36},"2026-Q1":{"nps":25.4,"n":67},"2026-Q2":{"nps":31.6,"n":38}}},"by_practice_tenure":{"Bankruptcy":{"12\u201323 mo":{"nps":33.3,"n":3},"24+ mo":{"nps":14.3,"n":7}},"Business Law":{"6\u201311 mo":{"nps":0.0,"n":10},"12\u201323 mo":{"nps":-12.5,"n":8},"24+ mo":{"nps":0.0,"n":10}},"Civil Litigation":{"12\u201323 mo":{"nps":-33.3,"n":3},"24+ mo":{"nps":37.5,"n":8}},"Consumer Protection":{"6\u201311 mo":{"nps":100.0,"n":3},"12\u201323 mo":{"nps":0.0,"n":3},"24+ mo":{"nps":-75.0,"n":4}},"Criminal Defense":{"3\u20135 mo":{"nps":-60.0,"n":5},"6\u201311 mo":{"nps":14.3,"n":7},"12\u201323 mo":{"nps":0.0,"n":12},"24+ mo":{"nps":28.3,"n":46}},"Employment Law":{"12\u201323 mo":{"nps":46.2,"n":13},"24+ mo":{"nps":66.7,"n":12}},"Estate Planning":{"3\u20135 mo":{"nps":12.5,"n":8},"6\u201311 mo":{"nps":0.0,"n":33},"12\u201323 mo":{"nps":18.9,"n":74},"24+ mo":{"nps":22.1,"n":181}},"Family Law":{"3\u20135 mo":{"nps":0.0,"n":4},"6\u201311 mo":{"nps":-19.2,"n":26},"12\u201323 mo":{"nps":84.2,"n":19},"24+ mo":{"nps":51.6,"n":93}},"General Practice":{"6\u201311 mo":{"nps":-14.3,"n":7},"12\u201323 mo":{"nps":0.0,"n":6},"24+ mo":{"nps":-33.3,"n":3}},"Immigration":{"3\u20135 mo":{"nps":33.3,"n":3},"6\u201311 mo":{"nps":-37.5,"n":8},"12\u201323 mo":{"nps":26.3,"n":19},"24+ mo":{"nps":44.4,"n":27}},"Intellectual Property":{"6\u201311 mo":{"nps":-33.3,"n":3},"24+ mo":{"nps":12.5,"n":8}},"Other":{"12\u201323 mo":{"nps":-66.7,"n":3}},"Personal Injury":{"6\u201311 mo":{"nps":41.7,"n":12},"12\u201323 mo":{"nps":100.0,"n":7},"24+ mo":{"nps":66.7,"n":3}},"Real Estate Law":{"24+ mo":{"nps":-33.3,"n":3}},"Tax Law":{"24+ mo":{"nps":-33.3,"n":3}},"Unknown":{"3\u20135 mo":{"nps":0.0,"n":4},"6\u201311 mo":{"nps":18.5,"n":27},"12\u201323 mo":{"nps":19.5,"n":82},"24+ mo":{"nps":21.6,"n":162}}},"by_owner":{"Admir Karamovic":{"nps":18.2,"n":77},"Andrew Campbell":{"nps":15.4,"n":13},"Andy Galindo":{"nps":9.0,"n":67},"Bobby Orozco":{"nps":50.0,"n":50},"Callie Burns":{"nps":36.7,"n":60},"Clare Struzzi":{"nps":-16.7,"n":24},"Elliott Jones":{"nps":35.9,"n":223},"Jessie Hobbs":{"nps":23.4,"n":77},"Johnny Bissell":{"nps":18.8,"n":16},"Julia Anderson":{"nps":55.6,"n":9},"Julio Ortiz":{"nps":21.1,"n":114},"Kennedy Wickham":{"nps":21.5,"n":79},"Matt Spiegel":{"nps":40.3,"n":62},"Paul Witthans":{"nps":80.0,"n":5},"Sarah Bottorff":{"nps":-5.3,"n":19},"Swetha Devakumar":{"nps":-3.3,"n":61},"Unknown":{"nps":13.6,"n":44},"Val Kirsch":{"nps":-50.0,"n":6},"Will Mancini":{"nps":12.5,"n":8}},"by_owner_quarter":{"Admir Karamovic":{"2025-Q1":{"nps":-28.6,"n":7},"2025-Q2":{"nps":-20.0,"n":15},"2025-Q3":{"nps":37.5,"n":16},"2025-Q4":{"nps":45.5,"n":11},"2026-Q1":{"nps":22.2,"n":18},"2026-Q2":{"nps":40.0,"n":10}},"Andrew Campbell":{"2025-Q4":{"nps":0.0,"n":3},"2026-Q1":{"nps":0.0,"n":4}},"Andy Galindo":{"2025-Q1":{"nps":25.0,"n":8},"2025-Q2":{"nps":0.0,"n":10},"2025-Q3":{"nps":21.4,"n":14},"2025-Q4":{"nps":33.3,"n":6},"2026-Q1":{"nps":-7.1,"n":14},"2026-Q2":{"nps":0.0,"n":15}},"Bobby Orozco":{"2025-Q1":{"nps":80.0,"n":5},"2025-Q2":{"nps":18.2,"n":11},"2025-Q3":{"nps":62.5,"n":8},"2025-Q4":{"nps":72.7,"n":11},"2026-Q1":{"nps":75.0,"n":4},"2026-Q2":{"nps":27.3,"n":11}},"Callie Burns":{"2025-Q2":{"nps":57.1,"n":14},"2025-Q3":{"nps":20.0,"n":10},"2025-Q4":{"nps":66.7,"n":6},"2026-Q1":{"nps":-23.5,"n":17},"2026-Q2":{"nps":91.7,"n":12}},"Clare Struzzi":{"2025-Q1":{"nps":33.3,"n":3},"2025-Q2":{"nps":-20.0,"n":5},"2025-Q4":{"nps":33.3,"n":3},"2026-Q1":{"nps":14.3,"n":7},"2026-Q2":{"nps":-100.0,"n":4}},"Elliott Jones":{"2025-Q1":{"nps":45.5,"n":22},"2025-Q2":{"nps":30.4,"n":46},"2025-Q3":{"nps":51.2,"n":41},"2025-Q4":{"nps":50.0,"n":32},"2026-Q1":{"nps":22.4,"n":49},"2026-Q2":{"nps":24.2,"n":33}},"Jessie Hobbs":{"2025-Q1":{"nps":50.0,"n":8},"2025-Q2":{"nps":44.4,"n":9},"2025-Q3":{"nps":-20.0,"n":10},"2025-Q4":{"nps":37.5,"n":16},"2026-Q1":{"nps":30.0,"n":20},"2026-Q2":{"nps":0.0,"n":14}},"Johnny Bissell":{"2025-Q3":{"nps":-66.7,"n":3},"2025-Q4":{"nps":0.0,"n":4},"2026-Q1":{"nps":0.0,"n":4}},"Julia Anderson":{"2026-Q2":{"nps":33.3,"n":3}},"Julio Ortiz":{"2025-Q1":{"nps":36.4,"n":11},"2025-Q2":{"nps":31.8,"n":22},"2025-Q3":{"nps":22.7,"n":22},"2025-Q4":{"nps":-13.3,"n":15},"2026-Q1":{"nps":38.5,"n":26},"2026-Q2":{"nps":0.0,"n":18}},"Kennedy Wickham":{"2025-Q1":{"nps":0.0,"n":7},"2025-Q2":{"nps":36.4,"n":11},"2025-Q3":{"nps":42.9,"n":14},"2025-Q4":{"nps":6.7,"n":15},"2026-Q1":{"nps":22.2,"n":18},"2026-Q2":{"nps":14.3,"n":14}},"Matt Spiegel":{"2025-Q1":{"nps":30.0,"n":10},"2025-Q2":{"nps":20.0,"n":15},"2025-Q3":{"nps":44.4,"n":9},"2025-Q4":{"nps":88.9,"n":9},"2026-Q1":{"nps":30.8,"n":13},"2026-Q2":{"nps":50.0,"n":6}},"Paul Witthans":{},"Sarah Bottorff":{"2025-Q2":{"nps":-25.0,"n":4},"2025-Q3":{"nps":0.0,"n":6},"2025-Q4":{"nps":-100.0,"n":3},"2026-Q1":{"nps":100.0,"n":3}},"Swetha Devakumar":{"2025-Q2":{"nps":15.4,"n":13},"2025-Q3":{"nps":11.1,"n":9},"2025-Q4":{"nps":0.0,"n":9},"2026-Q1":{"nps":-22.2,"n":18},"2026-Q2":{"nps":-10.0,"n":10}},"Unknown":{"2025-Q1":{"nps":66.7,"n":3},"2025-Q2":{"nps":25.0,"n":8},"2025-Q3":{"nps":71.4,"n":7},"2025-Q4":{"nps":30.0,"n":10},"2026-Q1":{"nps":-37.5,"n":8},"2026-Q2":{"nps":-37.5,"n":8}},"Val Kirsch":{},"Will Mancini":{"2025-Q2":{"nps":0.0,"n":4}}},"by_ae":{"Aimee Domescik":{"nps":70.0,"n":10},"Andrew Campbell":{"nps":3.0,"n":33},"Andrew Field":{"nps":16.7,"n":36},"Bobby Orozco":{"nps":37.4,"n":182},"Brandon Low":{"nps":71.4,"n":7},"Derek Morton":{"nps":0.0,"n":11},"Eduardo Adame":{"nps":12.0,"n":150},"Eric Nelson":{"nps":33.3,"n":6},"Ian Thorleifson":{"nps":22.9,"n":96},"John Ramon":{"nps":-10.0,"n":10},"Johnny Bissell":{"nps":72.7,"n":11},"Justin Shephard":{"nps":37.5,"n":8},"Kaia Dobbs":{"nps":14.8,"n":27},"Kelly Dembicer":{"nps":28.6,"n":7},"Matt Spiegel":{"nps":37.2,"n":113},"Ron Young":{"nps":15.2,"n":66},"Ryan Valley":{"nps":16.7,"n":6},"Sarah Bottorff":{"nps":5.7,"n":35},"Sean Bowman":{"nps":0.0,"n":25},"Tyler Page":{"nps":0.0,"n":16},"Unknown":{"nps":33.3,"n":12},"Val Kirsch":{"nps":12.2,"n":82},"Will Mancini":{"nps":29.6,"n":71}},"by_ae_quarter":{"Aimee Domescik":{"2025-Q2":{"nps":66.7,"n":3},"2025-Q3":{"nps":66.7,"n":3}},"Andrew Campbell":{"2025-Q1":{"nps":25.0,"n":4},"2025-Q2":{"nps":40.0,"n":5},"2025-Q3":{"nps":33.3,"n":6},"2025-Q4":{"nps":0.0,"n":5},"2026-Q1":{"nps":-33.3,"n":9},"2026-Q2":{"nps":-25.0,"n":4}},"Andrew Field":{"2025-Q1":{"nps":-20.0,"n":5},"2025-Q2":{"nps":-11.1,"n":9},"2025-Q3":{"nps":42.9,"n":7},"2026-Q1":{"nps":11.1,"n":9},"2026-Q2":{"nps":75.0,"n":4}},"Bobby Orozco":{"2025-Q1":{"nps":76.2,"n":21},"2025-Q2":{"nps":32.4,"n":37},"2025-Q3":{"nps":45.5,"n":33},"2025-Q4":{"nps":28.6,"n":35},"2026-Q1":{"nps":38.5,"n":26},"2026-Q2":{"nps":16.7,"n":30}},"Brandon Low":{"2026-Q1":{"nps":100.0,"n":3}},"Derek Morton":{"2026-Q1":{"nps":20.0,"n":5}},"Eduardo Adame":{"2025-Q1":{"nps":17.6,"n":17},"2025-Q2":{"nps":-16.7,"n":24},"2025-Q3":{"nps":16.1,"n":31},"2025-Q4":{"nps":45.5,"n":22},"2026-Q1":{"nps":-2.6,"n":38},"2026-Q2":{"nps":27.8,"n":18}},"Eric Nelson":{},"Ian Thorleifson":{"2025-Q1":{"nps":60.0,"n":5},"2025-Q2":{"nps":45.5,"n":22},"2025-Q3":{"nps":12.5,"n":8},"2025-Q4":{"nps":30.8,"n":13},"2026-Q1":{"nps":7.7,"n":26},"2026-Q2":{"nps":9.1,"n":22}},"John Ramon":{"2026-Q2":{"nps":0.0,"n":9}},"Johnny Bissell":{"2025-Q4":{"nps":80.0,"n":5},"2026-Q1":{"nps":33.3,"n":3}},"Justin Shephard":{},"Kaia Dobbs":{"2025-Q2":{"nps":0.0,"n":6},"2025-Q3":{"nps":0.0,"n":3},"2025-Q4":{"nps":33.3,"n":6},"2026-Q1":{"nps":50.0,"n":6},"2026-Q2":{"nps":-40.0,"n":5}},"Kelly Dembicer":{},"Matt Spiegel":{"2025-Q1":{"nps":28.6,"n":14},"2025-Q2":{"nps":18.2,"n":22},"2025-Q3":{"nps":31.2,"n":16},"2025-Q4":{"nps":76.2,"n":21},"2026-Q1":{"nps":44.0,"n":25},"2026-Q2":{"nps":13.3,"n":15}},"Ron Young":{"2025-Q1":{"nps":20.0,"n":5},"2025-Q2":{"nps":50.0,"n":12},"2025-Q3":{"nps":9.1,"n":11},"2025-Q4":{"nps":0.0,"n":10},"2026-Q1":{"nps":0.0,"n":20},"2026-Q2":{"nps":25.0,"n":8}},"Ryan Valley":{"2026-Q1":{"nps":-25.0,"n":4}},"Sarah Bottorff":{"2025-Q1":{"nps":0.0,"n":3},"2025-Q2":{"nps":22.2,"n":9},"2025-Q3":{"nps":33.3,"n":9},"2025-Q4":{"nps":-40.0,"n":5},"2026-Q1":{"nps":50.0,"n":4},"2026-Q2":{"nps":-60.0,"n":5}},"Sean Bowman":{"2025-Q4":{"nps":80.0,"n":5},"2026-Q1":{"nps":-50.0,"n":8},"2026-Q2":{"nps":0.0,"n":11}},"Tyler Page":{"2025-Q3":{"nps":25.0,"n":4},"2025-Q4":{"nps":-50.0,"n":4},"2026-Q1":{"nps":-33.3,"n":3}},"Unknown":{"2025-Q3":{"nps":100.0,"n":4},"2026-Q1":{"nps":-33.3,"n":3},"2026-Q2":{"nps":33.3,"n":3}},"Val Kirsch":{"2025-Q1":{"nps":-25.0,"n":8},"2025-Q2":{"nps":0.0,"n":13},"2025-Q3":{"nps":0.0,"n":18},"2025-Q4":{"nps":0.0,"n":12},"2026-Q1":{"nps":44.4,"n":18},"2026-Q2":{"nps":30.8,"n":13}},"Will Mancini":{"2025-Q1":{"nps":66.7,"n":6},"2025-Q2":{"nps":35.0,"n":20},"2025-Q3":{"nps":46.7,"n":15},"2025-Q4":{"nps":12.5,"n":8},"2026-Q1":{"nps":27.3,"n":11},"2026-Q2":{"nps":-9.1,"n":11}}},"by_lead_bucket":{"0":{"nps":19.6,"n":265},"1\u201324":{"nps":11.5,"n":156},"25\u201374":{"nps":25.0,"n":164},"75\u2013199":{"nps":25.5,"n":184},"200+":{"nps":31.0,"n":252},"Unknown":{"nps":33.3,"n":12}},"by_tca_bucket":{"<$1K":{"nps":19.5,"n":694},"$1K\u2013$3K":{"nps":24.6,"n":228},"$3K\u2013$6K":{"nps":32.7,"n":49},"$6K\u2013$12K":{"nps":58.0,"n":50},"$12K+":{"nps":null,"n":0},"Unknown":{"nps":33.3,"n":12}},"detractor_themes_by_quarter":{"2025-Q1":{"total_detractors":17,"Ease of use / UX":4,"Bugs / reliability":3,"Support access":3,"Onboarding / setup":2,"Product gaps":4,"Pricing / value":0,"Sales mismatch":0},"2025-Q2":{"total_detractors":35,"Ease of use / UX":8,"Bugs / reliability":9,"Support access":8,"Onboarding / setup":3,"Product gaps":15,"Pricing / value":5,"Sales mismatch":0},"2025-Q3":{"total_detractors":27,"Ease of use / UX":6,"Bugs / reliability":2,"Support access":4,"Onboarding / setup":10,"Product gaps":9,"Pricing / value":0,"Sales mismatch":0},"2025-Q4":{"total_detractors":29,"Ease of use / UX":8,"Bugs / reliability":0,"Support access":5,"Onboarding / setup":4,"Product gaps":9,"Pricing / value":1,"Sales mismatch":0},"2026-Q1":{"total_detractors":54,"Ease of use / UX":10,"Bugs / reliability":10,"Support access":7,"Onboarding / setup":8,"Product gaps":12,"Pricing / value":5,"Sales mismatch":2},"2026-Q2":{"total_detractors":40,"Ease of use / UX":7,"Bugs / reliability":4,"Support access":4,"Onboarding / setup":7,"Product gaps":13,"Pricing / value":6,"Sales mismatch":0}},"recent_detractor_comments":[{"quarter":"2026-Q1","score":0,"account":"The de la Torre Law Office LLC","owner":"Admir Karamovic","ae":"Kaia Dobbs","practice":"Unknown","tenure":"24+ mo","start_date":"5/27/2022","comment":"very slow, lately has been very slow and with bug. do not recommend"},{"quarter":"2026-Q1","score":0,"account":"RB LEGAL, LLC","owner":"Swetha Devakumar","ae":"Ron Young","practice":"Estate Planning","tenure":"12\u201323 mo","start_date":"8/28/2024","comment":"Everything."},{"quarter":"2026-Q1","score":0,"account":"Punchwork","owner":"Elliott Jones","ae":"Eduardo Adame","practice":"General Practice","tenure":"12\u201323 mo","start_date":"11/19/2024","comment":"Support is awful; product stops working often, scheduling links need a function of expiring or using only once;"},{"quarter":"2026-Q1","score":0,"account":"Vanderwall Immigration","owner":"Julio Ortiz","ae":"Val Kirsch","practice":"Unknown","tenure":"24+ mo","start_date":"11/16/2023","comment":"Communication and integration with google meets for appointment locations."},{"quarter":"2026-Q1","score":0,"account":"John M. Crane, P.C.","owner":"Unknown","ae":"Matt Spiegel","practice":"Unknown","tenure":"12\u201323 mo","start_date":"12/21/2024","comment":"Show subscribers how to use it"},{"quarter":"2026-Q1","score":0,"account":"KEYTLaw, LLC","owner":"Callie Burns","ae":"Ian Thorleifson","practice":"Estate Planning","tenure":"6\u201311 mo","start_date":"2/13/2025","comment":"Pay me the $7,000+ I paid for your  software I never used."},{"quarter":"2026-Q1","score":0,"account":"Oyen Wiggs Green & Mutala LLP","owner":"Andrew Campbell","ae":"Andrew Campbell","practice":"Intellectual Property","tenure":"24+ mo","start_date":"7/7/2021","comment":"Fix latency issues, provide better customization of the appearance of automated emails, improve compatibility with online webforms"},{"quarter":"2026-Q1","score":0,"account":"Mulembo Law PLLC","owner":"Kennedy Wickham","ae":"Ian Thorleifson","practice":"Criminal Defense","tenure":"6\u201311 mo","start_date":"5/23/2025","comment":"This software is very difficult to use. I don't like that I have to jump through hoops to make changes. It is also cost prohibitive if your staff utilizes part timers/interns"},{"quarter":"2026-Q1","score":0,"account":"The Lemon Law Attorneys","owner":"Elliott Jones","ae":"Ian Thorleifson","practice":"Other","tenure":"6\u201311 mo","start_date":"3/20/2025","comment":"Too many latency issues/ bugs."},{"quarter":"2026-Q1","score":0,"account":"Dume Law Group","owner":"Callie Burns","ae":"Sean Bowman","practice":"Family Law","tenure":"6\u201311 mo","start_date":"8/12/2025","comment":"Platform is not user friendly at all. Too many useless functions taking up space, making the platform super confusing."},{"quarter":"2026-Q1","score":0,"account":"Clint W. Perryman, P.C.","owner":"Kennedy Wickham","ae":"Sean Bowman","practice":"Criminal Defense","tenure":"3\u20135 mo","start_date":"8/11/2025","comment":"Customer Service"},{"quarter":"2026-Q1","score":0,"account":"Dume Law Group","owner":"Callie Burns","ae":"Sean Bowman","practice":"Family Law","tenure":"6\u201311 mo","start_date":"8/12/2025","comment":"simplify the tasks"},{"quarter":"2026-Q1","score":0,"account":"Path Forward Legal","owner":"Callie Burns","ae":"Eric Nelson","practice":"Unknown","tenure":"24+ mo","start_date":"4/10/2023","comment":"API hasn't been updated in years; there is no accessible logging or auditing available for changes to database; automations do not allow use of entire feature set; GUI changes make it harder to use; not accessible with font/colors; does not have needed features like one-off signatures; integrations "},{"quarter":"2026-Q2","score":0,"account":"LifeBack Law Firm","owner":"Julio Ortiz","ae":"Bobby Orozco","practice":"Unknown","tenure":"24+ mo","start_date":"2/10/2022","comment":"Customer service, and response times."},{"quarter":"2026-Q2","score":0,"account":"Welmerink Law, P.C.","owner":"Clare Struzzi","ae":"Kaia Dobbs","practice":"Estate Planning","tenure":"24+ mo","start_date":"9/16/2022","comment":"It has been extremely frustrating having everything we set up changing so regularly, having the 100+ hours of set-up with automations and appointments and e-mails having been eliminated with changes to the systems, and being nickeled and dimed with the messaging fees (when every other provider we us"},{"quarter":"2026-Q2","score":0,"account":"Lainiotis Law LLC","owner":"Andrew Campbell","ae":"Andrew Campbell","practice":"Estate Planning","tenure":"24+ mo","start_date":"7/14/2021","comment":"Assist with onboarding and setting up or at least explaining the system better."},{"quarter":"2026-Q1","score":0,"account":"Schafer Law Firm, P.C.","owner":"Andy Galindo","ae":"Eduardo Adame","practice":"Unknown","tenure":"24+ mo","start_date":"11/10/2022","comment":"Nothing. I don't want to lose any competitive advantages I have LOL!"},{"quarter":"2026-Q2","score":0,"account":"Fitzgerald & Campbell, APLC(New)","owner":"Julio Ortiz","ae":"Matt Spiegel","practice":"Criminal Defense","tenure":"24+ mo","start_date":"2/2/2021","comment":"Not having delays when sending agreements."},{"quarter":"2026-Q2","score":0,"account":"Strub Law, LLC","owner":"Will Mancini","ae":"Will Mancini","practice":"Estate Planning","tenure":"24+ mo","start_date":"2/14/2023","comment":"I do not like the NPS. I think it's a weird question."},{"quarter":"2026-Q1","score":0,"account":"Tanis McGonegal Family Law, P.C","owner":"Eduardo Adame","ae":"Eduardo Adame","practice":"Family Law","tenure":"24+ mo","start_date":"2/28/2023","comment":"Office Hours for technical support is not enough.  I should be able to have dedicated time with a tech support person to resolve complex issues.  I have called and left messages for help on numerous occasions and either don't hear back for days or never hear anything back."},{"quarter":"2026-Q2","score":0,"account":"Stecklein Law","owner":"Val Kirsch","ae":"Val Kirsch","practice":"Consumer Protection","tenure":"24+ mo","start_date":"8/14/2023","comment":"My hourly rate for troubleshooting and website development is $400, billed in 4-hour increments, with a non-refundable $10,000 retainer."},{"quarter":"2026-Q1","score":0,"account":"Harris Federal Law Firm","owner":"Julio Ortiz","ae":"Andrew Campbell","practice":"Unknown","tenure":"24+ mo","start_date":"11/23/2021","comment":"redesign bad"},{"quarter":"2026-Q2","score":0,"account":"Gleam Law","owner":"Bobby Orozco","ae":"Bobby Orozco","practice":"General Practice","tenure":"24+ mo","start_date":"12/6/2021","comment":"Respond to support requests even once!"},{"quarter":"2026-Q2","score":0,"account":"Wolford Wayne LLP","owner":"Julio Ortiz","ae":"Ron Young","practice":"Civil Litigation","tenure":"12\u201323 mo","start_date":"10/24/2024","comment":"document signing is difficult and takes too long to set up if multiple initials, signatures needed. Hate having to sign in every day"},{"quarter":"2026-Q1","score":0,"account":"Colorado Legal Group","owner":"Matt Spiegel","ae":"Justin Shephard","practice":"Family Law","tenure":"24+ mo","start_date":"12/30/2020","comment":"This platform is full of glitches and bugs, half the time the automations do not run correctly and it's a MAJOR headache. I would not recommend Lawmatics to anyone."},{"quarter":"2026-Q2","score":0,"account":"The Law Firm of Webster & Carlton","owner":"Swetha Devakumar","ae":"Sean Bowman","practice":"Employment Law","tenure":"12\u201323 mo","start_date":"4/17/2025","comment":"stop billing me for an account i requested not to renew in February of 2026"},{"quarter":"2026-Q1","score":0,"account":"Ferguson Widmayer & Clark, PC","owner":"Elliott Jones","ae":"Derek Morton","practice":"Estate Planning","tenure":"6\u201311 mo","start_date":"4/21/2025","comment":"Too many issues with customization needed for small to midsize firms"},{"quarter":"2026-Q1","score":0,"account":"RB LEGAL, LLC","owner":"Swetha Devakumar","ae":"Ron Young","practice":"Estate Planning","tenure":"12\u201323 mo","start_date":"8/28/2024","comment":"It is time consuming, messy and has been problematic"},{"quarter":"2026-Q1","score":0,"account":"J. Cameron Law, PLLC","owner":"Swetha Devakumar","ae":"Sean Bowman","practice":"Intellectual Property","tenure":"6\u201311 mo","start_date":"7/31/2025","comment":"Not force people to purchase 3 seats they don't know, be dishonest in your sales pitch meetings, and let people try the product before locking them into a annual contract."},{"quarter":"2026-Q2","score":0,"account":"Law Offices of Stephanie K Kitzes APC","owner":"Kennedy Wickham","ae":"Sean Bowman","practice":"Estate Planning","tenure":"6\u201311 mo","start_date":"10/6/2025","comment":"Functionally integrate with 365"},{"quarter":"2026-Q2","score":0,"account":"The Law Office of Robert Tsigler, LLC","owner":"Elliott Jones","ae":"Eduardo Adame","practice":"Criminal Defense","tenure":"24+ mo","start_date":"3/18/2024","comment":"everything"},{"quarter":"2026-Q2","score":0,"account":"Puget Law Group","owner":"Elliott Jones","ae":"John Ramon","practice":"Criminal Defense","tenure":"3\u20135 mo","start_date":"12/15/2025","comment":"I don't use the product."},{"quarter":"2026-Q2","score":0,"account":"Dublin Packard","owner":"Unknown","ae":"Matt Spiegel","practice":"Unknown","tenure":"12\u201323 mo","start_date":"9/3/2024","comment":"Too expensive. There are many cheaper options that can do a much or more."},{"quarter":"2026-Q2","score":0,"account":"Fabian, Sklar, King & Liss, P.C.","owner":"Clare Struzzi","ae":"Kaia Dobbs","practice":"Real Estate Law","tenure":"24+ mo","start_date":"11/17/2022","comment":"It's nothing you can do better... I just feel like the service is unnecessary."},{"quarter":"2026-Q1","score":1,"account":"Law Office of David Standridge","owner":"Ron Young","ae":"Ron Young","practice":"Estate Planning","tenure":"12\u201323 mo","start_date":"3/1/2024","comment":"support has really changed.  when i started with lawmatics years ago i could talk to someone and get help quickly, which meant that i didn't need to send so many emails and chats.  your culture is changing."},{"quarter":"2026-Q1","score":1,"account":"RB LEGAL, LLC","owner":"Swetha Devakumar","ae":"Ron Young","practice":"Estate Planning","tenure":"12\u201323 mo","start_date":"8/28/2024","comment":"The onboarding experience was/is poor."},{"quarter":"2026-Q1","score":1,"account":"Hallett Legal Group, LLC","owner":"Clare (OLD)","ae":"Ron Young","practice":"Unknown","tenure":"12\u201323 mo","start_date":"7/15/2024","comment":"They are so many tech probelms"},{"quarter":"2026-Q2","score":1,"account":"Strong Law","owner":"Jessie Hobbs","ae":"Will Mancini","practice":"Estate Planning","tenure":"24+ mo","start_date":"1/27/2023","comment":"I have invested so much time and money into Lawmatics and consultants, it's very difficult to understand how things work or make a change."},{"quarter":"2026-Q1","score":1,"account":"Poppy Legal Group","owner":"Kennedy Wickham","ae":"Eduardo Adame","practice":"Family Law","tenure":"12\u201323 mo","start_date":"5/31/2024","comment":"I have paid for this product for two years and haven't used it. I was recommended by Lawmatics to use David Crum - Cardinal Concepts, now US Legal Marketing Group, who only wreacked havoc in the LM system, made things confusing to try to unwind, and am still working with Kennedy (who is great, and t"},{"quarter":"2026-Q1","score":1,"account":"Island View Law, PC","owner":"Swetha Devakumar","ae":"John Ramon","practice":"Estate Planning","tenure":"6\u201311 mo","start_date":"9/12/2025","comment":"pricing is way too high; functionality still doesn't work well for our firm."}],"meta":{"total_responses":1033,"date_range":"Jan 2025 \u2013 Jun 2026","last_updated":"2026-06-29","quarters":["2025-Q1","2025-Q2","2025-Q3","2025-Q4","2026-Q1","2026-Q2"]}};
 
 const D = window.__NPS_DATA__;
 const QUARTERS = D.quarters;
@@ -872,6 +1229,124 @@ initOwners();
 initAE();
 initSegments();
 initComments();
+
+function initTenure() {
+  var D = window.__NPS_DATA__;
+  var TB = D.tenure_buckets;
+  var QTRS = D.quarters;
+  var GRID = '#e2e1d8';
+  var TICK = '#888';
+  var tbColors = {'0-2 mo':'#c0392b','3-5 mo':'#e67e22','6-11 mo':'#eda100','12-23 mo':'#2a78d6','24+ mo':'#2a7a4e'};
+  function tbColor(tb) {
+    if (tb.indexOf('0') === 0) return '#c0392b';
+    if (tb.indexOf('3') === 0) return '#e67e22';
+    if (tb.indexOf('6') === 0) return '#eda100';
+    if (tb.indexOf('12') === 0) return '#2a78d6';
+    return '#2a7a4e';
+  }
+
+  // KPIs
+  var kpis = TB.map(function(tb) {
+    var d = D.by_tenure[tb];
+    var cls = d.nps >= 20 ? 'up' : d.nps >= 0 ? 'neutral' : 'down';
+    var sign = d.nps > 0 ? '+' : '';
+    return '<div class="kpi"><div class="kpi-label">'+tb+'</div><div class="kpi-val '+cls+'">'+(d.nps !== null ? sign+d.nps : '&#8212;')+'</div><div class="kpi-sub">n='+d.n+' &middot; '+d.pct_p+'% promoter &middot; '+d.pct_d+'% detractor</div></div>';
+  });
+  document.getElementById('tenure-kpis').innerHTML = kpis.join('');
+
+  // Bar
+  makeChart('tenure-bar', {
+    type: 'bar',
+    data: {
+      labels: TB,
+      datasets: [{
+        label: 'NPS',
+        data: TB.map(function(tb){ return D.by_tenure[tb].nps; }),
+        backgroundColor: TB.map(function(tb){ return D.by_tenure[tb].nps >= 0 ? tbColor(tb) : '#c0392b'; }),
+        borderRadius: 4, borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c){ return ' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+D.by_tenure[TB[c.dataIndex]].n+')'; } } } },
+      scales: {
+        x: { ticks: { color: TICK }, grid: { color: GRID } },
+        y: { ticks: { color: TICK, callback: function(v){ return (v>0?'+':'')+v; } }, grid: { color: GRID }, min: -20, max: 40 }
+      }
+    }
+  });
+
+  // Multi-line
+  var activeTB = TB.filter(function(tb){ return tb.indexOf('0') !== 0; });
+  var datasets = activeTB.map(function(tb) {
+    var d = D.by_tenure_quarter[tb] || {};
+    return {
+      label: tb,
+      data: QTRS.map(function(q){ return d[q] ? d[q].nps : null; }),
+      borderColor: tbColor(tb),
+      backgroundColor: 'transparent',
+      borderWidth: 2, pointRadius: 4,
+      pointBackgroundColor: tbColor(tb),
+      tension: 0.3, spanGaps: false
+    };
+  });
+  makeChart('tenure-lines', {
+    type: 'line',
+    data: { labels: QTRS, datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, font: { size: 11 } } }, tooltip: { callbacks: { label: function(c){ return ' '+c.dataset.label+': '+(c.raw>0?'+':'')+c.raw; } } } },
+      scales: {
+        x: { ticks: { color: TICK }, grid: { color: GRID } },
+        y: { ticks: { color: TICK, callback: function(v){ return (v>0?'+':'')+v; } }, grid: { color: GRID } }
+      }
+    }
+  });
+
+  // Themes table
+  var themeKeys = ['Ease of use / UX','Bugs / reliability','Support access','Onboarding / setup','Product gaps','Pricing / value','Sales mismatch'];
+  var activeTB2 = TB.filter(function(tb){ return tb.indexOf('0') !== 0; });
+  var thEl = document.getElementById('tenure-themes-table');
+  var thead = '<thead><tr><th>Theme</th>'+activeTB2.map(function(tb){ return '<th>'+tb+'</th>'; }).join('')+'</tr></thead>';
+  var tbody = '<tbody>'+themeKeys.map(function(t) {
+    var cells = activeTB2.map(function(tb) {
+      var d = D.tenure_themes[tb];
+      if (!d || !d.total) return '<td style="color:var(--text3)">&#8212;</td>';
+      var cnt = d.themes[t] || 0;
+      var pct = Math.round(cnt / d.total * 100);
+      var bg = pct >= 25 ? 'var(--red-bg)' : pct >= 15 ? 'var(--amber-bg)' : '';
+      var col = pct >= 25 ? 'var(--red)' : pct >= 15 ? 'var(--amber)' : 'var(--text2)';
+      return '<td style="background:'+bg+';color:'+col+';font-weight:'+(pct>=15?600:400)+'">'+(cnt ? pct+'%' : '&#8212;')+'</td>';
+    });
+    return '<tr><td><strong>'+t+'</strong></td>'+cells.join('')+'</tr>';
+  }).join('')+'</tbody>';
+  thEl.innerHTML = thead + tbody;
+
+  // PA x tenure table
+  var keyPAs = ['Estate Planning','Family Law','Criminal Defense','Immigration','Personal Injury','Employment Law'];
+  var paEl = document.getElementById('tenure-pa-table');
+  var pHead = '<thead><tr><th>Practice</th>'+activeTB2.map(function(tb){ return '<th>'+tb+'</th>'; }).join('')+'</tr></thead>';
+  var pBody = '<tbody>'+keyPAs.map(function(pa) {
+    if (!D.by_practice_tenure[pa]) return '';
+    var cells = activeTB2.map(function(tb) {
+      var d = D.by_practice_tenure[pa] ? D.by_practice_tenure[pa][tb] : null;
+      if (!d) return '<td style="color:var(--text3)">&#8212;</td>';
+      return '<td>'+npsPill(d.nps)+'</td>';
+    });
+    return '<tr><td><strong>'+pa+'</strong></td>'+cells.join('')+'</tr>';
+  }).join('')+'</tbody>';
+  paEl.innerHTML = pHead + pBody;
+
+  // Narrative
+  document.getElementById('tenure-narrative').innerHTML =
+    '<p><strong style="color:var(--text)">The first 12 months are the highest-risk window.</strong> Customers in months 3&#8211;11 score NPS of &#8722;3 to +4 &#8212; effectively flat or negative. By month 12 it jumps to +24.6, and by year two holds at +27.8. The platform has a clear valley of despair in the first year where customers haven&#8217;t yet found value but are paying full price.</p>' +
+    '<p><strong style="color:var(--text)">New customers complain about completely different things than tenured ones.</strong> Months 3&#8211;5: product gaps and support access &#8212; they can&#8217;t figure out what they need and can&#8217;t get help. Months 6&#8211;11: onboarding (22%), UX (20%), and bugs (20%) simultaneously &#8212; the most volatile mix in the dataset. By 24+ months, product gaps dominate (37%) &#8212; these customers know the product and are hitting its ceiling.</p>' +
+    '<p><strong style="color:var(--text)">Family Law&#8217;s early-tenure pattern is the most urgent signal.</strong> 3&#8211;5 month Family Law customers score 0.0 NPS. 6&#8211;11 months drops to &#8722;19.2. Only after 12 months do they recover to +84. That 6&#8211;11 month window is where Family Law firms churn before finding value. A targeted check-in at month 6 for Family Law specifically would have outsized impact.</p>' +
+    '<p><strong style="color:var(--text)">Criminal Defense never recovers in the early window.</strong> 3&#8211;5 months: &#8722;60. 12&#8211;23 months: 0. Only 24+ month firms score positive (+28). The 2026 redesign hit Criminal Defense firms mid-journey &#8212; any Criminal Defense account currently in months 3&#8211;18 is at elevated churn risk.</p>' +
+    '<p><strong style="color:var(--text)">The 6&#8211;11 month cohort is inflating in 2026.</strong> It grew from 13&#8211;14 responses per quarter in 2025 to 26&#8211;30 in 2026, reflecting the surge of new accounts signed in mid-2025. Their Q1 2026 NPS was &#8722;30.0 &#8212; the worst single cohort&#8211;quarter in the dataset. These firms are in the valley right now.</p>';
+}
+initTenure();
+
 </script>
 </body>
 </html>
