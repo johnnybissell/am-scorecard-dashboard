@@ -61,7 +61,6 @@ select{font-size:13px;padding:6px 10px;border-radius:6px;border:1px solid var(--
 .theme-pill.red{background:var(--red-bg);color:var(--red)}.theme-pill.amber{background:var(--amber-bg);color:var(--amber)}.theme-pill.purple{background:#f3f0ff;color:#5b35b5}
 .qtr-narrative{font-size:14px;color:var(--text2);line-height:1.75;margin-bottom:var(--gap);padding:14px 16px;background:var(--surface2);border-radius:var(--radius);border-left:3px solid var(--border2)}
 .qtr-narrative strong{color:var(--text)}.signal-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
-.tag-3p{background:#fff3e0;color:#e65100;border:1px solid #ffcc80;font-weight:600}
 </style>
 </head>
 <body>
@@ -82,760 +81,50 @@ select{font-size:13px;padding:6px 10px;border-radius:6px;border:1px solid var(--
 </nav>
 <main>
 
-
-
-<!-- OVERVIEW -->
 <div class="page active" id="page-overview">
-  <div class="section">
-    <div class="section-title">At a glance — all time</div>
-    <div class="kpi-row" id="overview-kpis"></div>
-  </div>
-  <div class="section">
-    <div class="section-title">Quarter-over-quarter</div>
-    <div class="card">
-      <div class="card-title">NPS trend by quarter</div>
-      <div class="card-sub">Promoters (9–10) minus detractors (0–6) as % of responses</div>
-      <div class="stacked-legend">
-        <span><span class="lsq" style="background:#2a78d6"></span>NPS score</span>
-        <span><span class="lsq" style="background:#e34948"></span>Negative zone</span>
-      </div>
-      <div class="chart-wrap h240"><canvas id="overview-qoq" role="img" aria-label="NPS by quarter"></canvas></div>
-    </div>
-  </div>
+  <div class="section"><div class="section-title">At a glance</div><div class="kpi-row" id="overview-kpis"></div></div>
+  <div class="section"><div class="section-title">Quarter-over-quarter NPS</div>
+    <div class="card"><div class="card-title">NPS trend by quarter</div><div class="card-sub">Promoters (9-10) minus detractors (0-6) as % of responses</div>
+      <div class="chart-wrap h240"><canvas id="overview-qoq"></canvas></div></div></div>
   <div class="two-col">
-    <div class="card">
-      <div class="card-title">Promoter / Passive / Detractor mix</div>
-      <div class="card-sub">% of responses per quarter</div>
-      <div class="chart-wrap h240"><canvas id="overview-stack" role="img" aria-label="PPD mix by quarter"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Detractor themes — all time</div>
-      <div class="card-sub">% of detractor comments mentioning each theme</div>
-      <div class="theme-list" id="overview-themes"></div>
-    </div>
+    <div class="card"><div class="card-title">Promoter / Passive / Detractor mix</div><div class="card-sub">% of responses per quarter</div>
+      <div class="chart-wrap h240"><canvas id="overview-stack"></canvas></div></div>
+    <div class="card"><div class="card-title">Top detractor themes &#8212; all time</div><div class="card-sub">% of detractor comments per theme</div>
+      <div id="overview-themes" style="display:flex;flex-direction:column;gap:8px;margin-top:4px"></div></div>
   </div>
 </div>
 
-<!-- TRENDS -->
 <div class="page" id="page-trends">
-  <div class="section">
-    <div class="section-title">Quarter-over-quarter trends</div>
-    <div class="card">
-      <div class="card-title">NPS by quarter</div>
-      <div class="card-sub">With promoter, passive, and detractor counts</div>
-      <div class="chart-wrap h260"><canvas id="trends-nps" role="img" aria-label="Quarterly NPS trend"></canvas></div>
-    </div>
-  </div>
-  <div class="section">
-    <div class="section-title">Detailed quarter table</div>
-    <div class="card">
-      <div class="table-wrap">
-        <table class="data-table" id="trends-table"></table>
-      </div>
-    </div>
-  </div>
-  <div class="section">
-    <div class="section-title">Detractor themes over time</div>
-    <div class="card">
-      <div class="card-title">Theme frequency per quarter</div>
-      <div class="card-sub">Count of detractor comments mentioning each theme (detractors with written feedback only)</div>
-      <div class="chart-wrap h280"><canvas id="trends-themes" role="img" aria-label="Detractor themes by quarter"></canvas></div>
-    </div>
-  </div>
-</div>
-
-<!-- PRACTICE AREA -->
-<div class="page" id="page-practice">
-  <div class="section">
-    <div class="section-title">NPS by practice area</div>
-    <div class="card">
-      <div class="card-title">All-time NPS — practice area ranking</div>
-      <div class="card-sub">Minimum 5 responses</div>
-      <div class="chart-wrap h320"><canvas id="pa-bar" role="img" aria-label="NPS by practice area"></canvas></div>
-    </div>
-  </div>
-  <div class="section">
-    <div class="section-title">Practice area trends QoQ</div>
-    <div class="filter-row">
-      <span class="filter-label">Practice area:</span>
-      <select id="pa-select" onchange="renderPATrend()"></select>
-    </div>
-    <div class="card">
-      <div class="chart-wrap h220"><canvas id="pa-trend" role="img" aria-label="Practice area QoQ trend"></canvas></div>
-    </div>
-  </div>
-  <div class="section">
-    <div class="section-title">Year-over-year comparison</div>
-    <div class="card">
-      <div class="table-wrap"><table class="data-table" id="pa-table"></table></div>
-    </div>
-  </div>
-</div>
-
-<!-- OWNERS -->
-<div class="page" id="page-owners">
-  <div class="section">
-    <div class="section-title">NPS by account owner — all time</div>
-    <div class="card">
-      <div class="chart-wrap h320"><canvas id="owner-bar" role="img" aria-label="NPS by account owner"></canvas></div>
-    </div>
-  </div>
-  <div class="section">
-    <div class="section-title">Owner QoQ trend</div>
-    <div class="filter-row">
-      <span class="filter-label">Account owner:</span>
-      <select id="owner-select" onchange="renderOwnerTrend()"></select>
-    </div>
-    <div class="card">
-      <div class="chart-wrap h220"><canvas id="owner-trend" role="img" aria-label="Owner QoQ trend"></canvas></div>
-    </div>
-  </div>
-  <div class="section">
-    <div class="section-title">Owner comparison table — 2025 vs 2026</div>
-    <div class="card">
-      <div class="table-wrap"><table class="data-table" id="owner-table"></table></div>
-    </div>
-  </div>
-</div>
-
-<!-- AE -->
-<div class="page" id="page-ae">
-  <div class="section">
-    <div class="section-title">NPS by account executive — all time</div>
-    <div class="card">
-      <div class="chart-wrap h320"><canvas id="ae-bar" role="img" aria-label="NPS by account executive"></canvas></div>
-    </div>
-  </div>
-  <div class="section">
-    <div class="section-title">AE QoQ trend</div>
-    <div class="filter-row">
-      <span class="filter-label">Account executive:</span>
-      <select id="ae-select" onchange="renderAETrend()"></select>
-    </div>
-    <div class="card">
-      <div class="chart-wrap h220"><canvas id="ae-trend" role="img" aria-label="AE QoQ trend"></canvas></div>
-    </div>
-  </div>
-  <div class="section">
-    <div class="section-title">AE comparison table — 2025 vs 2026</div>
-    <div class="card">
-      <div class="table-wrap"><table class="data-table" id="ae-table"></table></div>
-    </div>
-  </div>
-</div>
-
-<!-- SEGMENTS -->
-<div class="page" id="page-segments">
-  <div class="two-col">
-    <div class="card">
-      <div class="card-title">NPS by lead volume bucket</div>
-      <div class="card-sub">Avg monthly leads (lifetime)</div>
-      <div class="chart-wrap h220"><canvas id="seg-leads" role="img" aria-label="NPS by lead volume"></canvas></div>
-    </div>
-    <div class="card">
-      <div class="card-title">NPS by contract amount</div>
-      <div class="card-sub">Total contract amount (TCA)</div>
-      <div class="chart-wrap h220"><canvas id="seg-tca" role="img" aria-label="NPS by TCA"></canvas></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">Segment insight</div>
-    <div style="font-size:13px;color:var(--text2);line-height:1.7">
-      <p style="margin-bottom:8px">Higher lead volume firms score better — <strong style="color:var(--text)">200+ lead firms hit +31 NPS</strong> vs +12 for 1–24 lead firms. The 0-lead bucket (+20) is likely inactive accounts, not genuinely satisfied ones — monitor for churn risk.</p>
-      <p>Contract value is a strong signal: <strong style="color:var(--text)">$6K–$12K TCA accounts score +58</strong>, the highest of any segment. These are your best expansion candidates. The volume of responses in the &lt;$1K bucket (n=694) means small improvements there move the overall number significantly.</p>
-    </div>
-  </div>
-</div>
-
-<!-- COMMENTS -->
-<div class="page" id="page-comments">
-  <div class="section">
-    <div class="section-title">Recent detractor comments</div>
-    <div class="filter-row">
-      <span class="filter-label">Quarter:</span>
-      <select id="comment-q-filter" onchange="renderComments()">
-        <option value="all">All recent</option>
-      </select>
-      <span class="filter-label" style="margin-left:8px">Owner:</span>
-      <select id="comment-owner-filter" onchange="renderComments()">
-        <option value="all">All owners</option>
-      </select>
-    </div>
-    <div class="comment-list" id="comment-list"></div>
-  </div>
-</div>
-
-<!-- SETUP GUIDE -->
-<div class="page" id="page-setup">
-  <div class="section">
-    <div class="section-title">How to keep this dashboard auto-updating</div>
-
-    <div class="step-block">
-      <div class="step-num">Step 1 — Google Sheet</div>
-      <div class="step-title">Seed the master ledger with your historical data</div>
-      <div class="step-body">
-        Create a Google Sheet named <strong>NPS Master</strong> with a tab called <strong>raw</strong>. Upload your historical CSV export from ChurnZero (Export_10556.csv) as the starting data. The sheet needs these columns exactly:<br><br>
-        <code>Scheduled Survey Date | Response Date | Contact Full Name | Contact Email | Account Name | Account Owner | Response Source | Score | Follow-Up Response | Account Primary Practice Area | Account Avg Monthly Lead Volume (Lifetime) | Account Total Contract Amount | Account Account Executive</code>
-      </div>
-    </div>
-
-    <div class="step-block">
-      <div class="step-num">Step 2 — Zapier Zap</div>
-      <div class="step-title">Trigger: New message in Slack NPS channel → Append row to Google Sheet</div>
-      <div class="step-body">
-        Build this Zap in Zapier (you already have it connected):<br><br>
-        <strong>Trigger:</strong> Slack → New Message Posted to Channel → select your NPS channel<br><br>
-        <strong>Action 1:</strong> Zapier Formatter → Text → Extract Pattern — use a separate formatter step for each field below. Or use a single <em>Utilities → Line-item to Text</em> step if ChurnZero sends labeled key:value lines.<br><br>
-        Map these fields from the Slack message to the Sheet columns:
-      </div>
-      <pre><code>Score            → Column H (Score)
-Account Name     → Column E (Account Name)
-Contact Name     → Column C (Contact Full Name)
-Contact Email    → Column D (Contact Email)
-Account Owner    → Column F (Account Owner)
-Practice Area    → Column J (Account Primary Practice Area)
-Lead Volume      → Column K (Account Avg Monthly Lead Volume)
-TCA              → Column L (Account Total Contract Amount)
-Account Exec     → Column M (Account Account Executive)
-Comment/Feedback → Column I (Follow-Up Response)
-Response Date    → Column B (set to today's date)
-Source           → Column G (hardcode "Slack")</code></pre>
-      <div class="alert-box">
-        <strong>Before building:</strong> paste a sample NPS Slack message here and I'll write the exact regex patterns for each field. The field names in the message need to match what ChurnZero sends.
-      </div>
-    </div>
-
-    <div class="step-block">
-      <div class="step-num">Step 3 — Apps Script</div>
-      <div class="step-title">Auto-compute aggregates and push updated JSON to GitHub</div>
-      <div class="step-body">
-        In your Google Sheet → Extensions → Apps Script. Paste this script. It runs on a daily trigger, recomputes all NPS aggregates from the raw tab, and commits the updated <code>nps_data.json</code> to your GitHub repo — which instantly updates this dashboard.
-      </div>
-      <pre><code>// NPS Dashboard — Apps Script
-// Runs daily at 6am PT. Reads raw tab, recomputes all aggregates,
-// pushes updated nps_data.json to GitHub Pages repo.
-
-const GITHUB_TOKEN = PropertiesService.getScriptProperties().getProperty('GITHUB_TOKEN');
-const GITHUB_REPO  = 'johnnybissell/am-scorecard-dashboard';
-const GITHUB_FILE  = 'nps_data.json';
-const SHEET_NAME   = 'raw';
-
-function runDailyUpdate() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAME);
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const rows = data.slice(1).filter(r => r[7] !== '' && r[7] !== null);
-
-  function col(name) { return headers.indexOf(name); }
-  const iScore = col('Score');
-  const iDate  = col('Response Date');
-  const iPA    = col('Account Primary Practice Area');
-  const iOwner = col('Account Owner');
-  const iAE    = col('Account Account Executive');
-  const iLead  = col('Account Avg Monthly Lead Volume (Lifetime)');
-  const iTCA   = col('Account Total Contract Amount');
-  const iComment = col('Follow-Up Response');
-
-  function parseScore(v) {
-    const n = parseInt(v);
-    return isNaN(n) ? null : n;
-  }
-
-  function quarter(d) {
-    if (!d) return 'Unknown';
-    const dt = new Date(d);
-    if (isNaN(dt)) return 'Unknown';
-    return `${dt.getFullYear()}-Q${Math.floor(dt.getMonth()/3)+1}`;
-  }
-
-  function npsCalc(scores) {
-    const valid = scores.filter(s => s !== null);
-    if (!valid.length) return {nps:null,n:0,promoters:0,passives:0,detractors:0};
-    const p = valid.filter(s=>s>=9).length;
-    const d = valid.filter(s=>s<=6).length;
-    const pa = valid.length - p - d;
-    return {
-      nps: Math.round((p-d)/valid.length*1000)/10,
-      n: valid.length, promoters:p, passives:pa, detractors:d,
-      pct_p: Math.round(p/valid.length*1000)/10,
-      pct_pa: Math.round(pa/valid.length*1000)/10,
-      pct_d: Math.round(d/valid.length*1000)/10,
-      avg_score: valid.length ? Math.round(valid.reduce((a,b)=>a+b,0)/valid.length*100)/100 : null
-    };
-  }
-
-  function leadBucket(v) {
-    const n = parseFloat(String(v).replace(/,/g,''));
-    if (isNaN(n)) return 'Unknown';
-    if (n===0) return '0';
-    if (n<25) return '1-24';
-    if (n<75) return '25-74';
-    if (n<200) return '75-199';
-    return '200+';
-  }
-
-  function tcaBucket(v) {
-    const n = parseFloat(String(v).replace(/[$,]/g,''));
-    if (isNaN(n)) return 'Unknown';
-    if (n<1000) return '<$1K';
-    if (n<3000) return '$1K-$3K';
-    if (n<6000) return '$3K-$6K';
-    if (n<12000) return '$6K-$12K';
-    return '$12K+';
-  }
-
-  const parsed = rows.map(r => ({
-    score: parseScore(r[iScore]),
-    quarter: quarter(r[iDate]),
-    practice: (r[iPA]||'').trim() || 'Unknown',
-    owner: (r[iOwner]||'').trim() || 'Unknown',
-    ae: (r[iAE]||'').trim() || 'Unknown',
-    leadBucket: leadBucket(r[iLead]),
-    tcaBucket: tcaBucket(r[iTCA]),
-    comment: (r[iComment]||'').trim()
-  }));
-
-  const quarters = [...new Set(parsed.map(r=>r.quarter))].filter(q=>q!=='Unknown').sort();
-
-  function groupBy(arr, key) {
-    return arr.reduce((acc,r) => { (acc[r[key]]=acc[r[key]]||[]).push(r); return acc; }, {});
-  }
-
-  const byQ = groupBy(parsed, 'quarter');
-  const byPA = groupBy(parsed, 'practice');
-  const byOwner = groupBy(parsed, 'owner');
-  const byAE = groupBy(parsed, 'ae');
-
-  const result = {
-    quarters,
-    by_quarter: Object.fromEntries(quarters.map(q => [q, npsCalc((byQ[q]||[]).map(r=>r.score))])),
-    by_practice: Object.fromEntries(Object.entries(byPA).filter(([,v])=>v.length>=5).map(([k,v])=>[k,npsCalc(v.map(r=>r.score))])),
-    by_owner: Object.fromEntries(Object.entries(byOwner).filter(([,v])=>v.length>=5).map(([k,v])=>[k,npsCalc(v.map(r=>r.score))])),
-    by_ae: Object.fromEntries(Object.entries(byAE).filter(([,v])=>v.length>=5).map(([k,v])=>[k,npsCalc(v.map(r=>r.score))])),
-    // QoQ by dim (trimmed for brevity — same pattern as above, group by dim x quarter)
-    by_lead_bucket: Object.fromEntries(['0','1-24','25-74','75-199','200+','Unknown'].map(b=>[b,npsCalc(parsed.filter(r=>r.leadBucket===b).map(r=>r.score))])),
-    by_tca_bucket: Object.fromEntries(['<$1K','$1K-$3K','$3K-$6K','$6K-$12K','$12K+','Unknown'].map(b=>[b,npsCalc(parsed.filter(r=>r.tcaBucket===b).map(r=>r.score))])),
-    meta: {
-      total_responses: parsed.length,
-      last_updated: new Date().toISOString().slice(0,10),
-      quarters
-    }
-  };
-
-  // Push to GitHub
-  const existing = getGitHubFile_();
-  const payload = JSON.stringify({
-    message: `NPS data update ${result.meta.last_updated}`,
-    content: Utilities.base64Encode(JSON.stringify(result)),
-    sha: existing.sha
-  });
-  UrlFetchApp.fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
-    method: 'PUT',
-    headers: {'Authorization':'token '+GITHUB_TOKEN,'Content-Type':'application/json'},
-    payload
-  });
-  console.log('NPS data updated:', result.meta.last_updated);
-}
-
-function getGitHubFile_() {
-  const res = UrlFetchApp.fetch(`https://api.github.com/repos/${GITHUB_REPO}/contents/${GITHUB_FILE}`, {
-    headers: {'Authorization':'token '+GITHUB_TOKEN}
-  });
-  return JSON.parse(res.getContentText());
-}
-
-// Run daily at 6am PT — set up with:
-// ScriptApp.newTrigger('runDailyUpdate').timeBased().atHour(6).everyDays(1).create()
-</code></pre>
-      <div class="good-box">
-        <strong>One-time setup:</strong> In Apps Script → Project Settings → Script Properties, add <code>GITHUB_TOKEN</code> with a GitHub personal access token (repo scope). Then run <code>runDailyUpdate()</code> once manually to test, then set the daily trigger.
-      </div>
-    </div>
-
-    <div class="step-block">
-      <div class="step-num">Step 4 — GitHub Pages</div>
-      <div class="step-title">Add nps.html to your existing repo</div>
-      <div class="step-body">
-        Commit <code>nps.html</code> (this file) and <code>nps_data.json</code> to your <code>johnnybissell/am-scorecard-dashboard</code> repo. The dashboard will be live at:<br><br>
-        <code>https://johnnybissell.github.io/am-scorecard-dashboard/nps.html</code><br><br>
-        The Apps Script updates <code>nps_data.json</code> daily. The dashboard fetches it on load. No build step, no server needed.
-      </div>
-    </div>
-
-  </div>
-</div>
-
-
-<!-- WRITTEN BREAKDOWN PAGE -->
-<div class="page" id="page-breakdown">
-<div class="section">
-  <div class="section-title">Quarter-over-quarter written analysis</div>
-  <p style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.65">Written synthesis of detractor feedback patterns each quarter, cross-referenced by TCA tier, lead volume, and practice area. Based on comments from customers who scored 0–6 and left written feedback.</p>
-
-  <!-- Q1 2025 -->
-  <div class="breakdown-section">
-    <div class="qtr-header">
-      <span class="qtr-label">2025 Q1</span>
-      <span class="qtr-nps nps-pos">NPS +38.1</span>
-      <span class="qtr-n">97 responses · 17 detractor comments</span>
-    </div>
-    <div class="qtr-narrative">
-      The highest-performing quarter in the dataset. Complaints were diffuse with no single dominant theme — a healthy sign that no systemic failure had taken hold. Detractors were evenly split between <strong>ease of use / UX, product gaps, bugs, and support access</strong>. Small sample sizes per theme make it hard to draw firm conclusions, but the pattern points to individual friction points rather than structural problems.
-    </div>
-    <div class="insights-grid">
-      <div class="insight-block">
-        <div class="insight-block-label">By TCA tier</div>
-        <div class="insight-block-body">
-          Detractors were concentrated in <strong>&lt;$1K TCA</strong> (10 of 17). Their complaints leaned toward product gaps and UX — consistent with lower-investment firms who haven't unlocked full platform value. The $1K–$3K tier cited support access more, suggesting mid-tier firms were hitting walls when they needed help configuring the product.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By lead volume</div>
-        <div class="insight-block-body">
-          <strong>0-lead firms</strong> (likely inactive or early-stage) complained most about support access. <strong>25–74 lead firms</strong> hit onboarding friction — mid-volume firms with enough complexity to need setup help but not enough scale to have dedicated staff for it. High-volume (200+) firms were quiet, with only scattered reliability mentions.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By practice area</div>
-        <div class="insight-block-body">
-          Low detractor counts across all practices — no single area was a problem. Estate Planning had the most detractors (2), focused on UX. Business Law flagged bugs and support. <strong>No red flags by practice area this quarter.</strong>
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">Top signal</div>
-        <div class="insight-block-body">
-          One comment stands out as a leading indicator: <em>"The core functionality hasn't changed in six years... Marketing tracking is still not good. Doc automation isn't good enough."</em> This product staleness complaint would grow louder in subsequent quarters.
-          <div class="signal-row">
-            <span class="theme-pill">Ease of use / UX 24%</span>
-            <span class="theme-pill">Product gaps 24%</span>
-            <span class="theme-pill amber">Bugs 18%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Q2 2025 -->
-  <div class="breakdown-section">
-    <div class="qtr-header">
-      <span class="qtr-label">2025 Q2</span>
-      <span class="qtr-nps nps-neu">NPS +22.6</span>
-      <span class="qtr-n">195 responses · 35 detractor comments</span>
-      <span class="qtr-delta neg">▼ 15.5 pts from Q1</span>
-    </div>
-    <div class="qtr-narrative">
-      The first significant drop — NPS fell 15.5 points as response volume doubled. <strong>Product gaps became the dominant complaint at 43%</strong>, nearly doubling the share from Q1. Bugs and UX complaints also grew. This is the quarter where the gap between what customers expected and what the platform delivered became visible at scale. Support access complaints were high (17%), likely reflecting a support team not scaled to match customer growth.
-    </div>
-    <div class="insights-grid">
-      <div class="insight-block">
-        <div class="insight-block-label">By TCA tier</div>
-        <div class="insight-block-body">
-          The &lt;$1K tier (26 of 35 detractors) drove both product gaps (12 comments) and bugs (7). These are small firms with low contract value but high frustration — a churn-prone cohort. The $3K–$6K tier showed up briefly with product gap complaints, a notable signal that even higher-investment firms were hitting feature ceilings. Mid-tier ($1K–$3K) split between UX and bugs.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By lead volume</div>
-        <div class="insight-block-body">
-          Product gaps were the top complaint <strong>across every lead volume tier</strong> — no bucket was spared. Low-volume (0-lead) firms split between bugs and product gaps. The 25–74 lead tier had the highest product gap concentration (4 of 7 detractors), suggesting mid-volume firms were actively trying to build workflows and running into missing functionality.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By practice area</div>
-        <div class="insight-block-body">
-          <strong>Estate Planning</strong> emerged as the largest detractor source (11 comments) with UX and product gaps leading. Business Law was disproportionately negative, driven by bugs and feature gaps. This is also when Business Law's NPS hit <strong>−60</strong>, its lowest point. Bankruptcy firms (small n) flagged product gaps and UX.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">Top signal</div>
-        <div class="insight-block-body">
-          <em>"Every firm I work with that uses you complains about ease of use. It is so hard to manage everything in the current interface. Also, very limited options and features."</em> — A consultant speaking for multiple firms. This is the kind of comment that compounds: one dissatisfied consultant poisons multiple pipeline accounts.
-          <div class="signal-row">
-            <span class="theme-pill red">Product gaps 43%</span>
-            <span class="theme-pill amber">Bugs 26%</span>
-            <span class="theme-pill">UX 23%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Q3 2025 -->
-  <div class="breakdown-section">
-    <div class="qtr-header">
-      <span class="qtr-label">2025 Q3</span>
-      <span class="qtr-nps nps-pos">NPS +29.2</span>
-      <span class="qtr-n">178 responses · 27 detractor comments</span>
-      <span class="qtr-delta pos">▲ 6.6 pts from Q2</span>
-    </div>
-    <div class="qtr-narrative">
-      A partial recovery — NPS bounced back 6.6 points. Bugs nearly disappeared from the detractor comments (7% vs 26% last quarter), suggesting reliability improved. However, <strong>onboarding spiked to 37%</strong>, tying with product gaps as the top complaint. This is the first quarter where "I can't get set up" became as loud as "the product is missing features." The shift is meaningful: it suggests the customer base had grown faster than CS capacity to activate them.
-    </div>
-    <div class="insights-grid">
-      <div class="insight-block">
-        <div class="insight-block-label">By TCA tier</div>
-        <div class="insight-block-body">
-          Almost all detractors were in the &lt;$1K tier (25 of 27). Onboarding dominated (10 comments) — these are low-investment firms who couldn't get set up and didn't have the resources to invest in consultants. This points to a structural gap: the standard onboarding package wasn't sufficient for customers who needed more hand-holding but weren't paying for it.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By lead volume</div>
-        <div class="insight-block-body">
-          <strong>Mid-volume firms (25–74 leads)</strong> had the highest onboarding complaint rate (3 of 6 detractors). These firms are generating real intake volume but haven't mastered the platform — the most dangerous combination for churn. 0-lead firms complained about product gaps, consistent with inactive firms who explored the product and found it lacking.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By practice area</div>
-        <div class="insight-block-body">
-          Estate Planning (8 detractors) split evenly between onboarding and product gaps. Family Law (4) was also heavy on onboarding. This is notable: <strong>Family Law's NPS was still +43 this quarter</strong>, but the onboarding signal emerging here foreshadowed its later decline. Business Law's NPS recovered to +40 — the one bright spot.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">Top signal</div>
-        <div class="insight-block-body">
-          <em>"I feel like I am using a fraction of Lawmatics' capabilities, just because I don't know how to set it up or am unaware of what's available."</em> This is the activation gap in plain language. The product may be capable — but customers aren't discovering that capability on their own.
-          <div class="signal-row">
-            <span class="theme-pill red">Onboarding 37%</span>
-            <span class="theme-pill red">Product gaps 37%</span>
-            <span class="theme-pill">UX 22%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Q4 2025 -->
-  <div class="breakdown-section">
-    <div class="qtr-header">
-      <span class="qtr-label">2025 Q4</span>
-      <span class="qtr-nps nps-pos">NPS +29.9</span>
-      <span class="qtr-n">164 responses · 29 detractor comments</span>
-      <span class="qtr-delta pos">▲ 0.7 pts from Q3</span>
-    </div>
-    <div class="qtr-narrative">
-      Effectively flat quarter-over-quarter. NPS stabilized at ~30, a holding pattern heading into year-end. Onboarding complaints retreated; <strong>product gaps (38%) and ease of use (28%) returned as co-leaders</strong>. Support access held steady at 17%. The complaint profile was consistent with Q2 — feature gaps and UX friction — but without the bug spike that had hit Q2. This was the last stable quarter before 2026's deterioration.
-    </div>
-    <div class="insights-grid">
-      <div class="insight-block">
-        <div class="insight-block-label">By TCA tier</div>
-        <div class="insight-block-body">
-          The &lt;$1K tier continued to dominate (22 of 29), with UX and product gaps splitting evenly (7 each). Crucially, <strong>$6K–$12K TCA accounts registered their first detractor comment</strong> — a product gap complaint. This tier normally scores +58 NPS; any detractor signal there is worth tracking. Mid-tier ($1K–$3K) flagged support access more than product issues.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By lead volume</div>
-        <div class="insight-block-body">
-          <strong>0-lead firms</strong> shifted their complaint to support access (3 of 10), consistent with inactive firms who reach out when stuck and can't get help. <strong>High-volume firms (200+)</strong> complained about product gaps (3 of 6) — firms generating real volume running into feature ceilings, especially reporting. The 25–74 tier had the most concentrated product gap signal (5 of 6 detractors).
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By practice area</div>
-        <div class="insight-block-body">
-          Estate Planning (11 detractors) stayed consistent with product gaps and UX. <strong>Family Law's NPS dropped to +34.6</strong> — its third consecutive quarterly decline — with UX and support access as primary drivers. Criminal Defense hit +60 this quarter, masking the collapse that would come in Q1 2026.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">Top signal</div>
-        <div class="insight-block-body">
-          <em>"Make it more intuitive and user friendly so that I don't have to hire a third party to create and edit my automations."</em> The third-party dependency complaint — where firms need consultants to use the core product — was growing. That's a product usability failure, not a missing feature.
-          <div class="signal-row">
-            <span class="theme-pill red">Product gaps 38%</span>
-            <span class="theme-pill amber">UX 28%</span>
-            <span class="theme-pill">Support 17%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Q1 2026 -->
-  <div class="breakdown-section">
-    <div class="qtr-header">
-      <span class="qtr-label">2026 Q1</span>
-      <span class="qtr-nps nps-neu">NPS +15.6</span>
-      <span class="qtr-n">231 responses · 54 detractor comments</span>
-      <span class="qtr-delta neg">▼ 14.3 pts from Q4 2025</span>
-    </div>
-    <div class="qtr-narrative">
-      The sharpest single-quarter drop in the dataset. Response volume hit its highest point (231) while NPS fell 14 points. <strong>Detractor comments nearly doubled from 29 to 54.</strong> Three themes surged simultaneously: product gaps, ease of use, and bugs — all at 19–22%. Onboarding also rose (15%). This wasn't one problem getting worse; it was multiple problems hitting at once. March 2026 specifically recorded NPS of −7.0, consistent with a platform reliability event. The new-account cohort that entered the survey pool this quarter (−1.0 NPS) was the primary driver, but existing customers also deteriorated.
-    </div>
-    <div class="insights-grid">
-      <div class="insight-block">
-        <div class="insight-block-label">By TCA tier</div>
-        <div class="insight-block-body">
-          The &lt;$1K tier remained the largest bucket (38 of 54), but <strong>the $1K–$3K tier saw a major bug spike</strong> — 6 bug complaints vs. 0 in Q4. This is significant: mid-investment firms don't usually lead on bugs. It points to a platform reliability issue that cut across spend levels, not just low-engagement fringe accounts. Sales mismatch appeared exclusively in the &lt;$1K tier (4 comments), all from new accounts.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By lead volume</div>
-        <div class="insight-block-body">
-          The most telling pattern: <strong>high-volume (200+) firms drove the bug surge</strong> — 6 of 14 detractors in that bucket cited reliability. These are operationally dependent firms where downtime directly impacts client intake. Low-volume (1–24) firms had the highest sales mismatch rate (3 of 9) — new small firms who felt overpromised. Onboarding complaints concentrated in the 1–24 bucket, suggesting newly-signed small firms weren't being activated.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By practice area</div>
-        <div class="insight-block-body">
-          <strong>Criminal Defense collapsed</strong>: NPS went from +60 in Q4 2025 to −20 this quarter. Their detractor comments cited ease of use and support access — not bugs — suggesting the redesign or a product change hit this practice area particularly hard. Estate Planning (20 detractors) was dominated by onboarding (6) and UX (4), a shift from prior product gap focus. <strong>Family Law's NPS fell to +12.5</strong>, continuing its multi-quarter slide.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">Top signal</div>
-        <div class="insight-block-body">
-          <em>"Not force people to purchase 3 seats they don't know, be dishonest in your sales pitch meetings, and let people try the product before locking them into an annual contract."</em> The only quarter where sales mismatch appeared as a measurable theme (4 comments, all new accounts). A leading indicator for future churn from this cohort.
-          <div class="signal-row">
-            <span class="theme-pill red">Product gaps 22%</span>
-            <span class="theme-pill red">Bugs 19%</span>
-            <span class="theme-pill amber">UX 19%</span>
-            <span class="theme-pill amber">Onboarding 15%</span>
-            <span class="theme-pill purple">Sales mismatch 7%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Q2 2026 -->
-  <div class="breakdown-section">
-    <div class="qtr-header">
-      <span class="qtr-label">2026 Q2</span>
-      <span class="qtr-nps nps-neu">NPS +13.1</span>
-      <span class="qtr-n">168 responses · 40 detractor comments</span>
-      <span class="qtr-delta neg">▼ 2.5 pts from Q1</span>
-    </div>
-    <div class="qtr-narrative">
-      NPS continued to slip, reaching its lowest sustained level. The bug surge from Q1 partially receded, but <strong>product gaps returned to dominance at 38%</strong> — matching Q2 2025's peak. Pricing complaints hit their highest level (15%), a new signal that hadn't registered before. Onboarding held elevated (18%). The story of this quarter is that the reliability crisis of Q1 passed, but the underlying product and activation problems remain unresolved — and customers are now questioning value for money as a result.
-    </div>
-    <div class="insights-grid">
-      <div class="insight-block">
-        <div class="insight-block-label">By TCA tier</div>
-        <div class="insight-block-body">
-          The &lt;$1K tier (30 of 40 detractors) was dominated by product gaps (11) and onboarding (6). <strong>Pricing complaints emerged most strongly here</strong> — 5 of 6 total pricing mentions came from &lt;$1K accounts. These are small firms who feel they're not getting enough for what they pay, and onboarding hasn't helped them see the value. The $1K–$3K tier was quieter but still flagged product gaps and UX.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By lead volume</div>
-        <div class="insight-block-body">
-          <strong>High-volume (200+) firms</strong> shifted from bugs back to product gaps (5 of 9) and UX (4 of 9). The reliability crisis resolved, but feature gaps remain. <strong>Mid-volume (75–199) firms</strong> showed elevated bugs (2) and support access (2) — persistent issues for firms with active intake operations. Low-volume firms split between product gaps and pricing, consistent with inactive firms questioning whether to renew.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">By practice area</div>
-        <div class="insight-block-body">
-          <strong>Criminal Defense hit −50 NPS</strong>, its worst reading in the dataset. UX and bugs were the top themes — the redesign may be disproportionately disrupting how Criminal Defense firms manage consultations. Estate Planning (11 detractors) was dominated by product gaps and onboarding. <strong>Personal Injury remained the strongest segment at +67</strong>, suggesting simpler intake workflows that don't expose platform friction.
-        </div>
-      </div>
-      <div class="insight-block">
-        <div class="insight-block-label">Top signal</div>
-        <div class="insight-block-body">
-          <em>"It has been extremely frustrating having everything we set up changing so regularly, having 100+ hours of set-up eliminated with changes to the system, and being nickeled and dimed with messaging fees."</em> Three distinct grievances in one comment: product instability, onboarding ROI destruction, and pricing. This firm's experience is the clearest articulation of the 2026 customer problem.
-          <div class="signal-row">
-            <span class="theme-pill red">Product gaps 38%</span>
-            <span class="theme-pill amber">UX 18%</span>
-            <span class="theme-pill amber">Onboarding 18%</span>
-            <span class="theme-pill red">Pricing 15%</span>
-            <span class="theme-pill">Bugs 10%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CROSS-CUTTING SUMMARY -->
-  <div class="section">
-    <div class="section-title">Cross-cutting patterns</div>
-    <div class="card">
-      <div class="card-title">What the full arc tells you</div>
-      <div class="card-sub">Six-quarter synthesis across all dimensions</div>
-      <div style="font-size:13px;color:var(--text2);line-height:1.8;display:flex;flex-direction:column;gap:14px;">
-        <p><strong style="color:var(--text)">The &lt;$1K TCA cohort is your NPS floor.</strong> They represent 67% of all responses and disproportionately drive every negative theme. Their complaint profile has been consistent for six quarters: product gaps, UX friction, and inability to get help. They're not a new problem — they've always been there. What changed in 2026 is that more of them entered the survey pool (new accounts) while existing ones grew louder about pricing and value.</p>
-        <p><strong style="color:var(--text)">High-volume firms (200+ leads) are your most important bellwether.</strong> When they complain about bugs — as they did in Q1 2026 — it signals a real reliability event. When they shift to product gaps — as in Q2 2026 — it signals feature ceiling. These firms have operational dependency on the platform and will churn if either problem isn't resolved. They're also your highest NPS segment overall, so protecting them is protecting the score.</p>
-        <p><strong style="color:var(--text)">Criminal Defense is a practice-area emergency.</strong> NPS went from +77 (Q2 2025) to −50 (Q2 2026) in four quarters. The UX and redesign complaints skew heavily toward this segment, suggesting the interface changes disrupted how Criminal Defense attorneys run consultations specifically. Worth a dedicated outreach campaign to the 31 Criminal Defense accounts in your book to understand what broke.</p>
-        <p><strong style="color:var(--text)">Onboarding complaints are structural, not seasonal.</strong> They appeared in every single quarter, peaking in Q3 2025 and remaining elevated through 2026. The profile is consistent: small firms (&lt;$1K TCA, 1–24 leads) who paid for onboarding and couldn't get activated. Estate Planning and Family Law are the most affected practice areas. A 90-day activation check-in tied to actual platform usage metrics would catch these before they hit the survey.</p>
-        <p><strong style="color:var(--text)">Pricing as a complaint is new and worth watching.</strong> It barely registered before Q1 2026 (0–5%) and hit 15% in Q2 2026. It's concentrated in &lt;$1K TCA accounts — firms that haven't found value and are now questioning the bill. If this continues trending up, it will compound churn in the next renewal cycle.</p>
-      </div>
-    </div>
-  </div>
-
-</div>
-</div>
-
-<div class="page" id="page-tenure">
-  <div class="section">
-    <div class="section-title">NPS by customer tenure — all time</div>
-    <div class="kpi-row" id="tenure-kpis"></div>
-    <div class="card" style="margin-top:var(--gap)">
-      <div class="card-title">NPS by months since start date</div>
-      <div class="card-sub">How customer satisfaction evolves through the first year and beyond</div>
-      <div class="chart-wrap h200"><canvas id="tenure-bar" role="img" aria-label="NPS by tenure bucket"></canvas></div>
-    </div>
-  </div>
-  <div class="section">
-    <div class="section-title">Tenure cohorts tracked QoQ</div>
-    <div class="card">
-      <div class="card-title">NPS by tenure cohort — quarter over quarter</div>
-      <div class="card-sub">Each line is a tenure cohort (min 3 responses per quarter shown)</div>
-      <div class="chart-wrap h280"><canvas id="tenure-lines" role="img" aria-label="Tenure cohort NPS by quarter"></canvas></div>
-    </div>
-  </div>
-  <div class="two-col">
-    <div class="card">
-      <div class="card-title">Detractor themes by tenure</div>
-      <div class="card-sub">What customers complain about at each stage — % of detractor comments mentioning theme</div>
-      <div class="table-wrap"><table class="data-table" id="tenure-themes-table"></table></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Tenure x practice area</div>
-      <div class="card-sub">NPS at each tenure stage by practice area</div>
-      <div class="table-wrap"><table class="data-table" id="tenure-pa-table"></table></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">What the tenure curve tells you</div>
-    <div id="tenure-narrative" style="font-size:13px;color:var(--text2);line-height:1.8;display:flex;flex-direction:column;gap:12px;"></div>
-  </div>
+  <div class="section"><div class="section-title">Quarter-over-quarter detail</div>
+    <div class="card"><div class="card-title">NPS by quarter with response volume</div><div class="card-sub">Bars = NPS, line = response count</div>
+      <div class="chart-wrap h260"><canvas id="trends-nps"></canvas></div></div></div>
+  <div class="section"><div class="section-title">Quarter table</div>
+    <div class="card"><div class="table-wrap"><table class="data-table" id="trends-table"></table></div></div></div>
+  <div class="section"><div class="section-title">Detractor themes over time</div>
+    <div class="card"><div class="card-title">All themes &#8212; count of detractor comments per quarter</div><div class="card-sub">Stacked by theme</div>
+      <div class="chart-wrap h280"><canvas id="trends-themes"></canvas></div></div></div>
 </div>
 
 <div class="page" id="page-themes">
-
-  <div class="section">
-    <div class="section-title">UX/UI &amp; product gaps — QoQ trend</div>
-    <div class="card">
-      <div class="card-title">Top two detractor themes as % of detractor comments per quarter</div>
-      <div class="card-sub">Click any bar to see what customers are saying that quarter</div>
-      <div class="chart-wrap h240"><canvas id="theme-qoq-chart" role="img" aria-label="UX and product gap theme frequency by quarter"></canvas></div>
+  <div class="section"><div class="section-title">Detractor theme frequency &#8212; QoQ</div>
+    <div class="card"><div class="card-title">All themes &#8212; count of detractor comments per quarter</div>
+      <div class="card-sub">Click any bar segment to filter comments below to that quarter</div>
+      <div class="chart-wrap h280"><canvas id="theme-qoq-chart"></canvas></div>
     </div>
   </div>
-
-  <div class="two-col" style="margin-bottom:var(--gap)">
-    <div class="card" style="cursor:pointer;border:2px solid transparent" id="ux-selector" onclick="selectTheme('ux')">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div class="card-title" style="margin:0">Ease of use / UX</div>
-        <span id="ux-badge" style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--red-bg);color:var(--red)">click to explore</span>
-      </div>
-      <div class="chart-wrap h160"><canvas id="ux-sub-chart" role="img" aria-label="UX sub-theme breakdown"></canvas></div>
-    </div>
-    <div class="card" style="cursor:pointer;border:2px solid transparent" id="gap-selector" onclick="selectTheme('gap')">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div class="card-title" style="margin:0">Product gaps</div>
-        <span id="gap-badge" style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--blue-bg);color:var(--blue)">click to explore</span>
-      </div>
-      <div class="chart-wrap h160"><canvas id="gap-sub-chart" role="img" aria-label="Product gap sub-theme breakdown"></canvas></div>
-    </div>
-  </div>
-
-  <div id="theme-drill-panel" style="display:none">
-    <div class="section">
-      <div class="section-title" id="drill-section-label">Drill-down</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" id="sub-filter-row"></div>
+  <div class="section"><div class="section-title">Select a theme to explore</div>
+    <div id="theme-selector-row" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px"></div>
+    <div id="theme-drill-panel" style="display:none">
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
           <div>
-            <div class="card-title" id="drill-title">—</div>
-            <div class="card-sub" id="drill-sub">Select a sub-theme above</div>
+            <div class="card-title" id="drill-title">Select a theme above</div>
+            <div class="card-sub" id="drill-section-label"></div>
+            <div style="font-size:12px;color:var(--text3)" id="drill-sub"></div>
           </div>
           <div style="display:flex;gap:6px;align-items:center">
             <span class="filter-label">Quarter:</span>
-            <select id="drill-q-filter" onchange="renderDrillComments()" style="min-width:100px">
+            <select id="drill-q-filter" onchange="renderDrillComments()" style="min-width:110px">
               <option value="all">All quarters</option>
             </select>
           </div>
@@ -844,84 +133,165 @@ function getGitHubFile_() {
       </div>
     </div>
   </div>
+  <div class="section"><div class="section-title">Recent comments by theme</div>
+    <div class="card"><div class="card-sub">Most recent 2 quarters &#8212; top 3 comments per theme</div>
+      <div id="all-theme-highlights"></div>
+    </div>
+  </div>
+</div>
 
-  <div class="section" style="margin-top:8px">
-    <div class="section-title">What customers are actually saying</div>
-    <div class="two-col">
-      <div class="card">
-        <div class="card-title">UX/UI — strongest signal quotes</div>
-        <div class="comment-list" id="ux-highlight-comments"></div>
-      </div>
-      <div class="card">
-        <div class="card-title">Product gaps — strongest signal quotes</div>
-        <div class="comment-list" id="gap-highlight-comments"></div>
+<div class="page" id="page-practice">
+  <div class="section"><div class="section-title">NPS by practice area &#8212; all time</div>
+    <div class="card"><div class="card-sub">Min 5 responses, sorted by NPS</div>
+      <div class="chart-wrap h320"><canvas id="pa-bar"></canvas></div></div></div>
+  <div class="section"><div class="section-title">Practice area QoQ trend</div>
+    <div class="filter-row"><span class="filter-label">Practice area:</span><select id="pa-select" onchange="renderPATrend()"></select></div>
+    <div class="card"><div class="chart-wrap h220"><canvas id="pa-trend"></canvas></div></div></div>
+  <div class="section"><div class="section-title">Practice area x quarter table</div>
+    <div class="card"><div class="table-wrap"><table class="data-table" id="pa-table"></table></div></div></div>
+</div>
+
+<div class="page" id="page-owners">
+  <div class="section"><div class="section-title">NPS by account owner &#8212; all time</div>
+    <div class="card"><div class="chart-wrap h320"><canvas id="owner-bar"></canvas></div></div></div>
+  <div class="section"><div class="section-title">Owner QoQ trend</div>
+    <div class="filter-row"><span class="filter-label">Account owner:</span><select id="owner-select" onchange="renderOwnerTrend()"></select></div>
+    <div class="card"><div class="chart-wrap h220"><canvas id="owner-trend"></canvas></div></div></div>
+  <div class="section"><div class="section-title">Owner 2025 vs 2026 table</div>
+    <div class="card"><div class="table-wrap"><table class="data-table" id="owner-table"></table></div></div></div>
+</div>
+
+<div class="page" id="page-ae">
+  <div class="section"><div class="section-title">NPS by account executive &#8212; all time</div>
+    <div class="card"><div class="chart-wrap h320"><canvas id="ae-bar"></canvas></div></div></div>
+  <div class="section"><div class="section-title">AE QoQ trend</div>
+    <div class="filter-row"><span class="filter-label">Account executive:</span><select id="ae-select" onchange="renderAETrend()"></select></div>
+    <div class="card"><div class="chart-wrap h220"><canvas id="ae-trend"></canvas></div></div></div>
+  <div class="section"><div class="section-title">AE 2025 vs 2026 table</div>
+    <div class="card"><div class="table-wrap"><table class="data-table" id="ae-table"></table></div></div></div>
+</div>
+
+<div class="page" id="page-segments">
+  <div class="two-col">
+    <div class="card"><div class="card-title">NPS by lead volume bucket</div><div class="card-sub">Avg monthly leads (lifetime)</div>
+      <div class="chart-wrap h220"><canvas id="seg-leads"></canvas></div></div>
+    <div class="card"><div class="card-title">NPS by contract amount</div><div class="card-sub">Total contract amount (MRR)</div>
+      <div class="chart-wrap h220"><canvas id="seg-tca"></canvas></div></div>
+  </div>
+  <div class="card"><div class="card-title">Segment insight</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.7;display:flex;flex-direction:column;gap:8px">
+      <p>Higher lead volume firms score better &#8212; <strong style="color:var(--text)">200+ lead firms hit +31 NPS</strong> vs +12 for 1-24 lead firms. The 0-lead bucket is likely inactive accounts &#8212; monitor for churn risk.</p>
+      <p><strong style="color:var(--text)">$6K-$12K TCA accounts score +58</strong> &#8212; highest of any segment and your best expansion candidates.</p>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-tenure">
+  <div class="section"><div class="section-title">NPS by customer tenure &#8212; all time</div>
+    <div class="kpi-row" id="tenure-kpis"></div>
+    <div class="card" style="margin-top:var(--gap)"><div class="card-title">NPS by months since start date</div>
+      <div class="card-sub">How satisfaction evolves through the first year and beyond</div>
+      <div class="chart-wrap h200"><canvas id="tenure-bar"></canvas></div></div></div>
+  <div class="section"><div class="section-title">Tenure cohorts tracked QoQ</div>
+    <div class="card"><div class="card-title">NPS by tenure cohort &#8212; quarter over quarter</div><div class="card-sub">Min 3 responses per quarter shown</div>
+      <div class="chart-wrap h280"><canvas id="tenure-lines"></canvas></div></div></div>
+  <div class="two-col">
+    <div class="card"><div class="card-title">Detractor themes by tenure</div><div class="card-sub">% of detractor comments at each stage</div>
+      <div class="table-wrap"><table class="data-table" id="tenure-themes-table"></table></div></div>
+    <div class="card"><div class="card-title">Tenure x practice area</div><div class="card-sub">NPS at each stage by practice area</div>
+      <div class="table-wrap"><table class="data-table" id="tenure-pa-table"></table></div></div>
+  </div>
+  <div class="card"><div class="card-title">What the tenure curve tells you</div>
+    <div id="tenure-narrative" style="font-size:13px;color:var(--text2);line-height:1.8;display:flex;flex-direction:column;gap:12px"></div></div>
+</div>
+
+<div class="page" id="page-breakdown">
+<div class="section">
+  <div class="section-title">Quarter-over-quarter written analysis</div>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:24px;line-height:1.65">Written synthesis of detractor feedback patterns each quarter, cross-referenced by TCA tier, lead volume, and practice area.</p>
+  <div class="breakdown-section">
+    <div class="qtr-header"><span class="qtr-label">2025 Q1</span><span class="qtr-nps nps-pos">NPS +38.1</span><span class="qtr-n">97 responses &middot; 17 detractor comments</span></div>
+    <div class="qtr-narrative">The highest-performing quarter. Complaints were diffuse &mdash; ease of use, product gaps, bugs, and support access each under 25%. No systemic failure had taken hold. Pattern points to individual friction rather than structural problems.</div>
+    <div class="insights-grid">
+      <div class="insight-block"><div class="insight-block-label">By TCA</div><div class="insight-block-body">Detractors concentrated in &lt;$1K TCA (10 of 17). Complaints lean toward product gaps and UX. The $1K&ndash;$3K tier cited support access more.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By lead volume</div><div class="insight-block-body">0-lead firms complained most about support access. 25&ndash;74 lead firms hit onboarding friction. High-volume (200+) firms were quiet.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By practice area</div><div class="insight-block-body">Low detractor counts across all practices. Estate Planning had the most (2). Business Law flagged bugs and support. <strong>No red flags this quarter.</strong></div></div>
+      <div class="insight-block"><div class="insight-block-label">Top signal</div><div class="insight-block-body"><em>&ldquo;The core functionality hasn&#39;t changed in six years... Marketing tracking is still not good.&rdquo;</em> A product staleness complaint that grew louder in subsequent quarters.<div class="signal-row"><span class="theme-pill">UX 24%</span><span class="theme-pill">Gaps 24%</span><span class="theme-pill amber">Bugs 18%</span></div></div></div>
+    </div>
+  </div>
+  <div class="breakdown-section">
+    <div class="qtr-header"><span class="qtr-label">2025 Q2</span><span class="qtr-nps nps-neu">NPS +22.6</span><span class="qtr-n">195 responses &middot; 35 detractor comments</span><span class="qtr-delta neg">&#9660; 15.5 pts</span></div>
+    <div class="qtr-narrative">First significant drop as volume doubled. <strong>Product gaps became the dominant complaint at 43%.</strong> Bugs and UX also grew. A consultant comment that &ldquo;every firm I work with complains about ease of use&rdquo; points to compounding reputational risk.</div>
+    <div class="insights-grid">
+      <div class="insight-block"><div class="insight-block-label">By TCA</div><div class="insight-block-body">The &lt;$1K tier (26 of 35) drove both product gaps (12) and bugs (7). The $3K&ndash;$6K tier showed up with product gap complaints &mdash; even higher-investment firms were hitting feature ceilings.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By lead volume</div><div class="insight-block-body">Product gaps were the top complaint across every lead volume tier. The 25&ndash;74 lead tier had the highest concentration.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By practice area</div><div class="insight-block-body"><strong>Estate Planning</strong> emerged as the largest detractor source (11). Business Law NPS hit <strong>&minus;60</strong>, its lowest point.</div></div>
+      <div class="insight-block"><div class="insight-block-label">Top signal</div><div class="insight-block-body"><em>&ldquo;Every firm I work with complains about ease of use. It is so hard to manage everything in the current interface.&rdquo;</em><div class="signal-row"><span class="theme-pill red">Gaps 43%</span><span class="theme-pill amber">Bugs 26%</span><span class="theme-pill">UX 23%</span></div></div></div>
+    </div>
+  </div>
+  <div class="breakdown-section">
+    <div class="qtr-header"><span class="qtr-label">2025 Q3</span><span class="qtr-nps nps-pos">NPS +29.2</span><span class="qtr-n">178 responses &middot; 27 detractor comments</span><span class="qtr-delta pos">&#9650; 6.6 pts</span></div>
+    <div class="qtr-narrative">Partial recovery &mdash; bugs nearly disappeared (7% vs 26%). However onboarding spiked to 37%, tying with product gaps. First quarter where &ldquo;I can&#39;t get set up&rdquo; became as loud as &ldquo;the product is missing features.&rdquo;</div>
+    <div class="insights-grid">
+      <div class="insight-block"><div class="insight-block-label">By TCA</div><div class="insight-block-body">Almost all detractors in &lt;$1K tier (25 of 27). Onboarding dominated (10) &mdash; low-investment firms who couldn&#39;t get set up.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By lead volume</div><div class="insight-block-body"><strong>Mid-volume firms (25&ndash;74 leads)</strong> had the highest onboarding complaint rate &mdash; generating real intake volume but haven&#39;t mastered the platform.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By practice area</div><div class="insight-block-body">Estate Planning (8) split evenly between onboarding and product gaps. Family Law (4) heavy on onboarding.</div></div>
+      <div class="insight-block"><div class="insight-block-label">Top signal</div><div class="insight-block-body"><em>&ldquo;I feel like I am using a fraction of Lawmatics&#39; capabilities, just because I don&#39;t know how to set it up.&rdquo;</em><div class="signal-row"><span class="theme-pill red">Onboarding 37%</span><span class="theme-pill red">Gaps 37%</span><span class="theme-pill">UX 22%</span></div></div></div>
+    </div>
+  </div>
+  <div class="breakdown-section">
+    <div class="qtr-header"><span class="qtr-label">2025 Q4</span><span class="qtr-nps nps-pos">NPS +29.9</span><span class="qtr-n">164 responses &middot; 29 detractor comments</span><span class="qtr-delta pos">&#9650; 0.7 pts</span></div>
+    <div class="qtr-narrative">Effectively flat. Last stable quarter before 2026&#39;s deterioration. Onboarding retreated; <strong>product gaps (38%) and ease of use (28%) returned as co-leaders.</strong></div>
+    <div class="insights-grid">
+      <div class="insight-block"><div class="insight-block-label">By TCA</div><div class="insight-block-body">&lt;$1K dominated (22 of 29). First $6K&ndash;$12K detractor appears &mdash; product gap complaint from a normally high-NPS tier.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By lead volume</div><div class="insight-block-body">0-lead firms shifted to support access. High-volume (200+) firms flagged product gaps &mdash; reporting ceiling complaints.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By practice area</div><div class="insight-block-body">Family Law NPS dropped to <strong>+34.6</strong> &mdash; third consecutive quarterly decline. Criminal Defense hit +60, masking the collapse coming in Q1 2026.</div></div>
+      <div class="insight-block"><div class="insight-block-label">Top signal</div><div class="insight-block-body"><em>&ldquo;Make it more intuitive so I don&#39;t have to hire a third party to create and edit my automations.&rdquo;</em><div class="signal-row"><span class="theme-pill red">Gaps 38%</span><span class="theme-pill amber">UX 28%</span><span class="theme-pill">Support 17%</span></div></div></div>
+    </div>
+  </div>
+  <div class="breakdown-section">
+    <div class="qtr-header"><span class="qtr-label">2026 Q1</span><span class="qtr-nps nps-neu">NPS +15.6</span><span class="qtr-n">231 responses &middot; 54 detractor comments</span><span class="qtr-delta neg">&#9660; 14.3 pts</span></div>
+    <div class="qtr-narrative">Sharpest single-quarter drop. Response volume peaked while NPS fell 14 points. <strong>Detractor comments nearly doubled.</strong> Product gaps, UX, and bugs all surged simultaneously. March 2026 hit NPS of &minus;7.0.</div>
+    <div class="insights-grid">
+      <div class="insight-block"><div class="insight-block-label">By TCA</div><div class="insight-block-body">The $1K&ndash;$3K tier saw a major bug spike &mdash; 6 bug complaints vs. 0 in Q4. Sales mismatch appeared exclusively in &lt;$1K tier (4 comments), all new accounts.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By lead volume</div><div class="insight-block-body"><strong>High-volume (200+) firms drove the bug surge</strong> &mdash; 6 of 14 detractors cited reliability. Low-volume (1&ndash;24) firms had the highest sales mismatch rate.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By practice area</div><div class="insight-block-body"><strong>Criminal Defense collapsed</strong> from +60 to &minus;20. <strong>Family Law fell to +12.5.</strong></div></div>
+      <div class="insight-block"><div class="insight-block-label">Top signal</div><div class="insight-block-body"><em>&ldquo;Don&#39;t be dishonest in your sales pitch meetings, and let people try the product before locking them into an annual contract.&rdquo;</em><div class="signal-row"><span class="theme-pill red">Gaps 22%</span><span class="theme-pill red">Bugs 19%</span><span class="theme-pill amber">UX 19%</span><span class="theme-pill purple">Sales 7%</span></div></div></div>
+    </div>
+  </div>
+  <div class="breakdown-section">
+    <div class="qtr-header"><span class="qtr-label">2026 Q2</span><span class="qtr-nps nps-neu">NPS +13.1</span><span class="qtr-n">168 responses &middot; 40 detractor comments</span><span class="qtr-delta neg">&#9660; 2.5 pts</span></div>
+    <div class="qtr-narrative">Lowest sustained level. Bug surge receded but <strong>product gaps returned to 38%.</strong> Pricing complaints hit 15% &mdash; a new signal. Reliability crisis resolved but product and activation problems remain.</div>
+    <div class="insights-grid">
+      <div class="insight-block"><div class="insight-block-label">By TCA</div><div class="insight-block-body">&lt;$1K (30 of 40) dominated by product gaps (11) and onboarding (6). <strong>Pricing complaints at 5 of 6 total</strong> &mdash; firms not getting value heading into renewal.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By lead volume</div><div class="insight-block-body"><strong>High-volume (200+) firms</strong> shifted from bugs to product gaps (5) and UX (4). Reliability resolved; feature ceiling remains.</div></div>
+      <div class="insight-block"><div class="insight-block-label">By practice area</div><div class="insight-block-body"><strong>Criminal Defense hit &minus;50 NPS</strong>, worst in the dataset. Personal Injury remained strongest at +67.</div></div>
+      <div class="insight-block"><div class="insight-block-label">Top signal</div><div class="insight-block-body"><em>&ldquo;Everything we set up [was] eliminated with changes to the systems, and being nickeled and dimed with messaging fees.&rdquo;</em><div class="signal-row"><span class="theme-pill red">Gaps 38%</span><span class="theme-pill amber">UX 18%</span><span class="theme-pill amber">Onboarding 18%</span><span class="theme-pill red">Pricing 15%</span></div></div></div>
+    </div>
+  </div>
+  <div class="section"><div class="section-title">Cross-cutting patterns</div>
+    <div class="card"><div class="card-title">What the full arc tells you</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.8;display:flex;flex-direction:column;gap:14px">
+        <p><strong style="color:var(--text)">The &lt;$1K TCA cohort is your NPS floor.</strong> 67% of all responses, disproportionately driving every negative theme. Their complaint profile has been consistent for six quarters: product gaps, UX friction, and inability to get help.</p>
+        <p><strong style="color:var(--text)">High-volume firms (200+ leads) are your most important bellwether.</strong> When they complain about bugs it signals a reliability event. When they shift to product gaps it signals feature ceiling.</p>
+        <p><strong style="color:var(--text)">Criminal Defense is a practice-area emergency.</strong> NPS went from +77 (Q2 2025) to &minus;50 (Q2 2026) in four quarters. Worth a dedicated outreach campaign.</p>
+        <p><strong style="color:var(--text)">Onboarding is a persistent low-level signal</strong> that periodically produces high-severity individual cases (~3-4% of all responses). The firms it hits score 0-2 and feel they wasted money. Direct outreach to those accounts is warranted; a broader program overhaul is not.</p>
+        <p><strong style="color:var(--text)">Pricing as a complaint is new and worth watching.</strong> Hit 15% in Q2 2026. Concentrated in &lt;$1K TCA accounts questioning the bill heading into renewal.</p>
       </div>
     </div>
   </div>
-
 </div>
-
+</div>
 
 </main>
 <script>
 
-fetch('nps_data.json')
-  .then(function(r){ return r.json(); })
-  .then(function(data){
-    // Ensure all keys the dashboard expects exist with safe defaults
-    data.tenure_buckets    = data.tenure_buckets    || ['0-2 mo','3-5 mo','6-11 mo','12-23 mo','24+ mo'];
-    data.by_tenure         = data.by_tenure         || {};
-    data.by_tenure_quarter = data.by_tenure_quarter || {};
-    data.tenure_themes     = data.tenure_themes     || {};
-    data.by_practice_tenure = data.by_practice_tenure || {};
-    data.detractor_themes_by_quarter = data.detractor_themes_by_quarter || {};
-    data.recent_detractor_comments   = data.recent_detractor_comments   || [];
-    data.by_practice_quarter = data.by_practice_quarter || {};
-    data.by_owner_quarter    = data.by_owner_quarter    || {};
-    data.by_ae_quarter       = data.by_ae_quarter       || {};
-
-    window.__NPS_DATA__   = data;
-    window.__THEME_DATA__ = data;
-    D        = data;
-    TD       = data;
-    QUARTERS = data.quarters || [];
-
-    // Stub theme data if Apps Script didn't compute it
-    if (!TD.ux_subs)    TD.ux_subs    = [];
-    if (!TD.gap_subs)   TD.gap_subs   = [];
-    if (!TD.ux_totals)  TD.ux_totals  = {};
-    if (!TD.gap_totals) TD.gap_totals = {};
-    if (!TD.ux_comments)  TD.ux_comments  = {};
-    if (!TD.gap_comments) TD.gap_comments = {};
-    if (!TD.qoq) {
-      TD.qoq = {};
-      QUARTERS.forEach(function(q) {
-        var d = data.by_quarter[q] || {};
-        TD.qoq[q] = { total: d.n||0, ux: 0, gap: 0, ux_pct: d.ux_pct||0, gap_pct: d.gap_pct||0 };
-      });
-    }
-
-    initOverview();
-    initTrends();
-    initThemes();
-    initPractice();
-    initOwners();
-    initAE();
-    initSegments();
-    initTenure();
-  })
-  .catch(function(err){
-    document.querySelector('main').innerHTML =
-      '<div style="padding:40px;color:#c0392b;font-family:sans-serif">' +
-      '<strong>Could not load nps_data.json</strong><br><br>' +
-      err.message + '</div>';
-  });
-
-var D, TD, QUARTERS;
+var D = window.__NPS_DATA__;
+var TD = window.__THEME_DATA__;
+var QUARTERS = D.quarters;
 var G = "#e2e1d8", T = "#888";
 var charts = {};
 var activeTheme = null, activeSub = null;
-var AM_TEAM = ["elliott jones", "callie burns", "kennedy wickham", "jessie hobbs", "swetha devakumar", "julio ortiz", "andy galindo", "admir karamovic"];
 Chart.defaults.font.family = "Inter, system-ui, sans-serif";
 Chart.defaults.font.size = 12;
 
@@ -988,75 +358,135 @@ function initTrends() {
   makeChart("trends-themes",{type:"bar",data:{labels:QUARTERS,datasets:tk.map(function(t,i){return {label:t,data:QUARTERS.map(function(q){return D.detractor_themes_by_quarter[q]?D.detractor_themes_by_quarter[q][t]||0:0;}),backgroundColor:tc2[i],stack:"s"};})},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:10,padding:12,font:{size:11}}}},scales:{x:{stacked:true,ticks:{color:T},grid:{color:G}},y:{stacked:true,ticks:{color:T},grid:{color:G}}}}});
 }
 
+
+var THEME_COLORS = {
+  "Ease of use / UX":   "#e34948",
+  "Bugs / reliability": "#e67e22",
+  "Support access":     "#8e44ad",
+  "Onboarding / setup": "#1baf7a",
+  "Product gaps":       "#1a5fb4",
+  "Pricing / value":    "#27ae60",
+  "Sales mismatch":     "#c0392b"
+};
+var THEME_KWS_JS = {
+  "Ease of use / UX":   ["intuitive","user friend","difficult to use","hard to use","confusing","interface","redesign","layout","clunky","complicated","not easy","jump through","navigate","simplify","simpler","overwhelming","too many functions","too many steps","messy"],
+  "Bugs / reliability": ["slow","latency","glitch","bug","crash","stops working","not work","broken","delay","duplicate","errors"],
+  "Support access":     ["support","customer service","response","office hours","call back","months to receive","never hear"],
+  "Onboarding / setup": ["onboard","set up","setup","never used","6 months","teach myself","explain","manual","consultants","getting started","builder hours","build out","initial setup"],
+  "Product gaps":       ["feature","missing","integration","outlook","365","reporting","analytics","esign","e-sign","signing","automation","document","api","clio","mobile","calendar","dashboard","workflow","custom field","sms","text message"],
+  "Pricing / value":    ["price","expensive","cost","billing","billed","nickel","seats","unnecessary"],
+  "Sales mismatch":     ["sales pitch","dishonest","locked into","3 seats","cardinal concepts"]
+};
+
 function initThemes() {
-  var qSel=document.getElementById("drill-q-filter");
-  QUARTERS.forEach(function(q){var o=document.createElement("option");o.value=q;o.textContent=q;qSel.appendChild(o);});
-  makeChart("theme-qoq-chart",{type:"bar",data:{labels:QUARTERS,datasets:[{label:"Ease of use / UX",data:QUARTERS.map(function(q){return TD.qoq[q].ux_pct;}),backgroundColor:"#e34948",borderRadius:3,borderSkipped:false},{label:"Product gaps",data:QUARTERS.map(function(q){return TD.qoq[q].gap_pct;}),backgroundColor:"#2a78d6",borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,onClick:function(e,el){if(el.length>0){document.getElementById("drill-q-filter").value=QUARTERS[el[0].index];if(activeTheme)renderDrillComments();}},plugins:{legend:{position:"bottom",labels:{boxWidth:10,padding:14,font:{size:11}}},tooltip:{callbacks:{label:function(c){var q=QUARTERS[c.dataIndex],dd=TD.qoq[q];return " "+c.dataset.label+": "+c.raw+"% ("+(c.datasetIndex===0?dd.ux:dd.gap)+" of "+dd.total+" comments)";}}}},scales:{x:{ticks:{color:T},grid:{color:G}},y:{ticks:{color:T,callback:function(v){return v+"%";}},grid:{color:G},max:90}}}});
-  makeChart("ux-sub-chart",{type:"doughnut",data:{labels:TD.ux_subs,datasets:[{data:TD.ux_subs.map(function(s){return TD.ux_totals[s]||0;}),backgroundColor:["#e34948","#e67e22","#eda100","#8e44ad","#2a7a4e","#2a78d6","#c0392b"],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:8,padding:6,font:{size:10}}},tooltip:{callbacks:{label:function(c){return " "+c.label+": "+c.raw+" comments";}}}}}});
-  makeChart("gap-sub-chart",{type:"doughnut",data:{labels:TD.gap_subs,datasets:[{data:TD.gap_subs.map(function(s){return TD.gap_totals[s]||0;}),backgroundColor:["#2a78d6","#1baf7a","#eda100","#e34948","#8e44ad","#e67e22","#c0392b","#2a7a4e"],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:8,padding:6,font:{size:10}}},tooltip:{callbacks:{label:function(c){return " "+c.label+": "+c.raw+" comments";}}}}}});
-  renderHighlights();
-}
-function selectTheme(theme) {
-  activeTheme=theme; activeSub=null;
-  document.getElementById("ux-selector").style.border=theme==="ux"?"2px solid #c0392b":"2px solid transparent";
-  document.getElementById("gap-selector").style.border=theme==="gap"?"2px solid #1a5fb4":"2px solid transparent";
-  document.getElementById("ux-badge").textContent=theme==="ux"?"selected":"click to explore ↓";
-  document.getElementById("gap-badge").textContent=theme==="gap"?"selected":"click to explore ↓";
-  document.getElementById("theme-drill-panel").style.display="block";
-  document.getElementById("drill-section-label").textContent=theme==="ux"?"UX/UI — sub-theme drill-down":"Product gaps — sub-theme drill-down";
-  var subs=theme==="ux"?TD.ux_subs:TD.gap_subs, tots=theme==="ux"?TD.ux_totals:TD.gap_totals;
-  var cols=theme==="ux"?["#e34948","#e67e22","#eda100","#8e44ad","#2a7a4e","#2a78d6","#c0392b"]:["#2a78d6","#1baf7a","#eda100","#e34948","#8e44ad","#e67e22","#c0392b","#2a7a4e"];
-  document.getElementById("sub-filter-row").innerHTML=subs.map(function(s,i){
-    var cnt=tots[s]||0, col=cols[i%cols.length];
-    return '<button data-sub="'+i+'" style="font-size:12px;padding:5px 12px;border-radius:20px;border:1.5px solid '+col+';background:transparent;color:'+col+';cursor:pointer;font-weight:500">'+s+' <span style="opacity:.7">('+cnt+')</span></button>';
-  }).join("");
-  // attach click handlers after render
-  document.getElementById("sub-filter-row").querySelectorAll("button").forEach(function(btn){
-    btn.addEventListener("click",function(){ selectSub(subs[parseInt(this.getAttribute("data-sub"))]); });
+  var themeKeys = Object.keys(THEME_COLORS);
+  var qSel = document.getElementById("drill-q-filter");
+  while(qSel.options.length > 1) qSel.remove(1);
+  QUARTERS.forEach(function(q) {
+    var o = document.createElement("option"); o.value=q; o.textContent=q; qSel.appendChild(o);
   });
-  document.getElementById("drill-title").textContent="Select a sub-theme above";
-  document.getElementById("drill-sub").textContent="";
-  document.getElementById("drill-comment-list").innerHTML="";
-  if(subs.length>0) selectSub(subs[0]);
-}
-function selectSub(sub) {
-  activeSub=sub;
-  var tots=activeTheme==="ux"?TD.ux_totals:TD.gap_totals;
-  document.getElementById("drill-title").textContent=sub;
-  document.getElementById("drill-sub").textContent=(tots[sub]||0)+" detractor comments across all quarters";
-  renderDrillComments();
-}
-function renderDrillComments() {
-  if(!activeSub||!activeTheme) return;
-  var all=activeTheme==="ux"?TD.ux_comments[activeSub]:TD.gap_comments[activeSub];
-  if(!all){document.getElementById("drill-comment-list").innerHTML="";return;}
-  var qf=document.getElementById("drill-q-filter").value;
-  var cs=qf==="all"?all:all.filter(function(c){return c.quarter===qf;});
-  if(!cs.length){document.getElementById("drill-comment-list").innerHTML='<div style="color:var(--text3);padding:16px;text-align:center">No comments match this filter</div>';return;}
-  document.getElementById("drill-comment-list").innerHTML=cs.map(function(c){
-    var sc=c.score<=2?"tag-score-bad":"tag-score-ok";
-    var pa=c.practice&&c.practice!=="Unknown"?'<span class="tag tag-pa">'+c.practice+"</span>":"";
-    return '<div class="comment-item"><div class="comment-meta"><span class="tag '+sc+'">Score '+c.score+'</span><span class="tag tag-q">'+c.quarter+'</span>'+(c.owner?(AM_TEAM.indexOf(c.owner.toLowerCase())>-1?'<span class="tag tag-owner">AM: '+c.owner+'</span>':'<span class="tag" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;font-weight:600">3rd Party: '+c.owner+'</span>'):"")+(c.ae?'<span class="tag tag-ae">AE: '+c.ae+'</span>':"")+pa+'</div><div class="comment-text">"'+c.comment+'"</div><div class="comment-account">'+c.account+'</div></div>';
-  }).join("");
-}
-function renderHighlights() {
-  function bld(subs,cobj) {
-    var all=[],seen={};
-    subs.forEach(function(s){var cs=cobj[s]||[];cs.forEach(function(c){c._sub=s;});all=all.concat(cs);});
-    return all.filter(function(c){var k=c.account+c.comment;if(seen[k])return false;seen[k]=true;return true;}).sort(function(a,b){return a.score-b.score;}).slice(0,6);
-  }
-  function render(cs,el) {
-    el.innerHTML=cs.map(function(c){
-      var sc=c.score<=2?"tag-score-bad":"tag-score-ok";
-      var pa=c.practice&&c.practice!=="Unknown"?'<span class="tag tag-pa">'+c.practice+"</span>":"";
-      var sub=c._sub?'<span class="tag" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:10px">'+c._sub+"</span>":"";
-      var ownerTag=c.owner?(AM_TEAM.indexOf(c.owner.toLowerCase())>-1?'<span class="tag tag-owner">AM: '+c.owner+'</span>':'<span class="tag" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;font-weight:600">3rd Party: '+c.owner+'</span>'):"";
-      return '<div class="comment-item"><div class="comment-meta"><span class="tag '+sc+'">Score '+c.score+'</span><span class="tag tag-q">'+c.quarter+'</span>'+ownerTag+pa+sub+'</div><div class="comment-text">"'+c.comment.slice(0,280)+(c.comment.length>280?"…":"")+'"</div><div class="comment-account">'+c.account+'</div></div>';
+
+  // Stacked bar - all themes
+  makeChart("theme-qoq-chart", {
+    type:"bar",
+    data:{labels:QUARTERS, datasets:themeKeys.map(function(t){
+      return {label:t, data:QUARTERS.map(function(q){
+        var qd=D.detractor_themes_by_quarter[q]||{}; return qd[t]||0;
+      }), backgroundColor:THEME_COLORS[t], stack:"s"};
+    })},
+    options:{responsive:true,maintainAspectRatio:false,
+      onClick:function(e,els){if(els.length>0){document.getElementById("drill-q-filter").value=QUARTERS[els[0].index];if(activeTheme)renderDrillComments();}},
+      plugins:{legend:{position:"bottom",labels:{boxWidth:10,padding:10,font:{size:11}}},tooltip:{callbacks:{label:function(c){return " "+c.dataset.label+": "+c.raw+" comments";}}}},
+      scales:{x:{stacked:true,ticks:{color:T},grid:{color:G}},y:{stacked:true,ticks:{color:T},grid:{color:G},title:{display:true,text:"# comments",color:T}}}}
+  });
+
+  // Theme buttons
+  var row = document.getElementById("theme-selector-row");
+  if(row) {
+    row.innerHTML = themeKeys.map(function(t) {
+      var col = THEME_COLORS[t];
+      var total = QUARTERS.reduce(function(s,q){var qd=D.detractor_themes_by_quarter[q]||{};return s+(qd[t]||0);},0);
+      return '<button data-theme="'+t+'" onclick="selectTheme(this)" style="font-size:12px;padding:5px 14px;border-radius:20px;border:2px solid '+col+';background:transparent;color:'+col+';cursor:pointer;font-weight:500;margin:2px">'+t+' <span style="opacity:.65">('+total+')</span></button>';
     }).join("");
   }
-  render(bld(TD.ux_subs,TD.ux_comments),document.getElementById("ux-highlight-comments"));
-  render(bld(TD.gap_subs,TD.gap_comments),document.getElementById("gap-highlight-comments"));
+
+  renderHighlights();
 }
+
+function selectTheme(btn) {
+  var theme = btn.getAttribute("data-theme");
+  activeTheme = theme;
+  document.querySelectorAll("[data-theme]").forEach(function(b) {
+    var t = b.getAttribute("data-theme"), col = THEME_COLORS[t]||"#888";
+    b.style.background = t===theme ? col : "transparent";
+    b.style.color      = t===theme ? "#fff" : col;
+  });
+  document.getElementById("theme-drill-panel").style.display = "block";
+  document.getElementById("drill-section-label").textContent = theme;
+  var total = QUARTERS.reduce(function(s,q){var qd=D.detractor_themes_by_quarter[q]||{};return s+(qd[theme]||0);},0);
+  document.getElementById("drill-sub").textContent = total + " detractor comments mentioning this theme across all quarters";
+  renderDrillComments();
+}
+
+function renderDrillComments() {
+  if(!activeTheme) return;
+  var theme = activeTheme;
+  var kws = THEME_KWS_JS[theme]||[];
+  var qFilter = document.getElementById("drill-q-filter").value;
+  var comments = D.recent_detractor_comments||[];
+  var filtered = comments.filter(function(c){
+    var txt=(c.comment||"").toLowerCase();
+    var m=kws.some(function(k){return txt.indexOf(k)>-1;});
+    var q=qFilter==="all"||c.quarter===qFilter;
+    return m&&q;
+  });
+  var el = document.getElementById("drill-comment-list");
+  if(!filtered.length) {
+    var qd=D.detractor_themes_by_quarter[qFilter]||{};
+    var cnt=qFilter!=="all"?(qd[theme]||0):null;
+    el.innerHTML = cnt>0
+      ? '<div style="color:var(--text2);padding:16px;text-align:center">'+cnt+' comments in '+qFilter+' but full text is only stored for the 2 most recent quarters.</div>'
+      : '<div style="color:var(--text3);padding:16px;text-align:center">No comments found.</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(function(c) {
+    var sc=c.score<=2?"tag-score-bad":"tag-score-ok";
+    var pa=c.practice&&c.practice!=="Unknown"?'<span class="tag tag-pa">'+c.practice+"</span>":"";
+    var isTeam=AM_TEAM.indexOf((c.owner||"").toLowerCase())>-1;
+    var ow=c.owner?(isTeam?'<span class="tag tag-owner">AM: '+c.owner+"</span>":'<span class="tag" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;font-weight:600">3rd Party: '+c.owner+"</span>"):"";
+    return '<div class="comment-item"><div class="comment-meta"><span class="tag '+sc+'">Score '+c.score+'</span><span class="tag tag-q">'+c.quarter+"</span>"+ow+(c.ae?'<span class="tag tag-ae">AE: '+c.ae+"</span>":"")+pa+"</div>"
+      +'<div class="comment-text">"'+c.comment+'"</div>'
+      +'<div class="comment-account">'+(c.account||"")+"</div></div>";
+  }).join("");
+}
+
+function renderHighlights() {
+  var el = document.getElementById("all-theme-highlights");
+  if(!el) return;
+  var themeKeys = Object.keys(THEME_COLORS);
+  var comments = D.recent_detractor_comments||[];
+  el.innerHTML = themeKeys.map(function(theme) {
+    var kws=THEME_KWS_JS[theme]||[], col=THEME_COLORS[theme];
+    var matching=comments.filter(function(c){
+      var txt=(c.comment||"").toLowerCase();
+      return kws.some(function(k){return txt.indexOf(k)>-1;});
+    }).slice(0,3);
+    if(!matching.length) return "";
+    var total=QUARTERS.reduce(function(s,q){var qd=D.detractor_themes_by_quarter[q]||{};return s+(qd[theme]||0);},0);
+    return '<div style="margin-bottom:20px">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+      +'<span style="font-size:13px;font-weight:600;color:var(--text)">'+theme+'</span>'
+      +'<span style="font-size:11px;padding:2px 8px;border-radius:12px;background:'+col+'22;color:'+col+';font-weight:500">'+total+' total mentions</span></div>'
+      +matching.map(function(c){
+        var sc=c.score<=2?"tag-score-bad":"tag-score-ok";
+        var pa=c.practice&&c.practice!=="Unknown"?'<span class="tag tag-pa">'+c.practice+"</span>":"";
+        return '<div class="comment-item"><div class="comment-meta"><span class="tag '+sc+'">Score '+c.score+'</span><span class="tag tag-q">'+c.quarter+"</span>"+pa+"</div>"
+          +'<div class="comment-text">"'+c.comment.slice(0,220)+(c.comment.length>220?"&#8230;":"")+'"</div>'
+          +'<div class="comment-account">'+(c.account||"")+"</div></div>";
+      }).join("")+"</div>";
+  }).join("");
+}
+
 
 function initPractice() {
   var pa=D.by_practice, sorted=Object.entries(pa).sort(function(a,b){return b[1].nps-a[1].nps;});
@@ -1126,20 +556,36 @@ function initTenure() {
   document.getElementById("tenure-narrative").innerHTML=[
     "<p><strong style=\"color:var(--text)\">The first 12 months are the highest-risk window.</strong> Customers in months 3&ndash;11 score NPS of &minus;3 to +4. By month 12 it jumps to +24.6, and by year two holds at +27.8. There is a clear valley of despair in the first year where customers haven&#39;t found value but are paying full price.</p>",
     "<p><strong style=\"color:var(--text)\">New customers complain about completely different things than tenured ones.</strong> Months 3&ndash;5: product gaps and support access. Months 6&ndash;11: onboarding (22%), UX (20%), and bugs (20%) simultaneously &mdash; the most volatile mix. By 24+ months, product gaps dominate (37%).</p>",
-    "<p><strong style=\"color:var(--text)\">Family Law&#39;s early-tenure pattern is the most urgent signal.</strong> 3&ndash;5 month firms score 0.0 NPS. 6&ndash;11 months drops to &minus;19.2. Only after 12 months do they recover to +84. A targeted check-in at month 6 for Family Law would have outsized impact.</p>",
-    "<p><strong style=\"color:var(--text)\">Criminal Defense never recovers in the early window.</strong> 3&ndash;5 months: &minus;60. Only 24+ month firms score positive (+28). The 2026 redesign hit Criminal Defense mid-journey &mdash; any account currently in months 3&ndash;18 is at elevated churn risk.</p>",
+    "<p><strong style=\"color:var(--text)\">Family Law&#39;s early-tenure pattern is the most urgent signal.</strong> 3&ndash;5 month firms score 0.0 NPS. 6&ndash;11 months drops to &minus;19.2. Only after 12 months do they recover to +84. A targeted check-in at month 6 would have outsized impact.</p>",
+    "<p><strong style=\"color:var(--text)\">Criminal Defense never recovers in the early window.</strong> 3&ndash;5 months: &minus;60. Only 24+ month firms score positive (+28). Any Criminal Defense account in months 3&ndash;18 is at elevated churn risk.</p>",
     "<p><strong style=\"color:var(--text)\">The 6&ndash;11 month cohort is inflating in 2026.</strong> It grew from 13&ndash;14 responses/quarter in 2025 to 26&ndash;30 in 2026. Their Q1 2026 NPS was &minus;30.0 &mdash; the worst single cohort-quarter in the dataset.</p>"
   ].join("");
 }
 
-initOverview();
-initTrends();
-initThemes();
-initPractice();
-initOwners();
-initAE();
-initSegments();
-initTenure();
+
+
+fetch('nps_data.json')
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    data.tenure_buckets    = data.tenure_buckets    || ['0-2 mo','3-5 mo','6-11 mo','12-23 mo','24+ mo'];
+    data.by_tenure         = data.by_tenure         || {};
+    data.by_tenure_quarter = data.by_tenure_quarter || {};
+    data.tenure_themes     = data.tenure_themes     || {};
+    data.by_practice_tenure= data.by_practice_tenure|| {};
+    data.detractor_themes_by_quarter = data.detractor_themes_by_quarter || {};
+    data.recent_detractor_comments   = data.recent_detractor_comments   || [];
+    data.by_practice_quarter = data.by_practice_quarter || {};
+    data.by_owner_quarter    = data.by_owner_quarter    || {};
+    data.by_ae_quarter       = data.by_ae_quarter       || {};
+    window.__NPS_DATA__ = data;
+    D = data; TD = data; QUARTERS = data.quarters || [];
+    initOverview(); initTrends(); initThemes(); initPractice();
+    initOwners(); initAE(); initSegments(); initTenure();
+  })
+  .catch(function(err){
+    document.querySelector('main').innerHTML =
+      '<div style="padding:40px;color:#c0392b;font-family:sans-serif"><strong>Could not load nps_data.json</strong><br><br>'+err.message+'</div>';
+  });
 
 </script>
 </body>
