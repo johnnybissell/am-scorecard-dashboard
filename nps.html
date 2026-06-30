@@ -7,172 +7,82 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#f7f6f2;--surface:#fff;--surface2:#f0efe9;
-  --border:#e2e1d8;--border2:#ccc9bc;
-  --text:#111;--text2:#555;--text3:#888;
-  --blue:#1a5fb4;--blue-bg:#e8f0fb;
-  --green:#2a7a4e;--green-bg:#e6f4ed;
-  --red:#c0392b;--red-bg:#fbeae8;
-  --amber:#b35a00;--amber-bg:#fef3e2;
-  --radius:8px;--gap:16px;
-  --nav-h:52px;
-}
+:root{--bg:#f7f6f2;--surface:#fff;--surface2:#f0efe9;--border:#e2e1d8;--border2:#ccc9bc;--text:#111;--text2:#555;--text3:#888;--blue:#1a5fb4;--blue-bg:#e8f0fb;--green:#2a7a4e;--green-bg:#e6f4ed;--red:#c0392b;--red-bg:#fbeae8;--amber:#b35a00;--amber-bg:#fef3e2;--radius:8px;--gap:16px;--nav-h:52px}
 body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
-
-/* NAV */
-nav{position:sticky;top:0;z-index:100;background:#111;height:var(--nav-h);display:flex;align-items:center;padding:0 24px;gap:0;border-bottom:1px solid #222}
-.nav-brand{color:#fff;font-weight:600;font-size:15px;margin-right:32px;white-space:nowrap}
-.nav-brand span{color:#7eb3ff}
-.nav-links{display:flex;gap:2px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}
-.nav-links::-webkit-scrollbar{display:none}
+nav{position:sticky;top:0;z-index:100;background:#111;height:var(--nav-h);display:flex;align-items:center;padding:0 24px;border-bottom:1px solid #222}
+.nav-brand{color:#fff;font-weight:600;font-size:15px;margin-right:32px;white-space:nowrap}.nav-brand span{color:#7eb3ff}
+.nav-links{display:flex;gap:2px;overflow-x:auto;-ms-overflow-style:none;scrollbar-width:none}.nav-links::-webkit-scrollbar{display:none}
 .nav-link{color:#aaa;font-size:13px;padding:6px 12px;border-radius:6px;cursor:pointer;white-space:nowrap;transition:all .15s;border:none;background:none}
-.nav-link:hover{color:#fff;background:#222}
-.nav-link.active{color:#fff;background:#1a5fb4}
+.nav-link:hover{color:#fff;background:#222}.nav-link.active{color:#fff;background:#1a5fb4}
 .nav-right{margin-left:auto;color:#666;font-size:12px;white-space:nowrap;padding-left:16px}
-
-/* LAYOUT */
 main{max-width:1200px;margin:0 auto;padding:24px 20px}
 .page{display:none}.page.active{display:block}
-
-/* SECTION */
 .section{margin-bottom:32px}
 .section-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:12px}
-
-/* KPI ROW */
 .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:var(--gap);margin-bottom:24px}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:4px}
-.kpi-label{font-size:11px;color:var(--text3);font-weight:500}
-.kpi-val{font-size:28px;font-weight:700;line-height:1;color:var(--text)}
-.kpi-val.up{color:var(--green)}
-.kpi-val.down{color:var(--red)}
-.kpi-val.neutral{color:var(--amber)}
-.kpi-sub{font-size:12px;color:var(--text2)}
-.kpi-delta{font-size:12px;font-weight:600}
+.kpi-label{font-size:11px;color:var(--text3);font-weight:500}.kpi-val{font-size:28px;font-weight:700;line-height:1}
+.kpi-val.up{color:var(--green)}.kpi-val.down{color:var(--red)}.kpi-val.neutral{color:var(--amber)}
+.kpi-sub{font-size:12px;color:var(--text2)}.kpi-delta{font-size:12px;font-weight:600}
 .kpi-delta.pos{color:var(--green)}.kpi-delta.neg{color:var(--red)}.kpi-delta.flat{color:var(--text3)}
-
-/* CHART CARD */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:var(--gap)}
-.card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
-.card-sub{font-size:12px;color:var(--text3);margin-bottom:16px}
+.card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}.card-sub{font-size:12px;color:var(--text3);margin-bottom:16px}
 .chart-wrap{position:relative;width:100%}
-.h200{height:200px}.h240{height:240px}.h280{height:280px}.h320{height:320px}
-.h-auto{height:auto}
-
-/* TWO-COL */
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
-@media(max-width:720px){.two-col{grid-template-columns:1fr}}
-
-/* LEGEND */
-.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:12px}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)}
-.lsq{width:10px;height:10px;border-radius:2px;flex-shrink:0}
-
-/* SELECT */
+.h160{height:160px}.h200{height:200px}.h220{height:220px}.h240{height:240px}.h260{height:260px}.h280{height:280px}.h320{height:320px}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}@media(max-width:720px){.two-col{grid-template-columns:1fr}}
 .filter-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center}
 .filter-label{font-size:12px;color:var(--text3);font-weight:500}
 select{font-size:13px;padding:6px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;min-width:140px}
-select:focus{outline:2px solid var(--blue);outline-offset:1px}
-
-/* STACKED BAR LEGEND */
-.stacked-legend{display:flex;gap:16px;margin-bottom:8px;flex-wrap:wrap}
-.stacked-legend span{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text2)}
-
-/* TABLE */
 .data-table{width:100%;border-collapse:collapse;font-size:13px}
 .data-table th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text3);border-bottom:2px solid var(--border);white-space:nowrap}
 .data-table td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
-.data-table tr:last-child td{border-bottom:none}
-.data-table tr:hover td{background:var(--surface2)}
+.data-table tr:last-child td{border-bottom:none}.data-table tr:hover td{background:var(--surface2)}
 .nps-pill{display:inline-block;padding:2px 8px;border-radius:20px;font-weight:600;font-size:12px}
-.nps-pos{background:var(--green-bg);color:var(--green)}
-.nps-neg{background:var(--red-bg);color:var(--red)}
-.nps-neu{background:var(--amber-bg);color:var(--amber)}
-
-/* THEME BARS */
-.theme-list{display:flex;flex-direction:column;gap:8px}
-.theme-row{display:flex;align-items:center;gap:10px}
-.theme-name{font-size:12px;color:var(--text2);min-width:150px}
-.theme-bar-bg{flex:1;height:7px;background:var(--surface2);border-radius:4px}
-.theme-bar-fill{height:7px;border-radius:4px}
-.theme-pct{font-size:12px;font-weight:600;color:var(--text);min-width:36px;text-align:right}
-.theme-count{font-size:11px;color:var(--text3);min-width:28px}
-
-/* COMMENT CARD */
-.comment-list{display:flex;flex-direction:column;gap:10px}
+.nps-pos{background:var(--green-bg);color:var(--green)}.nps-neg{background:var(--red-bg);color:var(--red)}.nps-neu{background:var(--amber-bg);color:var(--amber)}
+.table-wrap{overflow-x:auto}.comment-list{display:flex;flex-direction:column;gap:10px}
 .comment-item{background:var(--surface2);border-radius:6px;padding:12px 14px}
 .comment-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;align-items:center}
 .tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:500}
-.tag-score-bad{background:#fbeae8;color:#c0392b}
-.tag-score-ok{background:var(--amber-bg);color:var(--amber)}
-.tag-q{background:var(--blue-bg);color:var(--blue)}
-.tag-owner{background:#f3f0ff;color:#5b35b5}
-.tag-ae{background:#e8f7f0;color:#2a7a4e}
-.tag-pa{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
-.comment-text{font-size:13px;color:var(--text);line-height:1.55}
-.comment-account{font-size:11px;color:var(--text3);margin-top:4px}
-
-/* ZAPIER DOCS */
-.step-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;margin-bottom:12px}
-.step-num{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);margin-bottom:4px}
-.step-title{font-size:14px;font-weight:600;margin-bottom:6px}
-.step-body{font-size:13px;color:var(--text2);line-height:1.6}
-pre{background:#1a1a1a;color:#e8e8e8;padding:14px 16px;border-radius:6px;font-size:12px;overflow-x:auto;margin-top:8px;line-height:1.7}
-code{font-family:'JetBrains Mono','Fira Code',monospace}
-.alert-box{background:var(--amber-bg);border:1px solid #f0c060;border-radius:6px;padding:12px 14px;font-size:13px;color:var(--amber);margin:12px 0}
-.good-box{background:var(--green-bg);border:1px solid #7ecba0;border-radius:6px;padding:12px 14px;font-size:13px;color:var(--green);margin:12px 0}
-
-/* SCROLLABLE TABLE WRAP */
-.table-wrap{overflow-x:auto}
-
-/* WRITTEN BREAKDOWN */
-.breakdown-section { margin-bottom: 40px; }
-.breakdown-section:last-child { margin-bottom: 0; }
-.qtr-header { display: flex; align-items: baseline; gap: 14px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 2px solid var(--border); }
-.qtr-label { font-size: 20px; font-weight: 700; color: var(--text); }
-.qtr-nps { font-size: 14px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
-.qtr-n { font-size: 13px; color: var(--text3); }
-.qtr-delta { font-size: 13px; font-weight: 600; }
-.qtr-delta.pos { color: var(--green); }
-.qtr-delta.neg { color: var(--red); }
-.insights-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); margin-bottom: var(--gap); }
-@media(max-width:700px){ .insights-grid { grid-template-columns: 1fr; } }
-.insight-block { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
-.insight-block-label { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
-.insight-block-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
-.insight-block-body { font-size: 13px; color: var(--text2); line-height: 1.65; }
-.theme-pill { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; margin: 2px 2px 2px 0; background: var(--blue-bg); color: var(--blue); }
-.theme-pill.red { background: var(--red-bg); color: var(--red); }
-.theme-pill.amber { background: var(--amber-bg); color: var(--amber); }
-.theme-pill.green { background: var(--green-bg); color: var(--green); }
-.theme-pill.purple { background: #f3f0ff; color: #5b35b5; }
-.qtr-narrative { font-size: 14px; color: var(--text2); line-height: 1.75; margin-bottom: var(--gap); padding: 14px 16px; background: var(--surface2); border-radius: var(--radius); border-left: 3px solid var(--border2); }
-.qtr-narrative strong { color: var(--text); }
-.quote-block { margin-top: 10px; padding: 10px 12px; background: var(--surface2); border-radius: 6px; font-size: 12px; color: var(--text2); line-height: 1.55; border-left: 3px solid var(--border2); }
-.quote-meta { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
-.signal-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.tag-score-bad{background:#fbeae8;color:#c0392b}.tag-score-ok{background:var(--amber-bg);color:var(--amber)}
+.tag-q{background:var(--blue-bg);color:var(--blue)}.tag-owner{background:#f3f0ff;color:#5b35b5}
+.tag-ae{background:#e8f7f0;color:#2a7a4e}.tag-pa{background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.comment-text{font-size:13px;color:var(--text);line-height:1.55}.comment-account{font-size:11px;color:var(--text3);margin-top:4px}
+.breakdown-section{margin-bottom:40px}
+.qtr-header{display:flex;align-items:baseline;gap:14px;margin-bottom:16px;padding-bottom:10px;border-bottom:2px solid var(--border);flex-wrap:wrap}
+.qtr-label{font-size:20px;font-weight:700}.qtr-nps{font-size:14px;font-weight:600;padding:3px 10px;border-radius:20px}
+.qtr-n{font-size:13px;color:var(--text3)}.qtr-delta{font-size:13px;font-weight:600}
+.qtr-delta.pos{color:var(--green)}.qtr-delta.neg{color:var(--red)}
+.insights-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap);margin-bottom:var(--gap)}
+@media(max-width:700px){.insights-grid{grid-template-columns:1fr}}
+.insight-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.insight-block-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.insight-block-body{font-size:13px;color:var(--text2);line-height:1.65}
+.theme-pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin:2px 2px 2px 0;background:var(--blue-bg);color:var(--blue)}
+.theme-pill.red{background:var(--red-bg);color:var(--red)}.theme-pill.amber{background:var(--amber-bg);color:var(--amber)}.theme-pill.purple{background:#f3f0ff;color:#5b35b5}
+.qtr-narrative{font-size:14px;color:var(--text2);line-height:1.75;margin-bottom:var(--gap);padding:14px 16px;background:var(--surface2);border-radius:var(--radius);border-left:3px solid var(--border2)}
+.qtr-narrative strong{color:var(--text)}.signal-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.tag-3p{background:#fff3e0;color:#e65100;border:1px solid #ffcc80;font-weight:600}
 </style>
 </head>
 <body>
-
 <nav>
   <div class="nav-brand">Lawmatics <span>NPS</span></div>
   <div class="nav-links">
-    <button class="nav-link active" onclick="showPage('overview')">Overview</button>
-    <button class="nav-link" onclick="showPage('trends')">QoQ Trends</button>
-    <button class="nav-link" onclick="showPage('practice')">Practice Area</button>
-    <button class="nav-link" onclick="showPage('owners')">Account Owners</button>
-    <button class="nav-link" onclick="showPage('ae')">Account Executives</button>
-    <button class="nav-link" onclick="showPage('segments')">Segments</button>
-    <button class="nav-link" onclick="showPage('tenure')">Tenure</button>
-    <button class="nav-link" onclick="showPage('comments')">Comments</button>
-    <button class="nav-link" onclick="showPage('breakdown')">Written Analysis</button>
-    <button class="nav-link" onclick="showPage('setup')">Setup Guide</button>
+    <button class="nav-link active" onclick="showPage('overview',this)">Overview</button>
+    <button class="nav-link" onclick="showPage('trends',this)">QoQ Trends</button>
+    <button class="nav-link" onclick="showPage('themes',this)">Theme Drill-Down</button>
+    <button class="nav-link" onclick="showPage('practice',this)">Practice Area</button>
+    <button class="nav-link" onclick="showPage('owners',this)">Account Owners</button>
+    <button class="nav-link" onclick="showPage('ae',this)">Account Executives</button>
+    <button class="nav-link" onclick="showPage('segments',this)">Segments</button>
+    <button class="nav-link" onclick="showPage('tenure',this)">Tenure</button>
+    <button class="nav-link" onclick="showPage('breakdown',this)">Written Analysis</button>
   </div>
-  <div class="nav-right" id="last-updated">—</div>
+  <div class="nav-right" id="last-updated">&#8212;</div>
 </nav>
-
 <main>
+
+
 
 <!-- OVERVIEW -->
 <div class="page active" id="page-overview">
@@ -884,467 +794,303 @@ function getGitHubFile_() {
     <div id="tenure-narrative" style="font-size:13px;color:var(--text2);line-height:1.8;display:flex;flex-direction:column;gap:12px;"></div>
   </div>
 </div>
-</main>
 
+<div class="page" id="page-themes">
+
+  <div class="section">
+    <div class="section-title">UX/UI &amp; product gaps — QoQ trend</div>
+    <div class="card">
+      <div class="card-title">Top two detractor themes as % of detractor comments per quarter</div>
+      <div class="card-sub">Click any bar to see what customers are saying that quarter</div>
+      <div class="chart-wrap h240"><canvas id="theme-qoq-chart" role="img" aria-label="UX and product gap theme frequency by quarter"></canvas></div>
+    </div>
+  </div>
+
+  <div class="two-col" style="margin-bottom:var(--gap)">
+    <div class="card" style="cursor:pointer;border:2px solid transparent" id="ux-selector" onclick="selectTheme('ux')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="card-title" style="margin:0">Ease of use / UX</div>
+        <span id="ux-badge" style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--red-bg);color:var(--red)">click to explore</span>
+      </div>
+      <div class="chart-wrap h160"><canvas id="ux-sub-chart" role="img" aria-label="UX sub-theme breakdown"></canvas></div>
+    </div>
+    <div class="card" style="cursor:pointer;border:2px solid transparent" id="gap-selector" onclick="selectTheme('gap')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="card-title" style="margin:0">Product gaps</div>
+        <span id="gap-badge" style="font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;background:var(--blue-bg);color:var(--blue)">click to explore</span>
+      </div>
+      <div class="chart-wrap h160"><canvas id="gap-sub-chart" role="img" aria-label="Product gap sub-theme breakdown"></canvas></div>
+    </div>
+  </div>
+
+  <div id="theme-drill-panel" style="display:none">
+    <div class="section">
+      <div class="section-title" id="drill-section-label">Drill-down</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" id="sub-filter-row"></div>
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+          <div>
+            <div class="card-title" id="drill-title">—</div>
+            <div class="card-sub" id="drill-sub">Select a sub-theme above</div>
+          </div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="filter-label">Quarter:</span>
+            <select id="drill-q-filter" onchange="renderDrillComments()" style="min-width:100px">
+              <option value="all">All quarters</option>
+            </select>
+          </div>
+        </div>
+        <div id="drill-comment-list" class="comment-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section" style="margin-top:8px">
+    <div class="section-title">What customers are actually saying</div>
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">UX/UI — strongest signal quotes</div>
+        <div class="comment-list" id="ux-highlight-comments"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Product gaps — strongest signal quotes</div>
+        <div class="comment-list" id="gap-highlight-comments"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+</main>
 <script>
 window.__NPS_DATA__ = {"quarters":["2025-Q1","2025-Q2","2025-Q3","2025-Q4","2026-Q1","2026-Q2"],"tenure_buckets":["0\u20132 mo","3\u20135 mo","6\u201311 mo","12\u201323 mo","24+ mo"],"by_quarter":{"2025-Q1":{"nps":38.1,"n":97,"promoters":58,"passives":18,"detractors":21,"pct_p":59.8,"pct_pa":18.6,"pct_d":21.6,"avg_score":7.69},"2025-Q2":{"nps":22.6,"n":195,"promoters":103,"passives":33,"detractors":59,"pct_p":52.8,"pct_pa":16.9,"pct_d":30.3,"avg_score":7.28},"2025-Q3":{"nps":29.2,"n":178,"promoters":94,"passives":42,"detractors":42,"pct_p":52.8,"pct_pa":23.6,"pct_d":23.6,"avg_score":7.56},"2025-Q4":{"nps":29.9,"n":164,"promoters":92,"passives":29,"detractors":43,"pct_p":56.1,"pct_pa":17.7,"pct_d":26.2,"avg_score":7.63},"2026-Q1":{"nps":15.6,"n":231,"promoters":112,"passives":43,"detractors":76,"pct_p":48.5,"pct_pa":18.6,"pct_d":32.9,"avg_score":6.81},"2026-Q2":{"nps":13.1,"n":168,"promoters":81,"passives":28,"detractors":59,"pct_p":48.2,"pct_pa":16.7,"pct_d":35.1,"avg_score":6.8}},"by_tenure":{"0\u20132 mo":{"nps":-100.0,"n":1,"promoters":0,"detractors":1,"pct_p":0.0,"pct_d":100.0},"3\u20135 mo":{"nps":-3.2,"n":31,"promoters":13,"detractors":14,"pct_p":41.9,"pct_d":45.2},"6\u201311 mo":{"nps":4.2,"n":143,"promoters":64,"detractors":58,"pct_p":44.8,"pct_d":40.6},"12\u201323 mo":{"nps":24.6,"n":256,"promoters":138,"detractors":75,"pct_p":53.9,"pct_d":29.3},"24+ mo":{"nps":27.8,"n":579,"promoters":309,"detractors":148,"pct_p":53.4,"pct_d":25.6}},"by_tenure_quarter":{"0\u20132 mo":{},"3\u20135 mo":{"2025-Q1":{"nps":-20.0,"n":5},"2025-Q3":{"nps":-33.3,"n":3},"2025-Q4":{"nps":50.0,"n":4},"2026-Q1":{"nps":0.0,"n":8},"2026-Q2":{"nps":-33.3,"n":9}},"6\u201311 mo":{"2025-Q1":{"nps":46.2,"n":13},"2025-Q2":{"nps":-9.8,"n":41},"2025-Q3":{"nps":42.1,"n":19},"2025-Q4":{"nps":-7.1,"n":14},"2026-Q1":{"nps":-30.0,"n":30},"2026-Q2":{"nps":23.1,"n":26}},"12\u201323 mo":{"2025-Q1":{"nps":29.2,"n":24},"2025-Q2":{"nps":39.1,"n":46},"2025-Q3":{"nps":28.9,"n":45},"2025-Q4":{"nps":25.0,"n":44},"2026-Q1":{"nps":16.9,"n":71},"2026-Q2":{"nps":7.7,"n":26}},"24+ mo":{"2025-Q1":{"nps":45.1,"n":51},"2025-Q2":{"nps":25.2,"n":103},"2025-Q3":{"nps":26.7,"n":105},"2025-Q4":{"nps":36.8,"n":95},"2026-Q1":{"nps":27.1,"n":118},"2026-Q2":{"nps":15.9,"n":107}}},"tenure_themes":{"0\u20132 mo":{"total":0,"themes":{"Ease of use / UX":0,"Bugs / reliability":0,"Support access":0,"Onboarding / setup":0,"Product gaps":0,"Pricing / value":0,"Sales mismatch":0}},"3\u20135 mo":{"total":9,"themes":{"Ease of use / UX":0,"Bugs / reliability":0,"Support access":1,"Onboarding / setup":1,"Product gaps":2,"Pricing / value":0,"Sales mismatch":0}},"6\u201311 mo":{"total":40,"themes":{"Ease of use / UX":9,"Bugs / reliability":8,"Support access":7,"Onboarding / setup":9,"Product gaps":8,"Pricing / value":3,"Sales mismatch":1}},"12\u201323 mo":{"total":49,"themes":{"Ease of use / UX":11,"Bugs / reliability":5,"Support access":10,"Onboarding / setup":10,"Product gaps":12,"Pricing / value":6,"Sales mismatch":1}},"24+ mo":{"total":100,"themes":{"Ease of use / UX":22,"Bugs / reliability":15,"Support access":13,"Onboarding / setup":13,"Product gaps":37,"Pricing / value":8,"Sales mismatch":0}}},"by_practice":{"Bankruptcy":{"nps":9.1,"n":11,"promoters":5,"detractors":4},"Business Law":{"nps":-6.9,"n":29,"promoters":10,"detractors":12},"Civil Litigation":{"nps":25.0,"n":12,"promoters":7,"detractors":4},"Consumer Protection":{"nps":0.0,"n":10,"promoters":4,"detractors":4},"Criminal Defense":{"nps":16.9,"n":71,"promoters":35,"detractors":23},"Employment Law":{"nps":55.6,"n":27,"promoters":19,"detractors":4},"Estate Planning":{"nps":19.4,"n":310,"promoters":150,"detractors":90},"Family Law":{"nps":42.0,"n":143,"promoters":92,"detractors":32},"General Practice":{"nps":-5.9,"n":17,"promoters":8,"detractors":9},"Immigration":{"nps":26.3,"n":57,"promoters":29,"detractors":14},"Intellectual Property":{"nps":15.4,"n":13,"promoters":6,"detractors":4},"Other":{"nps":-16.7,"n":6,"promoters":2,"detractors":3},"Personal Injury":{"nps":58.3,"n":24,"promoters":17,"detractors":3},"Real Estate Law":{"nps":0.0,"n":7,"promoters":3,"detractors":3},"Tax Law":{"nps":-60.0,"n":5,"promoters":1,"detractors":4},"Unknown":{"nps":21.6,"n":282,"promoters":146,"detractors":85}},"by_practice_quarter":{"Bankruptcy":{"2025-Q2":{"nps":0.0,"n":5}},"Business Law":{"2025-Q2":{"nps":-60.0,"n":5},"2025-Q3":{"nps":40.0,"n":5},"2025-Q4":{"nps":-12.5,"n":8},"2026-Q1":{"nps":0.0,"n":3},"2026-Q2":{"nps":16.7,"n":6}},"Civil Litigation":{"2025-Q3":{"nps":33.3,"n":3},"2026-Q2":{"nps":50.0,"n":4}},"Consumer Protection":{"2025-Q1":{"nps":66.7,"n":3}},"Criminal Defense":{"2025-Q2":{"nps":76.9,"n":13},"2025-Q3":{"nps":20.0,"n":10},"2025-Q4":{"nps":60.0,"n":15},"2026-Q1":{"nps":-20.0,"n":15},"2026-Q2":{"nps":-50.0,"n":16}},"Employment Law":{"2025-Q1":{"nps":0.0,"n":3},"2025-Q2":{"nps":100.0,"n":6},"2025-Q3":{"nps":50.0,"n":4},"2025-Q4":{"nps":100.0,"n":5},"2026-Q1":{"nps":50.0,"n":4},"2026-Q2":{"nps":0.0,"n":5}},"Estate Planning":{"2025-Q1":{"nps":43.5,"n":23},"2025-Q2":{"nps":12.7,"n":55},"2025-Q3":{"nps":28.1,"n":57},"2025-Q4":{"nps":19.0,"n":42},"2026-Q1":{"nps":7.7,"n":78},"2026-Q2":{"nps":23.6,"n":55}},"Family Law":{"2025-Q1":{"nps":89.5,"n":19},"2025-Q2":{"nps":62.5,"n":24},"2025-Q3":{"nps":43.5,"n":23},"2025-Q4":{"nps":34.6,"n":26},"2026-Q1":{"nps":12.5,"n":32},"2026-Q2":{"nps":26.3,"n":19}},"General Practice":{"2025-Q2":{"nps":0.0,"n":4},"2025-Q4":{"nps":-20.0,"n":5},"2026-Q2":{"nps":20.0,"n":5}},"Immigration":{"2025-Q1":{"nps":75.0,"n":8},"2025-Q2":{"nps":25.0,"n":16},"2025-Q3":{"nps":-11.1,"n":9},"2025-Q4":{"nps":44.4,"n":9},"2026-Q1":{"nps":14.3,"n":7},"2026-Q2":{"nps":12.5,"n":8}},"Intellectual Property":{"2026-Q1":{"nps":33.3,"n":6}},"Other":{},"Personal Injury":{"2025-Q2":{"nps":-33.3,"n":3},"2025-Q4":{"nps":80.0,"n":5},"2026-Q1":{"nps":80.0,"n":10},"2026-Q2":{"nps":66.7,"n":3}},"Real Estate Law":{},"Tax Law":{},"Unknown":{"2025-Q1":{"nps":9.7,"n":31},"2025-Q2":{"nps":5.9,"n":51},"2025-Q3":{"nps":30.5,"n":59},"2025-Q4":{"nps":22.2,"n":36},"2026-Q1":{"nps":25.4,"n":67},"2026-Q2":{"nps":31.6,"n":38}}},"by_practice_tenure":{"Bankruptcy":{"12\u201323 mo":{"nps":33.3,"n":3},"24+ mo":{"nps":14.3,"n":7}},"Business Law":{"6\u201311 mo":{"nps":0.0,"n":10},"12\u201323 mo":{"nps":-12.5,"n":8},"24+ mo":{"nps":0.0,"n":10}},"Civil Litigation":{"12\u201323 mo":{"nps":-33.3,"n":3},"24+ mo":{"nps":37.5,"n":8}},"Consumer Protection":{"6\u201311 mo":{"nps":100.0,"n":3},"12\u201323 mo":{"nps":0.0,"n":3},"24+ mo":{"nps":-75.0,"n":4}},"Criminal Defense":{"3\u20135 mo":{"nps":-60.0,"n":5},"6\u201311 mo":{"nps":14.3,"n":7},"12\u201323 mo":{"nps":0.0,"n":12},"24+ mo":{"nps":28.3,"n":46}},"Employment Law":{"12\u201323 mo":{"nps":46.2,"n":13},"24+ mo":{"nps":66.7,"n":12}},"Estate Planning":{"3\u20135 mo":{"nps":12.5,"n":8},"6\u201311 mo":{"nps":0.0,"n":33},"12\u201323 mo":{"nps":18.9,"n":74},"24+ mo":{"nps":22.1,"n":181}},"Family Law":{"3\u20135 mo":{"nps":0.0,"n":4},"6\u201311 mo":{"nps":-19.2,"n":26},"12\u201323 mo":{"nps":84.2,"n":19},"24+ mo":{"nps":51.6,"n":93}},"General Practice":{"6\u201311 mo":{"nps":-14.3,"n":7},"12\u201323 mo":{"nps":0.0,"n":6},"24+ mo":{"nps":-33.3,"n":3}},"Immigration":{"3\u20135 mo":{"nps":33.3,"n":3},"6\u201311 mo":{"nps":-37.5,"n":8},"12\u201323 mo":{"nps":26.3,"n":19},"24+ mo":{"nps":44.4,"n":27}},"Intellectual Property":{"6\u201311 mo":{"nps":-33.3,"n":3},"24+ mo":{"nps":12.5,"n":8}},"Other":{"12\u201323 mo":{"nps":-66.7,"n":3}},"Personal Injury":{"6\u201311 mo":{"nps":41.7,"n":12},"12\u201323 mo":{"nps":100.0,"n":7},"24+ mo":{"nps":66.7,"n":3}},"Real Estate Law":{"24+ mo":{"nps":-33.3,"n":3}},"Tax Law":{"24+ mo":{"nps":-33.3,"n":3}},"Unknown":{"3\u20135 mo":{"nps":0.0,"n":4},"6\u201311 mo":{"nps":18.5,"n":27},"12\u201323 mo":{"nps":19.5,"n":82},"24+ mo":{"nps":21.6,"n":162}}},"by_owner":{"Admir Karamovic":{"nps":18.2,"n":77},"Andrew Campbell":{"nps":15.4,"n":13},"Andy Galindo":{"nps":9.0,"n":67},"Bobby Orozco":{"nps":50.0,"n":50},"Callie Burns":{"nps":36.7,"n":60},"Clare Struzzi":{"nps":-16.7,"n":24},"Elliott Jones":{"nps":35.9,"n":223},"Jessie Hobbs":{"nps":23.4,"n":77},"Johnny Bissell":{"nps":18.8,"n":16},"Julia Anderson":{"nps":55.6,"n":9},"Julio Ortiz":{"nps":21.1,"n":114},"Kennedy Wickham":{"nps":21.5,"n":79},"Matt Spiegel":{"nps":40.3,"n":62},"Paul Witthans":{"nps":80.0,"n":5},"Sarah Bottorff":{"nps":-5.3,"n":19},"Swetha Devakumar":{"nps":-3.3,"n":61},"Unknown":{"nps":13.6,"n":44},"Val Kirsch":{"nps":-50.0,"n":6},"Will Mancini":{"nps":12.5,"n":8}},"by_owner_quarter":{"Admir Karamovic":{"2025-Q1":{"nps":-28.6,"n":7},"2025-Q2":{"nps":-20.0,"n":15},"2025-Q3":{"nps":37.5,"n":16},"2025-Q4":{"nps":45.5,"n":11},"2026-Q1":{"nps":22.2,"n":18},"2026-Q2":{"nps":40.0,"n":10}},"Andrew Campbell":{"2025-Q4":{"nps":0.0,"n":3},"2026-Q1":{"nps":0.0,"n":4}},"Andy Galindo":{"2025-Q1":{"nps":25.0,"n":8},"2025-Q2":{"nps":0.0,"n":10},"2025-Q3":{"nps":21.4,"n":14},"2025-Q4":{"nps":33.3,"n":6},"2026-Q1":{"nps":-7.1,"n":14},"2026-Q2":{"nps":0.0,"n":15}},"Bobby Orozco":{"2025-Q1":{"nps":80.0,"n":5},"2025-Q2":{"nps":18.2,"n":11},"2025-Q3":{"nps":62.5,"n":8},"2025-Q4":{"nps":72.7,"n":11},"2026-Q1":{"nps":75.0,"n":4},"2026-Q2":{"nps":27.3,"n":11}},"Callie Burns":{"2025-Q2":{"nps":57.1,"n":14},"2025-Q3":{"nps":20.0,"n":10},"2025-Q4":{"nps":66.7,"n":6},"2026-Q1":{"nps":-23.5,"n":17},"2026-Q2":{"nps":91.7,"n":12}},"Clare Struzzi":{"2025-Q1":{"nps":33.3,"n":3},"2025-Q2":{"nps":-20.0,"n":5},"2025-Q4":{"nps":33.3,"n":3},"2026-Q1":{"nps":14.3,"n":7},"2026-Q2":{"nps":-100.0,"n":4}},"Elliott Jones":{"2025-Q1":{"nps":45.5,"n":22},"2025-Q2":{"nps":30.4,"n":46},"2025-Q3":{"nps":51.2,"n":41},"2025-Q4":{"nps":50.0,"n":32},"2026-Q1":{"nps":22.4,"n":49},"2026-Q2":{"nps":24.2,"n":33}},"Jessie Hobbs":{"2025-Q1":{"nps":50.0,"n":8},"2025-Q2":{"nps":44.4,"n":9},"2025-Q3":{"nps":-20.0,"n":10},"2025-Q4":{"nps":37.5,"n":16},"2026-Q1":{"nps":30.0,"n":20},"2026-Q2":{"nps":0.0,"n":14}},"Johnny Bissell":{"2025-Q3":{"nps":-66.7,"n":3},"2025-Q4":{"nps":0.0,"n":4},"2026-Q1":{"nps":0.0,"n":4}},"Julia Anderson":{"2026-Q2":{"nps":33.3,"n":3}},"Julio Ortiz":{"2025-Q1":{"nps":36.4,"n":11},"2025-Q2":{"nps":31.8,"n":22},"2025-Q3":{"nps":22.7,"n":22},"2025-Q4":{"nps":-13.3,"n":15},"2026-Q1":{"nps":38.5,"n":26},"2026-Q2":{"nps":0.0,"n":18}},"Kennedy Wickham":{"2025-Q1":{"nps":0.0,"n":7},"2025-Q2":{"nps":36.4,"n":11},"2025-Q3":{"nps":42.9,"n":14},"2025-Q4":{"nps":6.7,"n":15},"2026-Q1":{"nps":22.2,"n":18},"2026-Q2":{"nps":14.3,"n":14}},"Matt Spiegel":{"2025-Q1":{"nps":30.0,"n":10},"2025-Q2":{"nps":20.0,"n":15},"2025-Q3":{"nps":44.4,"n":9},"2025-Q4":{"nps":88.9,"n":9},"2026-Q1":{"nps":30.8,"n":13},"2026-Q2":{"nps":50.0,"n":6}},"Paul Witthans":{},"Sarah Bottorff":{"2025-Q2":{"nps":-25.0,"n":4},"2025-Q3":{"nps":0.0,"n":6},"2025-Q4":{"nps":-100.0,"n":3},"2026-Q1":{"nps":100.0,"n":3}},"Swetha Devakumar":{"2025-Q2":{"nps":15.4,"n":13},"2025-Q3":{"nps":11.1,"n":9},"2025-Q4":{"nps":0.0,"n":9},"2026-Q1":{"nps":-22.2,"n":18},"2026-Q2":{"nps":-10.0,"n":10}},"Unknown":{"2025-Q1":{"nps":66.7,"n":3},"2025-Q2":{"nps":25.0,"n":8},"2025-Q3":{"nps":71.4,"n":7},"2025-Q4":{"nps":30.0,"n":10},"2026-Q1":{"nps":-37.5,"n":8},"2026-Q2":{"nps":-37.5,"n":8}},"Val Kirsch":{},"Will Mancini":{"2025-Q2":{"nps":0.0,"n":4}}},"by_ae":{"Aimee Domescik":{"nps":70.0,"n":10},"Andrew Campbell":{"nps":3.0,"n":33},"Andrew Field":{"nps":16.7,"n":36},"Bobby Orozco":{"nps":37.4,"n":182},"Brandon Low":{"nps":71.4,"n":7},"Derek Morton":{"nps":0.0,"n":11},"Eduardo Adame":{"nps":12.0,"n":150},"Eric Nelson":{"nps":33.3,"n":6},"Ian Thorleifson":{"nps":22.9,"n":96},"John Ramon":{"nps":-10.0,"n":10},"Johnny Bissell":{"nps":72.7,"n":11},"Justin Shephard":{"nps":37.5,"n":8},"Kaia Dobbs":{"nps":14.8,"n":27},"Kelly Dembicer":{"nps":28.6,"n":7},"Matt Spiegel":{"nps":37.2,"n":113},"Ron Young":{"nps":15.2,"n":66},"Ryan Valley":{"nps":16.7,"n":6},"Sarah Bottorff":{"nps":5.7,"n":35},"Sean Bowman":{"nps":0.0,"n":25},"Tyler Page":{"nps":0.0,"n":16},"Unknown":{"nps":33.3,"n":12},"Val Kirsch":{"nps":12.2,"n":82},"Will Mancini":{"nps":29.6,"n":71}},"by_ae_quarter":{"Aimee Domescik":{"2025-Q2":{"nps":66.7,"n":3},"2025-Q3":{"nps":66.7,"n":3}},"Andrew Campbell":{"2025-Q1":{"nps":25.0,"n":4},"2025-Q2":{"nps":40.0,"n":5},"2025-Q3":{"nps":33.3,"n":6},"2025-Q4":{"nps":0.0,"n":5},"2026-Q1":{"nps":-33.3,"n":9},"2026-Q2":{"nps":-25.0,"n":4}},"Andrew Field":{"2025-Q1":{"nps":-20.0,"n":5},"2025-Q2":{"nps":-11.1,"n":9},"2025-Q3":{"nps":42.9,"n":7},"2026-Q1":{"nps":11.1,"n":9},"2026-Q2":{"nps":75.0,"n":4}},"Bobby Orozco":{"2025-Q1":{"nps":76.2,"n":21},"2025-Q2":{"nps":32.4,"n":37},"2025-Q3":{"nps":45.5,"n":33},"2025-Q4":{"nps":28.6,"n":35},"2026-Q1":{"nps":38.5,"n":26},"2026-Q2":{"nps":16.7,"n":30}},"Brandon Low":{"2026-Q1":{"nps":100.0,"n":3}},"Derek Morton":{"2026-Q1":{"nps":20.0,"n":5}},"Eduardo Adame":{"2025-Q1":{"nps":17.6,"n":17},"2025-Q2":{"nps":-16.7,"n":24},"2025-Q3":{"nps":16.1,"n":31},"2025-Q4":{"nps":45.5,"n":22},"2026-Q1":{"nps":-2.6,"n":38},"2026-Q2":{"nps":27.8,"n":18}},"Eric Nelson":{},"Ian Thorleifson":{"2025-Q1":{"nps":60.0,"n":5},"2025-Q2":{"nps":45.5,"n":22},"2025-Q3":{"nps":12.5,"n":8},"2025-Q4":{"nps":30.8,"n":13},"2026-Q1":{"nps":7.7,"n":26},"2026-Q2":{"nps":9.1,"n":22}},"John Ramon":{"2026-Q2":{"nps":0.0,"n":9}},"Johnny Bissell":{"2025-Q4":{"nps":80.0,"n":5},"2026-Q1":{"nps":33.3,"n":3}},"Justin Shephard":{},"Kaia Dobbs":{"2025-Q2":{"nps":0.0,"n":6},"2025-Q3":{"nps":0.0,"n":3},"2025-Q4":{"nps":33.3,"n":6},"2026-Q1":{"nps":50.0,"n":6},"2026-Q2":{"nps":-40.0,"n":5}},"Kelly Dembicer":{},"Matt Spiegel":{"2025-Q1":{"nps":28.6,"n":14},"2025-Q2":{"nps":18.2,"n":22},"2025-Q3":{"nps":31.2,"n":16},"2025-Q4":{"nps":76.2,"n":21},"2026-Q1":{"nps":44.0,"n":25},"2026-Q2":{"nps":13.3,"n":15}},"Ron Young":{"2025-Q1":{"nps":20.0,"n":5},"2025-Q2":{"nps":50.0,"n":12},"2025-Q3":{"nps":9.1,"n":11},"2025-Q4":{"nps":0.0,"n":10},"2026-Q1":{"nps":0.0,"n":20},"2026-Q2":{"nps":25.0,"n":8}},"Ryan Valley":{"2026-Q1":{"nps":-25.0,"n":4}},"Sarah Bottorff":{"2025-Q1":{"nps":0.0,"n":3},"2025-Q2":{"nps":22.2,"n":9},"2025-Q3":{"nps":33.3,"n":9},"2025-Q4":{"nps":-40.0,"n":5},"2026-Q1":{"nps":50.0,"n":4},"2026-Q2":{"nps":-60.0,"n":5}},"Sean Bowman":{"2025-Q4":{"nps":80.0,"n":5},"2026-Q1":{"nps":-50.0,"n":8},"2026-Q2":{"nps":0.0,"n":11}},"Tyler Page":{"2025-Q3":{"nps":25.0,"n":4},"2025-Q4":{"nps":-50.0,"n":4},"2026-Q1":{"nps":-33.3,"n":3}},"Unknown":{"2025-Q3":{"nps":100.0,"n":4},"2026-Q1":{"nps":-33.3,"n":3},"2026-Q2":{"nps":33.3,"n":3}},"Val Kirsch":{"2025-Q1":{"nps":-25.0,"n":8},"2025-Q2":{"nps":0.0,"n":13},"2025-Q3":{"nps":0.0,"n":18},"2025-Q4":{"nps":0.0,"n":12},"2026-Q1":{"nps":44.4,"n":18},"2026-Q2":{"nps":30.8,"n":13}},"Will Mancini":{"2025-Q1":{"nps":66.7,"n":6},"2025-Q2":{"nps":35.0,"n":20},"2025-Q3":{"nps":46.7,"n":15},"2025-Q4":{"nps":12.5,"n":8},"2026-Q1":{"nps":27.3,"n":11},"2026-Q2":{"nps":-9.1,"n":11}}},"by_lead_bucket":{"0":{"nps":19.6,"n":265},"1\u201324":{"nps":11.5,"n":156},"25\u201374":{"nps":25.0,"n":164},"75\u2013199":{"nps":25.5,"n":184},"200+":{"nps":31.0,"n":252},"Unknown":{"nps":33.3,"n":12}},"by_tca_bucket":{"<$1K":{"nps":19.5,"n":694},"$1K\u2013$3K":{"nps":24.6,"n":228},"$3K\u2013$6K":{"nps":32.7,"n":49},"$6K\u2013$12K":{"nps":58.0,"n":50},"$12K+":{"nps":null,"n":0},"Unknown":{"nps":33.3,"n":12}},"detractor_themes_by_quarter":{"2025-Q1":{"total_detractors":17,"Ease of use / UX":4,"Bugs / reliability":3,"Support access":3,"Onboarding / setup":2,"Product gaps":4,"Pricing / value":0,"Sales mismatch":0},"2025-Q2":{"total_detractors":35,"Ease of use / UX":8,"Bugs / reliability":9,"Support access":8,"Onboarding / setup":3,"Product gaps":15,"Pricing / value":5,"Sales mismatch":0},"2025-Q3":{"total_detractors":27,"Ease of use / UX":6,"Bugs / reliability":2,"Support access":4,"Onboarding / setup":10,"Product gaps":9,"Pricing / value":0,"Sales mismatch":0},"2025-Q4":{"total_detractors":29,"Ease of use / UX":8,"Bugs / reliability":0,"Support access":5,"Onboarding / setup":4,"Product gaps":9,"Pricing / value":1,"Sales mismatch":0},"2026-Q1":{"total_detractors":54,"Ease of use / UX":10,"Bugs / reliability":10,"Support access":7,"Onboarding / setup":8,"Product gaps":12,"Pricing / value":5,"Sales mismatch":2},"2026-Q2":{"total_detractors":40,"Ease of use / UX":7,"Bugs / reliability":4,"Support access":4,"Onboarding / setup":7,"Product gaps":13,"Pricing / value":6,"Sales mismatch":0}},"recent_detractor_comments":[{"quarter":"2026-Q1","score":0,"account":"The de la Torre Law Office LLC","owner":"Admir Karamovic","ae":"Kaia Dobbs","practice":"Unknown","tenure":"24+ mo","start_date":"5/27/2022","comment":"very slow, lately has been very slow and with bug. do not recommend"},{"quarter":"2026-Q1","score":0,"account":"RB LEGAL, LLC","owner":"Swetha Devakumar","ae":"Ron Young","practice":"Estate Planning","tenure":"12\u201323 mo","start_date":"8/28/2024","comment":"Everything."},{"quarter":"2026-Q1","score":0,"account":"Punchwork","owner":"Elliott Jones","ae":"Eduardo Adame","practice":"General Practice","tenure":"12\u201323 mo","start_date":"11/19/2024","comment":"Support is awful; product stops working often, scheduling links need a function of expiring or using only once;"},{"quarter":"2026-Q1","score":0,"account":"Vanderwall Immigration","owner":"Julio Ortiz","ae":"Val Kirsch","practice":"Unknown","tenure":"24+ mo","start_date":"11/16/2023","comment":"Communication and integration with google meets for appointment locations."},{"quarter":"2026-Q1","score":0,"account":"John M. Crane, P.C.","owner":"Unknown","ae":"Matt Spiegel","practice":"Unknown","tenure":"12\u201323 mo","start_date":"12/21/2024","comment":"Show subscribers how to use it"},{"quarter":"2026-Q1","score":0,"account":"KEYTLaw, LLC","owner":"Callie Burns","ae":"Ian Thorleifson","practice":"Estate Planning","tenure":"6\u201311 mo","start_date":"2/13/2025","comment":"Pay me the $7,000+ I paid for your  software I never used."},{"quarter":"2026-Q1","score":0,"account":"Oyen Wiggs Green & Mutala LLP","owner":"Andrew Campbell","ae":"Andrew Campbell","practice":"Intellectual Property","tenure":"24+ mo","start_date":"7/7/2021","comment":"Fix latency issues, provide better customization of the appearance of automated emails, improve compatibility with online webforms"},{"quarter":"2026-Q1","score":0,"account":"Mulembo Law PLLC","owner":"Kennedy Wickham","ae":"Ian Thorleifson","practice":"Criminal Defense","tenure":"6\u201311 mo","start_date":"5/23/2025","comment":"This software is very difficult to use. I don't like that I have to jump through hoops to make changes. It is also cost prohibitive if your staff utilizes part timers/interns"},{"quarter":"2026-Q1","score":0,"account":"The Lemon Law Attorneys","owner":"Elliott Jones","ae":"Ian Thorleifson","practice":"Other","tenure":"6\u201311 mo","start_date":"3/20/2025","comment":"Too many latency issues/ bugs."},{"quarter":"2026-Q1","score":0,"account":"Dume Law Group","owner":"Callie Burns","ae":"Sean Bowman","practice":"Family Law","tenure":"6\u201311 mo","start_date":"8/12/2025","comment":"Platform is not user friendly at all. Too many useless functions taking up space, making the platform super confusing."},{"quarter":"2026-Q1","score":0,"account":"Clint W. Perryman, P.C.","owner":"Kennedy Wickham","ae":"Sean Bowman","practice":"Criminal Defense","tenure":"3\u20135 mo","start_date":"8/11/2025","comment":"Customer Service"},{"quarter":"2026-Q1","score":0,"account":"Dume Law Group","owner":"Callie Burns","ae":"Sean Bowman","practice":"Family Law","tenure":"6\u201311 mo","start_date":"8/12/2025","comment":"simplify the tasks"},{"quarter":"2026-Q1","score":0,"account":"Path Forward Legal","owner":"Callie Burns","ae":"Eric Nelson","practice":"Unknown","tenure":"24+ mo","start_date":"4/10/2023","comment":"API hasn't been updated in years; there is no accessible logging or auditing available for changes to database; automations do not allow use of entire feature set; GUI changes make it harder to use; not accessible with font/colors; does not have needed features like one-off signatures; integrations "},{"quarter":"2026-Q2","score":0,"account":"LifeBack Law Firm","owner":"Julio Ortiz","ae":"Bobby Orozco","practice":"Unknown","tenure":"24+ mo","start_date":"2/10/2022","comment":"Customer service, and response times."},{"quarter":"2026-Q2","score":0,"account":"Welmerink Law, P.C.","owner":"Clare Struzzi","ae":"Kaia Dobbs","practice":"Estate Planning","tenure":"24+ mo","start_date":"9/16/2022","comment":"It has been extremely frustrating having everything we set up changing so regularly, having the 100+ hours of set-up with automations and appointments and e-mails having been eliminated with changes to the systems, and being nickeled and dimed with the messaging fees (when every other provider we us"},{"quarter":"2026-Q2","score":0,"account":"Lainiotis Law LLC","owner":"Andrew Campbell","ae":"Andrew Campbell","practice":"Estate Planning","tenure":"24+ mo","start_date":"7/14/2021","comment":"Assist with onboarding and setting up or at least explaining the system better."},{"quarter":"2026-Q1","score":0,"account":"Schafer Law Firm, P.C.","owner":"Andy Galindo","ae":"Eduardo Adame","practice":"Unknown","tenure":"24+ mo","start_date":"11/10/2022","comment":"Nothing. I don't want to lose any competitive advantages I have LOL!"},{"quarter":"2026-Q2","score":0,"account":"Fitzgerald & Campbell, APLC(New)","owner":"Julio Ortiz","ae":"Matt Spiegel","practice":"Criminal Defense","tenure":"24+ mo","start_date":"2/2/2021","comment":"Not having delays when sending agreements."},{"quarter":"2026-Q2","score":0,"account":"Strub Law, LLC","owner":"Will Mancini","ae":"Will Mancini","practice":"Estate Planning","tenure":"24+ mo","start_date":"2/14/2023","comment":"I do not like the NPS. I think it's a weird question."},{"quarter":"2026-Q1","score":0,"account":"Tanis McGonegal Family Law, P.C","owner":"Eduardo Adame","ae":"Eduardo Adame","practice":"Family Law","tenure":"24+ mo","start_date":"2/28/2023","comment":"Office Hours for technical support is not enough.  I should be able to have dedicated time with a tech support person to resolve complex issues.  I have called and left messages for help on numerous occasions and either don't hear back for days or never hear anything back."},{"quarter":"2026-Q2","score":0,"account":"Stecklein Law","owner":"Val Kirsch","ae":"Val Kirsch","practice":"Consumer Protection","tenure":"24+ mo","start_date":"8/14/2023","comment":"My hourly rate for troubleshooting and website development is $400, billed in 4-hour increments, with a non-refundable $10,000 retainer."},{"quarter":"2026-Q1","score":0,"account":"Harris Federal Law Firm","owner":"Julio Ortiz","ae":"Andrew Campbell","practice":"Unknown","tenure":"24+ mo","start_date":"11/23/2021","comment":"redesign bad"},{"quarter":"2026-Q2","score":0,"account":"Gleam Law","owner":"Bobby Orozco","ae":"Bobby Orozco","practice":"General Practice","tenure":"24+ mo","start_date":"12/6/2021","comment":"Respond to support requests even once!"},{"quarter":"2026-Q2","score":0,"account":"Wolford Wayne LLP","owner":"Julio Ortiz","ae":"Ron Young","practice":"Civil Litigation","tenure":"12\u201323 mo","start_date":"10/24/2024","comment":"document signing is difficult and takes too long to set up if multiple initials, signatures needed. Hate having to sign in every day"},{"quarter":"2026-Q1","score":0,"account":"Colorado Legal Group","owner":"Matt Spiegel","ae":"Justin Shephard","practice":"Family Law","tenure":"24+ mo","start_date":"12/30/2020","comment":"This platform is full of glitches and bugs, half the time the automations do not run correctly and it's a MAJOR headache. I would not recommend Lawmatics to anyone."},{"quarter":"2026-Q2","score":0,"account":"The Law Firm of Webster & Carlton","owner":"Swetha Devakumar","ae":"Sean Bowman","practice":"Employment Law","tenure":"12\u201323 mo","start_date":"4/17/2025","comment":"stop billing me for an account i requested not to renew in February of 2026"},{"quarter":"2026-Q1","score":0,"account":"Ferguson Widmayer & Clark, PC","owner":"Elliott Jones","ae":"Derek Morton","practice":"Estate Planning","tenure":"6\u201311 mo","start_date":"4/21/2025","comment":"Too many issues with customization needed for small to midsize firms"},{"quarter":"2026-Q1","score":0,"account":"RB LEGAL, LLC","owner":"Swetha Devakumar","ae":"Ron Young","practice":"Estate Planning","tenure":"12\u201323 mo","start_date":"8/28/2024","comment":"It is time consuming, messy and has been problematic"},{"quarter":"2026-Q1","score":0,"account":"J. Cameron Law, PLLC","owner":"Swetha Devakumar","ae":"Sean Bowman","practice":"Intellectual Property","tenure":"6\u201311 mo","start_date":"7/31/2025","comment":"Not force people to purchase 3 seats they don't know, be dishonest in your sales pitch meetings, and let people try the product before locking them into a annual contract."},{"quarter":"2026-Q2","score":0,"account":"Law Offices of Stephanie K Kitzes APC","owner":"Kennedy Wickham","ae":"Sean Bowman","practice":"Estate Planning","tenure":"6\u201311 mo","start_date":"10/6/2025","comment":"Functionally integrate with 365"},{"quarter":"2026-Q2","score":0,"account":"The Law Office of Robert Tsigler, LLC","owner":"Elliott Jones","ae":"Eduardo Adame","practice":"Criminal Defense","tenure":"24+ mo","start_date":"3/18/2024","comment":"everything"},{"quarter":"2026-Q2","score":0,"account":"Puget Law Group","owner":"Elliott Jones","ae":"John Ramon","practice":"Criminal Defense","tenure":"3\u20135 mo","start_date":"12/15/2025","comment":"I don't use the product."},{"quarter":"2026-Q2","score":0,"account":"Dublin Packard","owner":"Unknown","ae":"Matt Spiegel","practice":"Unknown","tenure":"12\u201323 mo","start_date":"9/3/2024","comment":"Too expensive. There are many cheaper options that can do a much or more."},{"quarter":"2026-Q2","score":0,"account":"Fabian, Sklar, King & Liss, P.C.","owner":"Clare Struzzi","ae":"Kaia Dobbs","practice":"Real Estate Law","tenure":"24+ mo","start_date":"11/17/2022","comment":"It's nothing you can do better... I just feel like the service is unnecessary."},{"quarter":"2026-Q1","score":1,"account":"Law Office of David Standridge","owner":"Ron Young","ae":"Ron Young","practice":"Estate Planning","tenure":"12\u201323 mo","start_date":"3/1/2024","comment":"support has really changed.  when i started with lawmatics years ago i could talk to someone and get help quickly, which meant that i didn't need to send so many emails and chats.  your culture is changing."},{"quarter":"2026-Q1","score":1,"account":"RB LEGAL, LLC","owner":"Swetha Devakumar","ae":"Ron Young","practice":"Estate Planning","tenure":"12\u201323 mo","start_date":"8/28/2024","comment":"The onboarding experience was/is poor."},{"quarter":"2026-Q1","score":1,"account":"Hallett Legal Group, LLC","owner":"Clare (OLD)","ae":"Ron Young","practice":"Unknown","tenure":"12\u201323 mo","start_date":"7/15/2024","comment":"They are so many tech probelms"},{"quarter":"2026-Q2","score":1,"account":"Strong Law","owner":"Jessie Hobbs","ae":"Will Mancini","practice":"Estate Planning","tenure":"24+ mo","start_date":"1/27/2023","comment":"I have invested so much time and money into Lawmatics and consultants, it's very difficult to understand how things work or make a change."},{"quarter":"2026-Q1","score":1,"account":"Poppy Legal Group","owner":"Kennedy Wickham","ae":"Eduardo Adame","practice":"Family Law","tenure":"12\u201323 mo","start_date":"5/31/2024","comment":"I have paid for this product for two years and haven't used it. I was recommended by Lawmatics to use David Crum - Cardinal Concepts, now US Legal Marketing Group, who only wreacked havoc in the LM system, made things confusing to try to unwind, and am still working with Kennedy (who is great, and t"},{"quarter":"2026-Q1","score":1,"account":"Island View Law, PC","owner":"Swetha Devakumar","ae":"John Ramon","practice":"Estate Planning","tenure":"6\u201311 mo","start_date":"9/12/2025","comment":"pricing is way too high; functionality still doesn't work well for our firm."}],"meta":{"total_responses":1033,"date_range":"Jan 2025 \u2013 Jun 2026","last_updated":"2026-06-29","quarters":["2025-Q1","2025-Q2","2025-Q3","2025-Q4","2026-Q1","2026-Q2"]}};
+window.__THEME_DATA__ = {"quarters":["2025-Q1","2025-Q2","2025-Q3","2025-Q4","2026-Q1","2026-Q2"],"qoq":{"2025-Q1":{"total":17,"ux":4,"gap":6,"ux_pct":24,"gap_pct":35,"ux_subs":{"Redesign & layout changes":0,"Too complex / overwhelming":1,"Automation UX":0,"Hard to navigate":0,"Needs simplification":0,"Steep learning curve":0,"Mobile & consultation use":0},"gap_subs":{"Reporting & analytics":3,"Document & eSign":1,"Automation capabilities":0,"Integrations":1,"Calendar & scheduling":0,"Email / SMS / comms":1,"Custom fields & forms":0,"Admin & permissions":0}},"2025-Q2":{"total":35,"ux":10,"gap":18,"ux_pct":29,"gap_pct":51,"ux_subs":{"Redesign & layout changes":0,"Too complex / overwhelming":2,"Automation UX":0,"Hard to navigate":0,"Needs simplification":1,"Steep learning curve":1,"Mobile & consultation use":0},"gap_subs":{"Reporting & analytics":6,"Document & eSign":2,"Automation capabilities":1,"Integrations":3,"Calendar & scheduling":2,"Email / SMS / comms":4,"Custom fields & forms":1,"Admin & permissions":1}},"2025-Q3":{"total":27,"ux":7,"gap":11,"ux_pct":26,"gap_pct":41,"ux_subs":{"Redesign & layout changes":0,"Too complex / overwhelming":1,"Automation UX":0,"Hard to navigate":1,"Needs simplification":1,"Steep learning curve":1,"Mobile & consultation use":0},"gap_subs":{"Reporting & analytics":4,"Document & eSign":1,"Automation capabilities":0,"Integrations":3,"Calendar & scheduling":1,"Email / SMS / comms":0,"Custom fields & forms":0,"Admin & permissions":1}},"2025-Q4":{"total":29,"ux":8,"gap":12,"ux_pct":28,"gap_pct":41,"ux_subs":{"Redesign & layout changes":0,"Too complex / overwhelming":2,"Automation UX":0,"Hard to navigate":0,"Needs simplification":3,"Steep learning curve":1,"Mobile & consultation use":1},"gap_subs":{"Reporting & analytics":3,"Document & eSign":1,"Automation capabilities":0,"Integrations":2,"Calendar & scheduling":2,"Email / SMS / comms":0,"Custom fields & forms":0,"Admin & permissions":1}},"2026-Q1":{"total":54,"ux":13,"gap":13,"ux_pct":24,"gap_pct":24,"ux_subs":{"Redesign & layout changes":2,"Too complex / overwhelming":5,"Automation UX":2,"Hard to navigate":1,"Needs simplification":1,"Steep learning curve":1,"Mobile & consultation use":1},"gap_subs":{"Reporting & analytics":5,"Document & eSign":4,"Automation capabilities":1,"Integrations":2,"Calendar & scheduling":2,"Email / SMS / comms":1,"Custom fields & forms":1,"Admin & permissions":1}},"2026-Q2":{"total":40,"ux":8,"gap":15,"ux_pct":20,"gap_pct":38,"ux_subs":{"Redesign & layout changes":3,"Too complex / overwhelming":1,"Automation UX":1,"Hard to navigate":0,"Needs simplification":1,"Steep learning curve":0,"Mobile & consultation use":1},"gap_subs":{"Reporting & analytics":1,"Document & eSign":3,"Automation capabilities":1,"Integrations":6,"Calendar & scheduling":5,"Email / SMS / comms":2,"Custom fields & forms":0,"Admin & permissions":2}}},"ux_subs":["Redesign & layout changes","Too complex / overwhelming","Automation UX","Hard to navigate","Needs simplification","Steep learning curve","Mobile & consultation use"],"gap_subs":["Reporting & analytics","Document & eSign","Automation capabilities","Integrations","Calendar & scheduling","Email / SMS / comms","Custom fields & forms","Admin & permissions"],"ux_comments":{"Redesign & layout changes":[{"quarter":"2026-Q1","score":0,"practice":"Unknown","owner":"Julio Ortiz","ae":"Andrew Campbell","account":"Harris Federal Law Firm","comment":"redesign bad"},{"quarter":"2026-Q2","score":2,"practice":"Family Law","owner":"Andy Galindo","ae":"Will Mancini","account":"View Ridge Law","comment":"Fix your redesign. It is awful. It is anytime user friendly during consultations."},{"quarter":"2026-Q2","score":5,"practice":"Unknown","owner":"Elliott Jones","ae":"Matt Spiegel","account":"Family First Firm","comment":"You complicated a good product with the chages in format"},{"quarter":"2026-Q2","score":5,"practice":"Unknown","owner":"Unknown","ae":"Matt Spiegel","account":"Pearson Bollman Law","comment":"Not a fan of the new layout - does not feel as user friendly as before"}],"Too complex / overwhelming":[{"quarter":"2025-Q3","score":0,"practice":"Unknown","owner":"Admir Karamovic","ae":"Eduardo Adame","account":"Law Offices of William V. Pernik","comment":"Your program is too complicated to set up or operate"},{"quarter":"2026-Q1","score":0,"practice":"Family Law","owner":"Callie Burns","ae":"Sean Bowman","account":"Dume Law Group","comment":"Platform is not user friendly at all. Too many useless functions taking up space, making the platform super confusing."},{"quarter":"2026-Q1","score":0,"practice":"Estate Planning","owner":"Swetha Devakumar","ae":"Ron Young","account":"RB LEGAL, LLC","comment":"It is time consuming, messy and has been problematic"},{"quarter":"2026-Q2","score":1,"practice":"Real Estate Law","owner":"Julio Ortiz","ae":"Will Mancini","account":"Woolsey Morcom","comment":"Make it less annoying and more user friendly. My phrase when I describe Lawmatics is thar it was designed in hell, to be honest. Sorry, you asked."},{"quarter":"2026-Q1","score":2,"practice":"Estate Planning","owner":"Callie Burns","ae":"Sean Bowman","account":"Mike Massey Law","comment":"Had it for over 6 months and never used it once. Too confusing and too hard to get help"},{"quarter":"2025-Q2","score":3,"practice":"Unknown","owner":"Kennedy Wickham","ae":"Val Kirsch","account":"Poole Huffman","comment":"There are too many steps from logging in to getting to the place where a decision can be made. As a \"salesperson,\" I don't need to go through all of those. I should be directed to the page relevant to me, with access to the other stuff if I need it (which I usually don't). Those steps make Lawmatics cumbersome."},{"quarter":"2025-Q4","score":4,"practice":"Family Law","owner":"Johnny Bissell","ae":"Bobby Orozco","account":"Bardley McKnight Law LLC","comment":"it's too complicated and not user friendly"}],"Automation UX":[{"quarter":"2026-Q2","score":2,"practice":"Estate Planning","owner":"Unknown","ae":"Sarah Bottorff","account":"Vick Law, P.C.","comment":"The functionality is good but not nearly intuitive. I feel like I have to be a computer programmer to make an automation work. In the age of AI, creating automations and workflows could be much, much easier for law office management teams."},{"quarter":"2026-Q1","score":4,"practice":"Employment Law","owner":"Elliott Jones","ae":"Andrew Field","account":"Mills Sadat Dowlat","comment":"Automation, user interface with regard to forms and setting automation, designated account managers for any customizations, better mobile app, better online training availability such as Youtube videos."},{"quarter":"2026-Q1","score":5,"practice":"Estate Planning","owner":"Callie Burns","ae":"Andrew Field","account":"August Law, PLLC","comment":"Email attachments, client file uploading/organization, the automations are complicated."}],"Hard to navigate":[{"quarter":"2026-Q1","score":0,"practice":"Criminal Defense","owner":"Kennedy Wickham","ae":"Ian Thorleifson","account":"Mulembo Law PLLC","comment":"This software is very difficult to use. I don't like that I have to jump through hoops to make changes. It is also cost prohibitive if your staff utilizes part timers/interns"},{"quarter":"2025-Q3","score":3,"practice":"Family Law","owner":"Admir Karamovic","ae":"Matt Spiegel","account":"Colwell Law","comment":"Navigation between contacts and their matters and auto flagging contacts with same phone number or email address. There is no zip look up feature either. Reports are not intuitive"}],"Needs simplification":[{"quarter":"2026-Q1","score":0,"practice":"Family Law","owner":"Callie Burns","ae":"Sean Bowman","account":"Dume Law Group","comment":"simplify the tasks"},{"quarter":"2026-Q2","score":1,"practice":"Real Estate Law","owner":"Julio Ortiz","ae":"Will Mancini","account":"Woolsey Morcom","comment":"Make it less annoying and more user friendly. My phrase when I describe Lawmatics is thar it was designed in hell, to be honest. Sorry, you asked."},{"quarter":"2025-Q4","score":2,"practice":"Family Law","owner":"Admir Karamovic","ae":"Derek Morton","account":"Lotspeich Law, LLC","comment":"Make it more user friendly and offer better support."},{"quarter":"2025-Q4","score":3,"practice":"Business Law","owner":"Sarah Bottorff","ae":"Sarah Bottorff","account":"KEW Legal","comment":"make the program more user friendly.  too expensive to set up and annoying MFA."},{"quarter":"2025-Q2","score":4,"practice":"Estate Planning","owner":"Andy Galindo","ae":"Will Mancini","account":"Oliver Law","comment":"Take more accountability for errors on your end instead of gaslighting customers, and provide a more user friendly and intuitive way to implement automations."},{"quarter":"2025-Q3","score":5,"practice":"Immigration","owner":"Jessie Hobbs","ae":"Ron Young","account":"Scarborough Law, L.L.C","comment":"More Streamlined interface"},{"quarter":"2025-Q4","score":5,"practice":"Estate Planning","owner":"Sarah Bottorff","ae":"Sarah Bottorff","account":"Meyer-Spencer","comment":"make it more intuitive and user friendly so that I don't have to hire a third party to create and edit my automations"}],"Steep learning curve":[{"quarter":"2025-Q3","score":1,"practice":"Family Law","owner":"Unknown","ae":"Bobby Orozco","account":"Attorney Sharon Jackson, LLC","comment":"I am a long term client.  Nobody reaches out to me to see if the software is working for me or how to make it better. It is too hard to set up. I had some basic initial help but never really got what I needed. I am in the process of replacing Lawmatics within the next 6 months."},{"quarter":"2026-Q1","score":2,"practice":"Estate Planning","owner":"Callie Burns","ae":"Tyler Page","account":"Rosewood Law PLC","comment":"Hard to set up and use, support lacking"},{"quarter":"2025-Q4","score":3,"practice":"General Practice","owner":"Jessie Hobbs","ae":"Ron Young","account":"ALH Law Group","comment":"Compared to other law firm tools - this has a big learning curve and not intuitive."},{"quarter":"2025-Q2","score":5,"practice":"Unknown","owner":"Jessie Hobbs","ae":"Val Kirsch","account":"Hiatt Law LLC","comment":"More templated features, hard to figure out how to do certain things, hard to talk to someone when you need it, nitpicking on seats for bookkeepers rather than cheap or free for somebody just trying to read a report to do your books that will not otherwise be in LM at all"}],"Mobile & consultation use":[{"quarter":"2026-Q2","score":2,"practice":"Family Law","owner":"Andy Galindo","ae":"Will Mancini","account":"View Ridge Law","comment":"Fix your redesign. It is awful. It is anytime user friendly during consultations."},{"quarter":"2026-Q1","score":4,"practice":"Employment Law","owner":"Elliott Jones","ae":"Andrew Field","account":"Mills Sadat Dowlat","comment":"Automation, user interface with regard to forms and setting automation, designated account managers for any customizations, better mobile app, better online training availability such as Youtube videos."}]},"gap_comments":{"Reporting & analytics":[{"quarter":"2025-Q4","score":0,"practice":"Estate Planning","owner":"Elliott Jones","ae":"Bobby Orozco","account":"Oath Law","comment":"Have trained us better from the start. Been more responsive to needs. Have a better reporting/filtering system. Make it easier to search for client names."},{"quarter":"2026-Q1","score":2,"practice":"Estate Planning","owner":"Jessie Hobbs","ae":"Eduardo Adame","account":"Law Office of Aisha M. Williams, APC","comment":"Have functional reporting tools."},{"quarter":"2025-Q1","score":3,"practice":"Unknown","owner":"Elliott Jones","ae":"Val Kirsch","account":"The Nieves Law Firm","comment":"Custom dashboard features and reporting"},{"quarter":"2025-Q2","score":3,"practice":"Immigration","owner":"Andy Galindo","ae":"Eric Nelson","account":"Jarrett & Price","comment":"I had this for 2 years. There are basic design flaws that, in my opinion, make this platform difficult to use. I would recommend less features, and make sure the features 90 percent of attorneys are going to need are clearly visible on the dashboard. A simple thing like automating the resending of a contract is not clearly visible when you create a contract. You have to go to \"manage e-signatures\""},{"quarter":"2025-Q2","score":3,"practice":"Business Law","owner":"Admir Karamovic","ae":"Andrew Field","account":"Tacenda Law Group, PLLC","comment":"Roadmap, faster responses, fewer bugs, more transparency about what this product aims to be...the document management solution is worst in class, for example, and there appears to be no interest in improving it. Time and billing having no origination tracking is a pain. Weak integration with QuickBooks online (why can't I move the timekeeper field into my financial reporting software?)"},{"quarter":"2025-Q3","score":3,"practice":"Family Law","owner":"Admir Karamovic","ae":"Matt Spiegel","account":"Colwell Law","comment":"Navigation between contacts and their matters and auto flagging contacts with same phone number or email address. There is no zip look up feature either. Reports are not intuitive"},{"quarter":"2026-Q1","score":3,"practice":"Unknown","owner":"Elliott Jones","ae":"Sarah Bottorff","account":"The Network for Public Health","comment":"It is not as effective as platforms purpose-built for email marketing. Email creation, analytics, and campaign optimization tools are comparatively limited, and the system requires more setup and maintenance to achieve results that are easier to implement elsewhere. I'm sure this is useful in some way for firms, but especially considering how slow/glitchy the system is, I'm not sure why anyone wou"},{"quarter":"2026-Q1","score":3,"practice":"Estate Planning","owner":"Julio Ortiz","ae":"Ian Thorleifson","account":"Safe Harbor Estate Law","comment":"Significantly improve reporting and tracking referral source nurturing."},{"quarter":"2025-Q3","score":5,"practice":"Estate Planning","owner":"Elliott Jones","ae":"Matt Spiegel","account":"Cary Estate Planning","comment":"I like to see things at a glance. Some things are difficult to locate. However, the biggest feature you should have are totals at the bottom of each screen; e.g. totals for time entered in matters, totals for expenses, etc. We should not have to run reports to see totals, they should be there at a glance so that we can easily and quickly see the totals, be more responsive to our clients and co-cou"},{"quarter":"2025-Q2","score":5,"practice":"Unknown","owner":"Jessie Hobbs","ae":"Val Kirsch","account":"Hiatt Law LLC","comment":"More templated features, hard to figure out how to do certain things, hard to talk to someone when you need it, nitpicking on seats for bookkeepers rather than cheap or free for somebody just trying to read a report to do your books that will not otherwise be in LM at all"},{"quarter":"2025-Q1","score":5,"practice":"Unknown","owner":"Matt Spiegel","ae":"Matt Spiegel","account":"Law Office of William C. Peacock","comment":"Develop the software. The core functionality hasn't changed in six years, at least for what I do. \n\nMarketing tracking is still not good, so I have to use WhatConverts. Doc automation isn't good enough for complex forms, so I have to use docassemble. E-sign is okay but clients find the UI confusing, so I have to use signaturely. There's no outbound webhooks in automations, so I have to Zap anythin"},{"quarter":"2026-Q2","score":5,"practice":"Immigration","owner":"Swetha Devakumar","ae":"Bobby Orozco","account":"Odunlami Law Firm","comment":"Lawmatics does not have good reports.  Its hard to make business plans based on inaccurate reporting.  Would also like for it to have more robust features for social media marketing. Also, have a way for intake to keep track of their leads."},{"quarter":"2026-Q1","score":5,"practice":"Estate Planning","owner":"Julio Ortiz","ae":"Johnny Bissell","account":"Sawyer & Associates","comment":"Really improve the reporting, it is close to useless and is never accurate on a month to month basis, that now we just reverted back to manual reporting at this time. Some of the dashboard numbers we see on opening the system, also does not align to actual numbers of the firm. Improve multistate firm functionality, system can only do single state functonality at the moment."},{"quarter":"2025-Q2","score":6,"practice":"Unknown","owner":"Admir Karamovic","ae":"Will Mancini","account":"Portalatin Law Firm","comment":"Analytics are not quite there. Reporting needs to be more comprehensive and AI is lacking."},{"quarter":"2025-Q3","score":6,"practice":"Criminal Defense","owner":"Julio Ortiz","ae":"Eduardo Adame","account":"Cannon & Associates PLLC","comment":"The analytics could be easier to compile. We currently have to manually add sources etc."},{"quarter":"2025-Q4","score":6,"practice":"Family Law","owner":"Andy Galindo","ae":"Will Mancini","account":"View Ridge Law","comment":"better reporting"},{"quarter":"2025-Q4","score":6,"practice":"Business Law","owner":"Admir Karamovic","ae":"Will Mancini","account":"Parag L. Amin","comment":"The old dashboard/interface was much easier to navigate than the updated version. This year, there were a number of tech issues resulting in us pausing business, some not being resolved for days at a time. On the bright side, other smaller issues are resolved quickly."},{"quarter":"2026-Q1","score":6,"practice":"Family Law","owner":"Johnny Bissell","ae":"Andrew Campbell","account":"Klie Law","comment":"I really need the self-service data feature back. it's costing me a lot of productivity and consistency in reporting. Also the slow-downs and other functionality issues in the last several months have been discouraging."}],"Document & eSign":[{"quarter":"2026-Q1","score":0,"practice":"Unknown","owner":"Callie Burns","ae":"Eric Nelson","account":"Path Forward Legal","comment":"API hasn't been updated in years; there is no accessible logging or auditing available for changes to database; automations do not allow use of entire feature set; GUI changes make it harder to use; not accessible with font/colors; does not have needed features like one-off signatures; integrations are brittle."},{"quarter":"2026-Q1","score":0,"practice":"Unknown","owner":"Julio Ortiz","ae":"Andrew Campbell","account":"Harris Federal Law Firm","comment":"redesign bad"},{"quarter":"2026-Q2","score":0,"practice":"Civil Litigation","owner":"Julio Ortiz","ae":"Ron Young","account":"Wolford Wayne LLP","comment":"document signing is difficult and takes too long to set up if multiple initials, signatures needed. Hate having to sign in every day"},{"quarter":"2026-Q2","score":1,"practice":"Real Estate Law","owner":"Julio Ortiz","ae":"Will Mancini","account":"Woolsey Morcom","comment":"Make it less annoying and more user friendly. My phrase when I describe Lawmatics is thar it was designed in hell, to be honest. Sorry, you asked."},{"quarter":"2026-Q2","score":2,"practice":"Family Law","owner":"Andy Galindo","ae":"Will Mancini","account":"View Ridge Law","comment":"Fix your redesign. It is awful. It is anytime user friendly during consultations."},{"quarter":"2025-Q2","score":3,"practice":"Bankruptcy","owner":"Matt Spiegel","ae":"Matt Spiegel","account":"Klein & Sheridan, LC","comment":"The interface is not intuitive.  And, the document signing system is really difficult to use.  It's gotten better though.  But, my employees find the product hard to use."},{"quarter":"2025-Q2","score":3,"practice":"Immigration","owner":"Andy Galindo","ae":"Eric Nelson","account":"Jarrett & Price","comment":"I had this for 2 years. There are basic design flaws that, in my opinion, make this platform difficult to use. I would recommend less features, and make sure the features 90 percent of attorneys are going to need are clearly visible on the dashboard. A simple thing like automating the resending of a contract is not clearly visible when you create a contract. You have to go to \"manage e-signatures\""},{"quarter":"2025-Q4","score":4,"practice":"Family Law","owner":"Jessie Hobbs","ae":"Bobby Orozco","account":"Seiden Legal Group","comment":"it took forever to figure it out. it took numerous calls and onboardings. There was no help in designing an appropriate methodology for intake. We aren't experts in HOW to use this software or even the best way to use this software and i constantly feel like im paying for functionality im not using. It has been frustrating and im doubtful i will renew."},{"quarter":"2026-Q1","score":4,"practice":"Employment Law","owner":"Elliott Jones","ae":"Andrew Field","account":"Mills Sadat Dowlat","comment":"Automation, user interface with regard to forms and setting automation, designated account managers for any customizations, better mobile app, better online training availability such as Youtube videos."},{"quarter":"2025-Q1","score":5,"practice":"Unknown","owner":"Matt Spiegel","ae":"Matt Spiegel","account":"Law Office of William C. Peacock","comment":"Develop the software. The core functionality hasn't changed in six years, at least for what I do. \n\nMarketing tracking is still not good, so I have to use WhatConverts. Doc automation isn't good enough for complex forms, so I have to use docassemble. E-sign is okay but clients find the UI confusing, so I have to use signaturely. There's no outbound webhooks in automations, so I have to Zap anythin"},{"quarter":"2025-Q3","score":6,"practice":"Family Law","owner":"Bobby Orozco","ae":"Bobby Orozco","account":"Figueroa Law Group, PA","comment":"Easier way to set up forms/template when it comes to the fillable forms. It's great you can copy and paste a field but having to designate who is to fill it out each and every time is time consuming. If I copy and paste a field that is already designated, that should copy over too."}],"Automation capabilities":[{"quarter":"2025-Q2","score":0,"practice":"Business Law","owner":"Andy Galindo","ae":"Val Kirsch","account":"Ragab Law Firm","comment":"allow conditional logic to work like a filter- allow custom forms to pull up other custom forms"},{"quarter":"2026-Q1","score":0,"practice":"Unknown","owner":"Callie Burns","ae":"Eric Nelson","account":"Path Forward Legal","comment":"API hasn't been updated in years; there is no accessible logging or auditing available for changes to database; automations do not allow use of entire feature set; GUI changes make it harder to use; not accessible with font/colors; does not have needed features like one-off signatures; integrations are brittle."},{"quarter":"2026-Q2","score":6,"practice":"Unknown","owner":"Bobby Orozco","ae":"Bobby Orozco","account":"Roche Legal","comment":"Have improved automations functionality - like calculations"}],"Integrations":[{"quarter":"2025-Q3","score":0,"practice":"Estate Planning","owner":"Callie Burns","ae":"Tyler Page","account":"Snyder Elder Law & Estate Planning, LLC","comment":"I've repeatedly emailed back and forth with Johnny Bissell about the continued harassment of your company of my email inbox after I realized that what I was \"sold\" and what I was provided through my onboarding were not the same thing. I guess it's fortunate that he sent yet another email wanting to know my likelihood of sharing my experience I had with your company. I had received confirmation ema"},{"quarter":"2025-Q3","score":0,"practice":"Family Law","owner":"Admir Karamovic","ae":"Eduardo Adame","account":"Law Office of Ana Augusto","comment":"whatsapp is the primary chat channel and lawmatics doesn't support it despite their reassurance when we signed up.  Other multiple issues too."},{"quarter":"2026-Q1","score":0,"practice":"Unknown","owner":"Julio Ortiz","ae":"Val Kirsch","account":"Vanderwall Immigration","comment":"Communication and integration with google meets for appointment locations."},{"quarter":"2025-Q4","score":0,"practice":"Bankruptcy","owner":"Callie Burns","ae":"Tyler Page","account":"Krautkramer & Block LLC Law Firm","comment":"(1) Rocketmatter does not sync properly (2) When we have clients sign it hangs up on the signatures (3) When we try to add other parties to an appointment they do not get the calendar requests and it does not show up on the synced Outlook calendar."},{"quarter":"2026-Q1","score":0,"practice":"Unknown","owner":"Callie Burns","ae":"Eric Nelson","account":"Path Forward Legal","comment":"API hasn't been updated in years; there is no accessible logging or auditing available for changes to database; automations do not allow use of entire feature set; GUI changes make it harder to use; not accessible with font/colors; does not have needed features like one-off signatures; integrations are brittle."},{"quarter":"2026-Q2","score":0,"practice":"Estate Planning","owner":"Kennedy Wickham","ae":"Sean Bowman","account":"Law Offices of Stephanie K Kitzes APC","comment":"Functionally integrate with 365"},{"quarter":"2025-Q3","score":2,"practice":"Unknown","owner":"Clare Struzzi","ae":"Val Kirsch","account":"Gale & McAllister","comment":"email integration"},{"quarter":"2026-Q2","score":2,"practice":"Intellectual Property","owner":"Clare Struzzi","ae":"Kelly Dembicer","account":"Zachary Strebeck, Attorney at Law","comment":"Better ability to read shared google calendars."},{"quarter":"2025-Q2","score":3,"practice":"Business Law","owner":"Admir Karamovic","ae":"Andrew Field","account":"Tacenda Law Group, PLLC","comment":"Roadmap, faster responses, fewer bugs, more transparency about what this product aims to be...the document management solution is worst in class, for example, and there appears to be no interest in improving it. Time and billing having no origination tracking is a pain. Weak integration with QuickBooks online (why can't I move the timekeeper field into my financial reporting software?)"},{"quarter":"2025-Q4","score":3,"practice":"General Practice","owner":"Kennedy Wickham","ae":"Bobby Orozco","account":"Coonen Law, PLLC","comment":"Most of our team is still challenged to understand how to use the pipeline features, the lack of a true administrative interface where an admin can manage global and individual user settings, the martketing source ROI mechanism is clunky and troublesome to enter data into, and integrations are well-intentioned but not fully-developed before going to market."},{"quarter":"2025-Q2","score":5,"practice":"Unknown","owner":"Elliott Jones","ae":"Bobby Orozco","account":"Ticket Crushers","comment":"Excel on all items that a high volume practice needs to run efficiently. A lot of these items are so basic, Clio offers them, which in the space is considered antiquated."},{"quarter":"2025-Q1","score":5,"practice":"Other","owner":"Swetha Devakumar","ae":"Andrew Field","account":"Outsiders Law","comment":"File management, better integration with microsoft suite (onedrive and outlook)"},{"quarter":"2026-Q2","score":5,"practice":"Estate Planning","owner":"Andy Galindo","ae":"Eduardo Adame","account":"Simpson Law Firm","comment":"Took several days for me to add more users to my account , slow customer service.  Complicates to administer. I have a part time person to really keep it running for us.  I didn\u2019t need that with Clio."},{"quarter":"2026-Q2","score":5,"practice":"Criminal Defense","owner":"Elliott Jones","ae":"John Ramon","account":"Puget Law Group","comment":"I haven't had a chance to use it to its full potential. Currently, I see there are issues with the mapping of data fields in Lamatics and how those integrate with fields in Clio. I also see issues with how Lawmatics will update information and sync that data to Clio when such a sync is unwanted. Is that a Lawmatics problem? User error? I'm not sure. My role in my office is rather low on the totem "},{"quarter":"2025-Q2","score":6,"practice":"Estate Planning","owner":"Swetha Devakumar","ae":"Ian Thorleifson","account":"Butcher Elder Law","comment":"Functions of the calendar are very limited; Outlook appointment don't sync to LM, You cannot save settings for the view so you have to redo it each time you go back tot he screen. Task lists doesn't export to excel.  Only assigns emails if a particular email address is assigned to the matter, BUT, they don't always show up in the unassigned by and worse, there is no way, in Outlook, to verify your"},{"quarter":"2026-Q2","score":6,"practice":"Estate Planning","owner":"Andy Galindo","ae":"Eduardo Adame","account":"Adler Estate Law LLC","comment":"Imrprove functionality - add an Outlook extension to save emails; improve calendar function to allow for multiple criteria for availablity and scheduling, not just one"},{"quarter":"2026-Q2","score":6,"practice":"Business Law","owner":"Elliott Jones","ae":"Eduardo Adame","account":"Trautmann Martin Law PLLC","comment":"The onboarding was almost no help at all. I have essentially needed to teach myself how to use the automations from scratch, learn through trial and error what works, and lean on AI to help me sift through the documentation to sort out solutions to problems. There was a huge upfront cost in the onboarding and setup process due to us not having systems set up and running for the first probably 6 mo"}],"Calendar & scheduling":[{"quarter":"2025-Q2","score":0,"practice":"Unknown","owner":"Elliott Jones","ae":"Bobby Orozco","account":"Ticket Crushers","comment":"My calendar doesn't show up even though we've synced everything. I'm missing appointments and appearances. Not good."},{"quarter":"2026-Q1","score":0,"practice":"Unknown","owner":"Julio Ortiz","ae":"Val Kirsch","account":"Vanderwall Immigration","comment":"Communication and integration with google meets for appointment locations."},{"quarter":"2025-Q4","score":0,"practice":"Unknown","owner":"Elliott Jones","ae":"Bobby Orozco","account":"Ticket Crushers","comment":"Make it attorney-court-calendar friendly. It's a huge marketing tool and nothing more. Make it so we can PRINT the calendar so it lists all the cases/details separately for each day's work."},{"quarter":"2025-Q4","score":0,"practice":"Bankruptcy","owner":"Callie Burns","ae":"Tyler Page","account":"Krautkramer & Block LLC Law Firm","comment":"(1) Rocketmatter does not sync properly (2) When we have clients sign it hangs up on the signatures (3) When we try to add other parties to an appointment they do not get the calendar requests and it does not show up on the synced Outlook calendar."},{"quarter":"2026-Q2","score":0,"practice":"Estate Planning","owner":"Clare Struzzi","ae":"Kaia Dobbs","account":"Welmerink Law, P.C.","comment":"It has been extremely frustrating having everything we set up changing so regularly, having the 100+ hours of set-up with automations and appointments and e-mails having been eliminated with changes to the systems, and being nickeled and dimed with the messaging fees (when every other provider we use with SMS messaging includes it in their service fees)"},{"quarter":"2026-Q2","score":2,"practice":"Unknown","owner":"Elliott Jones","ae":"Bobby Orozco","account":"Ticket Crushers","comment":"There is no way to PRINT the calendar in a manner that shows EACH item distinctly and completely that's scheduled for a day. There is no way to cross-reference cases to indicate that the client has more than one case so that multiple cases can be resolved together and/or considered in disposition of subsequent cases. Lawmatics seems better geared toward marketing than toward attorney case handling"},{"quarter":"2026-Q2","score":2,"practice":"Intellectual Property","owner":"Clare Struzzi","ae":"Kelly Dembicer","account":"Zachary Strebeck, Attorney at Law","comment":"Better ability to read shared google calendars."},{"quarter":"2025-Q3","score":3,"practice":"Landlord Eviction","owner":"Eduardo Adame","ae":"Eduardo Adame","account":"Dimension Law Group, PLLC","comment":"Integrate mail in a useful way where unthreaded emails don't have to be relinked with every email. Allow groups of people to be applied to workflow rather than the whole team or a single person. Allow incomplete task reminders, not just reminders prior to the task; sync tasks to calendars without an event- we often set every other day reminders to follow up with legal paperwork, and this should be"},{"quarter":"2025-Q2","score":6,"practice":"Estate Planning","owner":"Swetha Devakumar","ae":"Ian Thorleifson","account":"Butcher Elder Law","comment":"Functions of the calendar are very limited; Outlook appointment don't sync to LM, You cannot save settings for the view so you have to redo it each time you go back tot he screen. Task lists doesn't export to excel.  Only assigns emails if a particular email address is assigned to the matter, BUT, they don't always show up in the unassigned by and worse, there is no way, in Outlook, to verify your"},{"quarter":"2026-Q2","score":6,"practice":"Estate Planning","owner":"Andy Galindo","ae":"Eduardo Adame","account":"Adler Estate Law LLC","comment":"Imrprove functionality - add an Outlook extension to save emails; improve calendar function to allow for multiple criteria for availablity and scheduling, not just one"},{"quarter":"2026-Q2","score":6,"practice":"Business Law","owner":"Elliott Jones","ae":"Eduardo Adame","account":"Trautmann Martin Law PLLC","comment":"The onboarding was almost no help at all. I have essentially needed to teach myself how to use the automations from scratch, learn through trial and error what works, and lean on AI to help me sift through the documentation to sort out solutions to problems. There was a huge upfront cost in the onboarding and setup process due to us not having systems set up and running for the first probably 6 mo"}],"Email / SMS / comms":[{"quarter":"2025-Q1","score":0,"practice":"Unknown","owner":"Matt Spiegel","ae":"Matt Spiegel","account":"Law Office of William C. Peacock","comment":"Stop glitching and sending old docs and SMSes to my clients."},{"quarter":"2026-Q2","score":0,"practice":"Estate Planning","owner":"Clare Struzzi","ae":"Kaia Dobbs","account":"Welmerink Law, P.C.","comment":"It has been extremely frustrating having everything we set up changing so regularly, having the 100+ hours of set-up with automations and appointments and e-mails having been eliminated with changes to the systems, and being nickeled and dimed with the messaging fees (when every other provider we use with SMS messaging includes it in their service fees)"},{"quarter":"2025-Q2","score":2,"practice":"General Practice","owner":"Elliott Jones","ae":"Eduardo Adame","account":"Punchwork","comment":"Make it easier for me to access my text messages. Make it easier to differentiate between read and unread texts. Every day, I have to comb through a list of messages to find the ones I need to respond to."},{"quarter":"2025-Q2","score":3,"practice":"Estate Planning","owner":"Admir Karamovic","ae":"Kaia Dobbs","account":"Law Offices of Sherri M. Stinson","comment":"The office hours stink and it's too hard to get help. The program is expensive and yet we're getting billed for text messages.  The office hours don't answer any real questions or provide any real help"},{"quarter":"2026-Q1","score":3,"practice":"Unknown","owner":"Elliott Jones","ae":"Sarah Bottorff","account":"The Network for Public Health","comment":"It is not as effective as platforms purpose-built for email marketing. Email creation, analytics, and campaign optimization tools are comparatively limited, and the system requires more setup and maintenance to achieve results that are easier to implement elsewhere. I'm sure this is useful in some way for firms, but especially considering how slow/glitchy the system is, I'm not sure why anyone wou"},{"quarter":"2025-Q2","score":5,"practice":"Estate Planning","owner":"Jessie Hobbs","ae":"Eduardo Adame","account":"Law Office of Aisha M. Williams, APC","comment":"Make sure things work. Make it easier to update data for matters via excel / csv cleanup. Get rid of Lawmatician. Make the FAQ be reflective of how the system currently works (see UX/UI changes vs help files). Decrease pricing overall - and why would MMS cost a dime more than the existing SMS - a lot more goodwill is built by adding features to an existing system than what you'll get on your P&L f"},{"quarter":"2026-Q2","score":6,"practice":"Business Law","owner":"Elliott Jones","ae":"Eduardo Adame","account":"Trautmann Martin Law PLLC","comment":"The onboarding was almost no help at all. I have essentially needed to teach myself how to use the automations from scratch, learn through trial and error what works, and lean on AI to help me sift through the documentation to sort out solutions to problems. There was a huge upfront cost in the onboarding and setup process due to us not having systems set up and running for the first probably 6 mo"}],"Custom fields & forms":[{"quarter":"2025-Q2","score":0,"practice":"Business Law","owner":"Andy Galindo","ae":"Val Kirsch","account":"Ragab Law Firm","comment":"allow conditional logic to work like a filter- allow custom forms to pull up other custom forms"},{"quarter":"2026-Q1","score":3,"practice":"Business Law","owner":"Swetha Devakumar","ae":"Ryan Valley","account":"Arora Zbar Llp.","comment":"The arbitrary limitations like not being able to have a related contact as a company, the requirement for a first on every form, the way internal forms can't be embedded, it's very odd. I am a technically skilled lawyer so I can figure it out and make it work, but this is not something I would recommend to a lawyer who isn't also tech savvy with code and automations (even without AI) like we have "}],"Admin & permissions":[{"quarter":"2025-Q4","score":3,"practice":"General Practice","owner":"Kennedy Wickham","ae":"Bobby Orozco","account":"Coonen Law, PLLC","comment":"Most of our team is still challenged to understand how to use the pipeline features, the lack of a true administrative interface where an admin can manage global and individual user settings, the martketing source ROI mechanism is clunky and troublesome to enter data into, and integrations are well-intentioned but not fully-developed before going to market."},{"quarter":"2025-Q2","score":5,"practice":"Unknown","owner":"Jessie Hobbs","ae":"Val Kirsch","account":"Hiatt Law LLC","comment":"More templated features, hard to figure out how to do certain things, hard to talk to someone when you need it, nitpicking on seats for bookkeepers rather than cheap or free for somebody just trying to read a report to do your books that will not otherwise be in LM at all"},{"quarter":"2026-Q2","score":5,"practice":"Estate Planning","owner":"Andy Galindo","ae":"Eduardo Adame","account":"Simpson Law Firm","comment":"Took several days for me to add more users to my account , slow customer service.  Complicates to administer. I have a part time person to really keep it running for us.  I didn\u2019t need that with Clio."},{"quarter":"2026-Q2","score":6,"practice":"Business Law","owner":"Elliott Jones","ae":"Eduardo Adame","account":"Trautmann Martin Law PLLC","comment":"The onboarding was almost no help at all. I have essentially needed to teach myself how to use the automations from scratch, learn through trial and error what works, and lean on AI to help me sift through the documentation to sort out solutions to problems. There was a huge upfront cost in the onboarding and setup process due to us not having systems set up and running for the first probably 6 mo"}]},"ux_totals":{"Redesign & layout changes":4,"Too complex / overwhelming":7,"Automation UX":3,"Hard to navigate":2,"Needs simplification":7,"Steep learning curve":4,"Mobile & consultation use":2},"gap_totals":{"Reporting & analytics":18,"Document & eSign":11,"Automation capabilities":3,"Integrations":17,"Calendar & scheduling":11,"Email / SMS / comms":7,"Custom fields & forms":2,"Admin & permissions":4}};
 
-const D = window.__NPS_DATA__;
-const QUARTERS = D.quarters;
-const GRID = '#e2e1d8';
-const TICK = '#888';
-
+var D = window.__NPS_DATA__;
+var TD = window.__THEME_DATA__;
+var QUARTERS = D.quarters;
+var G = "#e2e1d8", T = "#888";
+var charts = {};
+var activeTheme = null, activeSub = null;
+var AM_TEAM = ["elliott jones", "callie burns", "kennedy wickham", "jessie hobbs", "swetha devakumar", "julio ortiz", "andy galindo", "admir karamovic"];
 Chart.defaults.font.family = "Inter, system-ui, sans-serif";
 Chart.defaults.font.size = 12;
 
-function npsColor(v) {
-  if (v === null || v === undefined) return '#888';
-  if (v >= 30) return '#2a7a4e';
-  if (v >= 10) return '#b35a00';
-  return '#c0392b';
+function showPage(id,btn) {
+  document.querySelectorAll(".page").forEach(function(p){p.classList.remove("active");});
+  document.querySelectorAll(".nav-link").forEach(function(l){l.classList.remove("active");});
+  document.getElementById("page-"+id).classList.add("active");
+  if(btn) btn.classList.add("active");
 }
 function npsPill(v) {
-  if (v === null) return '<span class="nps-pill nps-neu">—</span>';
-  const cls = v >= 20 ? 'nps-pos' : v >= 0 ? 'nps-neu' : 'nps-neg';
-  const sign = v > 0 ? '+' : '';
-  return `<span class="nps-pill ${cls}">${sign}${v}</span>`;
+  if(v===null||v===undefined) return '<span class="nps-pill nps-neu">&#8212;</span>';
+  var cls=v>=20?"nps-pos":v>=0?"nps-neu":"nps-neg", s=v>0?"+":"";
+  return '<span class="nps-pill '+cls+'">'+s+v+'</span>';
 }
-function delta(a, b) {
-  if (a === null || b === null) return '<span style="color:#888">—</span>';
-  const d = Math.round((b - a) * 10) / 10;
-  const sign = d > 0 ? '+' : '';
-  const cls = d > 0 ? 'pos' : d < 0 ? 'neg' : 'flat';
-  return `<span class="kpi-delta ${cls}">${sign}${d}</span>`;
+function delta(a,b) {
+  if(a===null||b===null) return '<span style="color:#888">&#8212;</span>';
+  var d=Math.round((b-a)*10)/10, s=d>0?"+":"", cls=d>0?"pos":d<0?"neg":"flat";
+  return '<span class="kpi-delta '+cls+'">'+s+d+'</span>';
 }
-
-// PAGE NAV
-function showPage(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-  document.getElementById('page-'+id).classList.add('active');
-  event.target.classList.add('active');
+function npsColor(v) { return v>=30?"#2a7a4e":v>=10?"#b35a00":"#c0392b"; }
+function sgn(v) { return v>0?"+":""; }
+function makeChart(id,cfg) {
+  if(charts[id]){charts[id].destroy();delete charts[id];}
+  var el=document.getElementById(id); if(!el) return;
+  charts[id]=new Chart(el,cfg);
 }
 
-// CHART HELPERS
-let charts = {};
-function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
-function makeChart(id, config) { destroyChart(id); charts[id] = new Chart(document.getElementById(id), config); }
-
-// ===== OVERVIEW =====
 function initOverview() {
-  const qs = QUARTERS;
-  const latest = D.by_quarter[qs[qs.length-1]];
-  const prev = D.by_quarter[qs[qs.length-2]];
-  const yr25 = qs.filter(q=>q.startsWith('2025'));
-  const yr26 = qs.filter(q=>q.startsWith('2026'));
-  function yearNPS(qlist) {
-    const all = qlist.map(q=>D.by_quarter[q]);
-    const p = all.reduce((s,q)=>s+q.promoters,0);
-    const d = all.reduce((s,q)=>s+q.detractors,0);
-    const n = all.reduce((s,q)=>s+q.n,0);
-    return n ? Math.round((p-d)/n*1000)/10 : null;
-  }
-  const nps25 = yearNPS(yr25); const nps26 = yearNPS(yr26);
-  const kpis = [
-    {label:'Latest quarter NPS', val: (latest.nps>0?'+':'')+latest.nps, cls: latest.nps>=20?'up':latest.nps>=0?'neutral':'down', sub: qs[qs.length-1], extra: 'vs prev: '+delta(prev?.nps, latest.nps)},
-    {label:'2025 full-year NPS', val: (nps25>0?'+':'')+nps25, cls:'neutral', sub: yr25.join(', ')},
-    {label:'2026 YTD NPS', val: (nps26>0?'+':'')+nps26, cls: nps26<nps25?'down':'up', sub: yr26.join(', '), extra: 'vs 2025: '+delta(nps25, nps26)},
-    {label:'Total responses', val: D.meta.total_responses, cls:'neutral', sub: D.meta.date_range},
-    {label:'Latest promoter rate', val: latest.pct_p+'%', cls:'up', sub: qs[qs.length-1]},
-    {label:'Latest detractor rate', val: latest.pct_d+'%', cls:'down', sub: qs[qs.length-1]},
+  var qs=QUARTERS, lat=D.by_quarter[qs[qs.length-1]], prv=D.by_quarter[qs[qs.length-2]];
+  var yr25=qs.filter(function(q){return q.indexOf("2025")===0;}), yr26=qs.filter(function(q){return q.indexOf("2026")===0;});
+  function yNPS(ql){var p=0,d=0,n=0; ql.forEach(function(q){var qq=D.by_quarter[q];p+=qq.promoters;d+=qq.detractors;n+=qq.n;}); return n?Math.round((p-d)/n*1000)/10:null;}
+  var n25=yNPS(yr25), n26=yNPS(yr26);
+  var kpis=[
+    {l:"Latest quarter NPS",v:(lat.nps>0?"+":"")+lat.nps,c:lat.nps>=20?"up":lat.nps>=0?"neutral":"down",s:qs[qs.length-1],x:"vs prev: "+delta(prv?prv.nps:null,lat.nps)},
+    {l:"2025 full-year NPS",v:sgn(n25)+n25,c:"neutral",s:yr25.join(", ")},
+    {l:"2026 YTD NPS",v:sgn(n26)+n26,c:n26<n25?"down":"up",s:yr26.join(", "),x:"vs 2025: "+delta(n25,n26)},
+    {l:"Total responses",v:D.meta.total_responses,c:"neutral",s:D.meta.date_range},
+    {l:"Latest promoter rate",v:lat.pct_p+"%",c:"up",s:qs[qs.length-1]},
+    {l:"Latest detractor rate",v:lat.pct_d+"%",c:"down",s:qs[qs.length-1]},
   ];
-  document.getElementById('overview-kpis').innerHTML = kpis.map(k=>
-    `<div class="kpi"><div class="kpi-label">${k.label}</div><div class="kpi-val ${k.cls}">${k.val}</div><div class="kpi-sub">${k.sub}</div>${k.extra?`<div>${k.extra}</div>`:''}</div>`
-  ).join('');
-
-  // QoQ bar
-  makeChart('overview-qoq', {
-    type:'bar',
-    data:{labels:QUARTERS, datasets:[{
-      label:'NPS', data:QUARTERS.map(q=>D.by_quarter[q].nps),
-      backgroundColor:QUARTERS.map(q=>D.by_quarter[q].nps>=0?'#1a5fb4':'#c0392b'),
-      borderRadius:4, borderSkipped:false
-    }]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw}}},
-      scales:{x:{ticks:{color:TICK},grid:{color:GRID}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID},min:-15,max:45}}}
-  });
-
-  // Stacked %
-  makeChart('overview-stack',{
-    type:'bar',
-    data:{labels:QUARTERS, datasets:[
-      {label:'Promoters', data:QUARTERS.map(q=>D.by_quarter[q].pct_p), backgroundColor:'#2a7a4e', stack:'s'},
-      {label:'Passives',  data:QUARTERS.map(q=>D.by_quarter[q].pct_pa),backgroundColor:'#b35a00', stack:'s'},
-      {label:'Detractors',data:QUARTERS.map(q=>D.by_quarter[q].pct_d), backgroundColor:'#c0392b', stack:'s'},
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-      scales:{x:{stacked:true,ticks:{color:TICK},grid:{color:GRID}},y:{stacked:true,ticks:{color:TICK,callback:v=>v+'%'},grid:{color:GRID},max:100}}}
-  });
-
-  // Themes
-  const themes = D.detractor_themes_by_quarter;
-  const themeKeys = ['Ease of use / UX','Bugs / reliability','Support access','Onboarding','Product gaps','Pricing','Sales mismatch'];
-  const totals = {};
-  const totalDet = Object.values(themes).reduce((s,q)=>s+q.total_detractors,0);
-  themeKeys.forEach(t=>{ totals[t]=Object.values(themes).reduce((s,q)=>s+(q[t]||0),0); });
-  const maxVal = Math.max(...Object.values(totals));
-  const themeColors = {'Ease of use / UX':'#c0392b','Bugs / reliability':'#e67e22','Support access':'#8e44ad','Onboarding':'#e74c3c','Product gaps':'#1a5fb4','Pricing':'#27ae60','Sales mismatch':'#e91e63'};
-  document.getElementById('overview-themes').innerHTML = themeKeys.sort((a,b)=>totals[b]-totals[a]).map(t=>`
-    <div class="theme-row">
-      <div class="theme-name">${t}</div>
-      <div class="theme-bar-bg"><div class="theme-bar-fill" style="width:${Math.round(totals[t]/maxVal*100)}%;background:${themeColors[t]||'#1a5fb4'}"></div></div>
-      <div class="theme-pct">${Math.round(totals[t]/totalDet*100)}%</div>
-      <div class="theme-count">n=${totals[t]}</div>
-    </div>`).join('');
-
-  document.getElementById('last-updated').textContent = 'Updated '+D.meta.last_updated;
+  document.getElementById("overview-kpis").innerHTML=kpis.map(function(k){
+    return '<div class="kpi"><div class="kpi-label">'+k.l+'</div><div class="kpi-val '+k.c+'">'+k.v+'</div><div class="kpi-sub">'+k.s+'</div>'+(k.x?"<div>"+k.x+"</div>":"")+'</div>';
+  }).join("");
+  makeChart("overview-qoq",{type:"bar",data:{labels:QUARTERS,datasets:[{label:"NPS",data:QUARTERS.map(function(q){return D.by_quarter[q].nps;}),backgroundColor:QUARTERS.map(function(q){return D.by_quarter[q].nps>=0?"#1a5fb4":"#c0392b";}),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:T},grid:{color:G}},y:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G},min:-15,max:45}}}});
+  makeChart("overview-stack",{type:"bar",data:{labels:QUARTERS,datasets:[{label:"Promoters",data:QUARTERS.map(function(q){return D.by_quarter[q].pct_p;}),backgroundColor:"#2a7a4e",stack:"s"},{label:"Passives",data:QUARTERS.map(function(q){return D.by_quarter[q].pct_pa;}),backgroundColor:"#b35a00",stack:"s"},{label:"Detractors",data:QUARTERS.map(function(q){return D.by_quarter[q].pct_d;}),backgroundColor:"#c0392b",stack:"s"}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:10,padding:12,font:{size:11}}}},scales:{x:{stacked:true,ticks:{color:T},grid:{color:G}},y:{stacked:true,ticks:{color:T,callback:function(v){return v+"%";}},grid:{color:G},max:100}}}});
+  var themes=D.detractor_themes_by_quarter;
+  var tk=["Ease of use / UX","Bugs / reliability","Support access","Onboarding / setup","Product gaps","Pricing / value","Sales mismatch"];
+  var tots={}, totDet=Object.values(themes).reduce(function(s,q){return s+q.total_detractors;},0);
+  tk.forEach(function(t){tots[t]=Object.values(themes).reduce(function(s,q){return s+(q[t]||0);},0);});
+  var mx=Math.max.apply(null,Object.values(tots));
+  var tc={"Ease of use / UX":"#c0392b","Bugs / reliability":"#e67e22","Support access":"#8e44ad","Onboarding / setup":"#e74c3c","Product gaps":"#1a5fb4","Pricing / value":"#27ae60","Sales mismatch":"#e91e63"};
+  document.getElementById("overview-themes").innerHTML=tk.slice().sort(function(a,b){return tots[b]-tots[a];}).map(function(t){
+    return '<div style="display:flex;align-items:center;gap:10px"><div style="font-size:12px;color:var(--text2);min-width:150px">'+t+'</div><div style="flex:1;height:7px;background:var(--surface2);border-radius:4px"><div style="height:7px;border-radius:4px;background:'+(tc[t]||"#1a5fb4")+';width:'+Math.round(tots[t]/mx*100)+'%"></div></div><div style="font-size:12px;font-weight:600;color:var(--text);min-width:36px;text-align:right">'+Math.round(tots[t]/totDet*100)+'%</div><div style="font-size:11px;color:var(--text3);min-width:28px">n='+tots[t]+'</div></div>';
+  }).join("");
+  document.getElementById("last-updated").textContent="Updated "+D.meta.last_updated;
 }
 
-// ===== TRENDS =====
 function initTrends() {
-  makeChart('trends-nps',{
-    type:'bar',
-    data:{labels:QUARTERS, datasets:[
-      {label:'NPS', data:QUARTERS.map(q=>D.by_quarter[q].nps), backgroundColor:QUARTERS.map(q=>D.by_quarter[q].nps>=0?'#1a5fb4':'#c0392b'), borderRadius:4, borderSkipped:false, yAxisID:'y'},
-      {label:'Responses', data:QUARTERS.map(q=>D.by_quarter[q].n), type:'line', borderColor:'#888', borderDash:[4,3], pointRadius:3, tension:0.2, yAxisID:'y2', fill:false}
-    ]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.dataset.label===('NPS')?' NPS: '+(c.raw>0?'+':'')+c.raw:' Responses: '+c.raw}}},
-      scales:{
-        x:{ticks:{color:TICK},grid:{color:GRID}},
-        y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID},title:{display:true,text:'NPS',color:TICK}},
-        y2:{position:'right',ticks:{color:TICK},grid:{display:false},title:{display:true,text:'Responses',color:TICK}}
-      }}
-  });
-
-  // Table
-  const hdr = ['Quarter','NPS','Responses','Promoters','Passives','Detractors','% Promoter','% Detractor','Avg Score'];
-  const tableEl = document.getElementById('trends-table');
-  tableEl.innerHTML = '<thead><tr>'+hdr.map(h=>`<th>${h}</th>`).join('')+'</tr></thead><tbody>'+
-    QUARTERS.map(q=>{const d=D.by_quarter[q]; const sign=d.nps>0?'+':''; return `<tr><td><strong>${q}</strong></td><td>${npsPill(d.nps)}</td><td>${d.n}</td><td style="color:#2a7a4e">${d.promoters}</td><td style="color:#b35a00">${d.passives}</td><td style="color:#c0392b">${d.detractors}</td><td>${d.pct_p}%</td><td>${d.pct_d}%</td><td>${d.avg_score}</td></tr>`}).join('')+'</tbody>';
-
-  // Theme chart
-  const themeKeys = ['Ease of use / UX','Bugs / reliability','Support access','Onboarding','Product gaps','Pricing','Sales mismatch'];
-  const themeColors2 = ['#c0392b','#e67e22','#8e44ad','#e74c3c','#1a5fb4','#27ae60','#e91e63'];
-  makeChart('trends-themes',{
-    type:'bar',
-    data:{labels:QUARTERS, datasets:themeKeys.map((t,i)=>({label:t,data:QUARTERS.map(q=>D.detractor_themes_by_quarter[q]?.[t]||0),backgroundColor:themeColors2[i],stack:'s'}))},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10,padding:12,font:{size:11}}}},
-      scales:{x:{stacked:true,ticks:{color:TICK},grid:{color:GRID}},y:{stacked:true,ticks:{color:TICK},grid:{color:GRID},title:{display:true,text:'# comments',color:TICK}}}}
-  });
+  makeChart("trends-nps",{type:"bar",data:{labels:QUARTERS,datasets:[{label:"NPS",data:QUARTERS.map(function(q){return D.by_quarter[q].nps;}),backgroundColor:QUARTERS.map(function(q){return D.by_quarter[q].nps>=0?"#1a5fb4":"#c0392b";}),borderRadius:4,borderSkipped:false,yAxisID:"y"},{label:"Responses",data:QUARTERS.map(function(q){return D.by_quarter[q].n;}),type:"line",borderColor:"#888",borderDash:[4,3],pointRadius:3,tension:0.2,yAxisID:"y2",fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:T},grid:{color:G}},y:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G},title:{display:true,text:"NPS",color:T}},y2:{position:"right",ticks:{color:T},grid:{display:false},title:{display:true,text:"Responses",color:T}}}}});
+  var hdr=["Quarter","NPS","n","Promoters","Passives","Detractors","% P","% D","Avg"];
+  document.getElementById("trends-table").innerHTML="<thead><tr>"+hdr.map(function(h){return "<th>"+h+"</th>";}).join("")+"</tr></thead><tbody>"+QUARTERS.map(function(q){var d=D.by_quarter[q]; return "<tr><td><strong>"+q+"</strong></td><td>"+npsPill(d.nps)+"</td><td>"+d.n+"</td><td style='color:#2a7a4e'>"+d.promoters+"</td><td style='color:#b35a00'>"+d.passives+"</td><td style='color:#c0392b'>"+d.detractors+"</td><td>"+d.pct_p+"%</td><td>"+d.pct_d+"%</td><td>"+d.avg_score+"</td></tr>";}).join("")+"</tbody>";
+  var tk=["Ease of use / UX","Bugs / reliability","Support access","Onboarding / setup","Product gaps","Pricing / value","Sales mismatch"];
+  var tc2=["#c0392b","#e67e22","#8e44ad","#e74c3c","#1a5fb4","#27ae60","#e91e63"];
+  makeChart("trends-themes",{type:"bar",data:{labels:QUARTERS,datasets:tk.map(function(t,i){return {label:t,data:QUARTERS.map(function(q){return D.detractor_themes_by_quarter[q]?D.detractor_themes_by_quarter[q][t]||0:0;}),backgroundColor:tc2[i],stack:"s"};})},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:10,padding:12,font:{size:11}}}},scales:{x:{stacked:true,ticks:{color:T},grid:{color:G}},y:{stacked:true,ticks:{color:T},grid:{color:G}}}}});
 }
 
-// ===== PRACTICE AREA =====
+function initThemes() {
+  var qSel=document.getElementById("drill-q-filter");
+  QUARTERS.forEach(function(q){var o=document.createElement("option");o.value=q;o.textContent=q;qSel.appendChild(o);});
+  makeChart("theme-qoq-chart",{type:"bar",data:{labels:QUARTERS,datasets:[{label:"Ease of use / UX",data:QUARTERS.map(function(q){return TD.qoq[q].ux_pct;}),backgroundColor:"#e34948",borderRadius:3,borderSkipped:false},{label:"Product gaps",data:QUARTERS.map(function(q){return TD.qoq[q].gap_pct;}),backgroundColor:"#2a78d6",borderRadius:3,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,onClick:function(e,el){if(el.length>0){document.getElementById("drill-q-filter").value=QUARTERS[el[0].index];if(activeTheme)renderDrillComments();}},plugins:{legend:{position:"bottom",labels:{boxWidth:10,padding:14,font:{size:11}}},tooltip:{callbacks:{label:function(c){var q=QUARTERS[c.dataIndex],dd=TD.qoq[q];return " "+c.dataset.label+": "+c.raw+"% ("+(c.datasetIndex===0?dd.ux:dd.gap)+" of "+dd.total+" comments)";}}}},scales:{x:{ticks:{color:T},grid:{color:G}},y:{ticks:{color:T,callback:function(v){return v+"%";}},grid:{color:G},max:90}}}});
+  makeChart("ux-sub-chart",{type:"doughnut",data:{labels:TD.ux_subs,datasets:[{data:TD.ux_subs.map(function(s){return TD.ux_totals[s]||0;}),backgroundColor:["#e34948","#e67e22","#eda100","#8e44ad","#2a7a4e","#2a78d6","#c0392b"],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:8,padding:6,font:{size:10}}},tooltip:{callbacks:{label:function(c){return " "+c.label+": "+c.raw+" comments";}}}}}});
+  makeChart("gap-sub-chart",{type:"doughnut",data:{labels:TD.gap_subs,datasets:[{data:TD.gap_subs.map(function(s){return TD.gap_totals[s]||0;}),backgroundColor:["#2a78d6","#1baf7a","#eda100","#e34948","#8e44ad","#e67e22","#c0392b","#2a7a4e"],borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:8,padding:6,font:{size:10}}},tooltip:{callbacks:{label:function(c){return " "+c.label+": "+c.raw+" comments";}}}}}});
+  renderHighlights();
+}
+function selectTheme(theme) {
+  activeTheme=theme; activeSub=null;
+  document.getElementById("ux-selector").style.border=theme==="ux"?"2px solid #c0392b":"2px solid transparent";
+  document.getElementById("gap-selector").style.border=theme==="gap"?"2px solid #1a5fb4":"2px solid transparent";
+  document.getElementById("ux-badge").textContent=theme==="ux"?"selected":"click to explore ↓";
+  document.getElementById("gap-badge").textContent=theme==="gap"?"selected":"click to explore ↓";
+  document.getElementById("theme-drill-panel").style.display="block";
+  document.getElementById("drill-section-label").textContent=theme==="ux"?"UX/UI — sub-theme drill-down":"Product gaps — sub-theme drill-down";
+  var subs=theme==="ux"?TD.ux_subs:TD.gap_subs, tots=theme==="ux"?TD.ux_totals:TD.gap_totals;
+  var cols=theme==="ux"?["#e34948","#e67e22","#eda100","#8e44ad","#2a7a4e","#2a78d6","#c0392b"]:["#2a78d6","#1baf7a","#eda100","#e34948","#8e44ad","#e67e22","#c0392b","#2a7a4e"];
+  document.getElementById("sub-filter-row").innerHTML=subs.map(function(s,i){
+    var cnt=tots[s]||0, col=cols[i%cols.length];
+    return '<button data-sub="'+i+'" style="font-size:12px;padding:5px 12px;border-radius:20px;border:1.5px solid '+col+';background:transparent;color:'+col+';cursor:pointer;font-weight:500">'+s+' <span style="opacity:.7">('+cnt+')</span></button>';
+  }).join("");
+  // attach click handlers after render
+  document.getElementById("sub-filter-row").querySelectorAll("button").forEach(function(btn){
+    btn.addEventListener("click",function(){ selectSub(subs[parseInt(this.getAttribute("data-sub"))]); });
+  });
+  document.getElementById("drill-title").textContent="Select a sub-theme above";
+  document.getElementById("drill-sub").textContent="";
+  document.getElementById("drill-comment-list").innerHTML="";
+  if(subs.length>0) selectSub(subs[0]);
+}
+function selectSub(sub) {
+  activeSub=sub;
+  var tots=activeTheme==="ux"?TD.ux_totals:TD.gap_totals;
+  document.getElementById("drill-title").textContent=sub;
+  document.getElementById("drill-sub").textContent=(tots[sub]||0)+" detractor comments across all quarters";
+  renderDrillComments();
+}
+function renderDrillComments() {
+  if(!activeSub||!activeTheme) return;
+  var all=activeTheme==="ux"?TD.ux_comments[activeSub]:TD.gap_comments[activeSub];
+  if(!all){document.getElementById("drill-comment-list").innerHTML="";return;}
+  var qf=document.getElementById("drill-q-filter").value;
+  var cs=qf==="all"?all:all.filter(function(c){return c.quarter===qf;});
+  if(!cs.length){document.getElementById("drill-comment-list").innerHTML='<div style="color:var(--text3);padding:16px;text-align:center">No comments match this filter</div>';return;}
+  document.getElementById("drill-comment-list").innerHTML=cs.map(function(c){
+    var sc=c.score<=2?"tag-score-bad":"tag-score-ok";
+    var pa=c.practice&&c.practice!=="Unknown"?'<span class="tag tag-pa">'+c.practice+"</span>":"";
+    return '<div class="comment-item"><div class="comment-meta"><span class="tag '+sc+'">Score '+c.score+'</span><span class="tag tag-q">'+c.quarter+'</span>'+(c.owner?(AM_TEAM.indexOf(c.owner.toLowerCase())>-1?'<span class="tag tag-owner">AM: '+c.owner+'</span>':'<span class="tag" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;font-weight:600">3rd Party: '+c.owner+'</span>'):"")+(c.ae?'<span class="tag tag-ae">AE: '+c.ae+'</span>':"")+pa+'</div><div class="comment-text">"'+c.comment+'"</div><div class="comment-account">'+c.account+'</div></div>';
+  }).join("");
+}
+function renderHighlights() {
+  function bld(subs,cobj) {
+    var all=[],seen={};
+    subs.forEach(function(s){var cs=cobj[s]||[];cs.forEach(function(c){c._sub=s;});all=all.concat(cs);});
+    return all.filter(function(c){var k=c.account+c.comment;if(seen[k])return false;seen[k]=true;return true;}).sort(function(a,b){return a.score-b.score;}).slice(0,6);
+  }
+  function render(cs,el) {
+    el.innerHTML=cs.map(function(c){
+      var sc=c.score<=2?"tag-score-bad":"tag-score-ok";
+      var pa=c.practice&&c.practice!=="Unknown"?'<span class="tag tag-pa">'+c.practice+"</span>":"";
+      var sub=c._sub?'<span class="tag" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:10px">'+c._sub+"</span>":"";
+      var ownerTag=c.owner?(AM_TEAM.indexOf(c.owner.toLowerCase())>-1?'<span class="tag tag-owner">AM: '+c.owner+'</span>':'<span class="tag" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;font-weight:600">3rd Party: '+c.owner+'</span>'):"";
+      return '<div class="comment-item"><div class="comment-meta"><span class="tag '+sc+'">Score '+c.score+'</span><span class="tag tag-q">'+c.quarter+'</span>'+ownerTag+pa+sub+'</div><div class="comment-text">"'+c.comment.slice(0,280)+(c.comment.length>280?"…":"")+'"</div><div class="comment-account">'+c.account+'</div></div>';
+    }).join("");
+  }
+  render(bld(TD.ux_subs,TD.ux_comments),document.getElementById("ux-highlight-comments"));
+  render(bld(TD.gap_subs,TD.gap_comments),document.getElementById("gap-highlight-comments"));
+}
+
 function initPractice() {
-  const pa = D.by_practice;
-  const sorted = Object.entries(pa).sort((a,b)=>b[1].nps-a[1].nps);
-  makeChart('pa-bar',{
-    type:'bar',
-    data:{labels:sorted.map(([k])=>k), datasets:[{label:'NPS',data:sorted.map(([,v])=>v.nps),backgroundColor:sorted.map(([,v])=>v.nps>=0?'#1a5fb4':'#c0392b'),borderRadius:4,borderSkipped:false}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+sorted[c.dataIndex][1].n+')'}}},
-      scales:{x:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}},y:{ticks:{color:TICK,font:{size:11}},grid:{display:false}}}}
-  });
-
-  // Populate select
-  const sel = document.getElementById('pa-select');
-  const paWithQtr = Object.keys(D.by_practice_quarter).filter(pa=>Object.keys(D.by_practice_quarter[pa]).length>=2);
-  sel.innerHTML = paWithQtr.map(p=>`<option value="${p}">${p}</option>`).join('');
-  sel.value = 'Estate Planning';
-  renderPATrend();
-
-  // YoY table
-  const yr25qs = QUARTERS.filter(q=>q.startsWith('2025'));
-  const yr26qs = QUARTERS.filter(q=>q.startsWith('2026'));
-  function yearNPSforPA(pa, qlist) {
-    const d = D.by_practice_quarter[pa]||{};
-    const scores = qlist.flatMap(q=>{ const s=d[q]; return s?Array(s.n).fill(null):[] }); // approx — use overall instead
-    // use overall breakdowns instead:
-    return null;
-  }
-  const tableEl = document.getElementById('pa-table');
-  tableEl.innerHTML = '<thead><tr><th>Practice Area</th><th>All-time NPS</th><th>Responses</th>'+QUARTERS.map(q=>`<th>${q}</th>`).join('')+'</tr></thead><tbody>'+
-    Object.entries(pa).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>`<tr><td><strong>${k}</strong></td><td>${npsPill(v.nps)}</td><td>${v.n}</td>${QUARTERS.map(q=>{const qd=D.by_practice_quarter[k]?.[q]; return `<td>${qd?npsPill(qd.nps):'<span style="color:#ccc">—</span>'}</td>`}).join('')}</tr>`).join('')+'</tbody>';
+  var pa=D.by_practice, sorted=Object.entries(pa).sort(function(a,b){return b[1].nps-a[1].nps;});
+  makeChart("pa-bar",{type:"bar",data:{labels:sorted.map(function(e){return e[0];}),datasets:[{label:"NPS",data:sorted.map(function(e){return e[1].nps;}),backgroundColor:sorted.map(function(e){return e[1].nps>=0?"#1a5fb4":"#c0392b";}),borderRadius:4,borderSkipped:false}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G}},y:{ticks:{color:T,font:{size:11}},grid:{display:false}}}}});
+  var sel=document.getElementById("pa-select");
+  var paq=Object.keys(D.by_practice_quarter).filter(function(p){return Object.keys(D.by_practice_quarter[p]).length>=2;});
+  sel.innerHTML=paq.map(function(p){return "<option>"+p+"</option>";}).join("");
+  sel.value="Estate Planning"; renderPATrend();
+  var yr25=QUARTERS.filter(function(q){return q.indexOf("2025")===0;}), yr26=QUARTERS.filter(function(q){return q.indexOf("2026")===0;});
+  document.getElementById("pa-table").innerHTML="<thead><tr><th>Practice Area</th><th>All-time</th><th>n</th>"+QUARTERS.map(function(q){return "<th>"+q+"</th>";}).join("")+"</tr></thead><tbody>"+Object.entries(pa).sort(function(a,b){return b[1].n-a[1].n;}).map(function(en){var k=en[0],v=en[1];return "<tr><td><strong>"+k+"</strong></td><td>"+npsPill(v.nps)+"</td><td>"+v.n+"</td>"+QUARTERS.map(function(q){var qd=D.by_practice_quarter[k]?D.by_practice_quarter[k][q]:null;return "<td>"+(qd?npsPill(qd.nps):'<span style="color:#ccc">&#8212;</span>')+"</td>";}).join("")+"</tr>";}).join("")+"</tbody>";
 }
-
 function renderPATrend() {
-  const pa = document.getElementById('pa-select').value;
-  const d = D.by_practice_quarter[pa]||{};
-  const qs = QUARTERS.filter(q=>d[q]);
-  makeChart('pa-trend',{
-    type:'line',
-    data:{labels:qs,datasets:[{label:pa,data:qs.map(q=>d[q].nps),borderColor:'#1a5fb4',backgroundColor:'rgba(26,95,180,0.08)',borderWidth:2,pointRadius:5,pointBackgroundColor:'#1a5fb4',tension:0.3,fill:true}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+d[qs[c.dataIndex]].n+')'}}},
-      scales:{x:{ticks:{color:TICK},grid:{color:GRID}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}}}}
-  });
+  var pa=document.getElementById("pa-select").value, d=D.by_practice_quarter[pa]||{}, qs=QUARTERS.filter(function(q){return d[q];});
+  makeChart("pa-trend",{type:"line",data:{labels:qs,datasets:[{label:pa,data:qs.map(function(q){return d[q].nps;}),borderColor:"#1a5fb4",backgroundColor:"rgba(26,95,180,0.08)",borderWidth:2,pointRadius:5,pointBackgroundColor:"#1a5fb4",tension:0.3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:T},grid:{color:G}},y:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G}}}}});
 }
 
-// ===== OWNERS =====
 function initOwners() {
-  const ow = D.by_owner;
-  const sorted = Object.entries(ow).sort((a,b)=>b[1].nps-a[1].nps);
-  makeChart('owner-bar',{
-    type:'bar',
-    data:{labels:sorted.map(([k])=>k),datasets:[{label:'NPS',data:sorted.map(([,v])=>v.nps),backgroundColor:sorted.map(([,v])=>v.nps>=0?'#1a5fb4':'#c0392b'),borderRadius:4,borderSkipped:false}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+sorted[c.dataIndex][1].n+')'}}},
-      scales:{x:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}},y:{ticks:{color:TICK,font:{size:11}},grid:{display:false}}}}
-  });
-
-  const sel = document.getElementById('owner-select');
-  const owWithQtr = Object.keys(D.by_owner_quarter).filter(o=>Object.keys(D.by_owner_quarter[o]).length>=3);
-  sel.innerHTML = owWithQtr.map(o=>`<option value="${o}">${o}</option>`).join('');
-  sel.value = 'Elliott Jones';
-  renderOwnerTrend();
-
-  const tableEl = document.getElementById('owner-table');
-  const yr25qs = QUARTERS.filter(q=>q.startsWith('2025'));
-  const yr26qs = QUARTERS.filter(q=>q.startsWith('2026'));
-  function qNPS(owner, qlist) {
-    const d = D.by_owner_quarter[owner]||{};
-    const vals = qlist.map(q=>d[q]?.nps).filter(v=>v!==undefined);
-    if (!vals.length) return null;
-    return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10;
-  }
-  tableEl.innerHTML = '<thead><tr><th>Owner</th><th>All-time</th><th>n</th><th>2025 avg</th><th>2026 avg</th><th>Δ</th>'+QUARTERS.map(q=>`<th>${q}</th>`).join('')+'</tr></thead><tbody>'+
-    Object.entries(ow).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>{
-      const n25=qNPS(k,yr25qs),n26=qNPS(k,yr26qs);
-      return `<tr><td><strong>${k}</strong></td><td>${npsPill(v.nps)}</td><td>${v.n}</td><td>${n25!==null?npsPill(n25):'—'}</td><td>${n26!==null?npsPill(n26):'—'}</td><td>${delta(n25,n26)}</td>${QUARTERS.map(q=>{const qd=D.by_owner_quarter[k]?.[q]; return `<td>${qd?npsPill(qd.nps):'<span style="color:#ccc">—</span>'}</td>`}).join('')}</tr>`;
-    }).join('')+'</tbody>';
+  var ow=D.by_owner, sorted=Object.entries(ow).sort(function(a,b){return b[1].nps-a[1].nps;});
+  makeChart("owner-bar",{type:"bar",data:{labels:sorted.map(function(e){return e[0];}),datasets:[{label:"NPS",data:sorted.map(function(e){return e[1].nps;}),backgroundColor:sorted.map(function(e){return e[1].nps>=0?"#1a5fb4":"#c0392b";}),borderRadius:4,borderSkipped:false}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G}},y:{ticks:{color:T,font:{size:11}},grid:{display:false}}}}});
+  var sel=document.getElementById("owner-select");
+  var owq=Object.keys(D.by_owner_quarter).filter(function(o){return Object.keys(D.by_owner_quarter[o]).length>=3;});
+  sel.innerHTML=owq.map(function(o){return "<option>"+o+"</option>";}).join("");
+  sel.value="Elliott Jones"; renderOwnerTrend();
+  var yr25=QUARTERS.filter(function(q){return q.indexOf("2025")===0;}), yr26=QUARTERS.filter(function(q){return q.indexOf("2026")===0;});
+  function aN(o,ql){var d=D.by_owner_quarter[o]||{},vs=ql.map(function(q){return d[q]?d[q].nps:null;}).filter(function(v){return v!==null;});return vs.length?Math.round(vs.reduce(function(a,b){return a+b;},0)/vs.length*10)/10:null;}
+  document.getElementById("owner-table").innerHTML="<thead><tr><th>Owner</th><th>All-time</th><th>n</th><th>2025</th><th>2026</th><th>&#916;</th>"+QUARTERS.map(function(q){return "<th>"+q+"</th>";}).join("")+"</tr></thead><tbody>"+Object.entries(ow).sort(function(a,b){return b[1].n-a[1].n;}).map(function(en){var k=en[0],v=en[1],n25=aN(k,yr25),n26=aN(k,yr26);return "<tr><td><strong>"+k+"</strong></td><td>"+npsPill(v.nps)+"</td><td>"+v.n+"</td><td>"+(n25!==null?npsPill(n25):"&#8212;")+"</td><td>"+(n26!==null?npsPill(n26):"&#8212;")+"</td><td>"+delta(n25,n26)+"</td>"+QUARTERS.map(function(q){var qd=D.by_owner_quarter[k]?D.by_owner_quarter[k][q]:null;return "<td>"+(qd?npsPill(qd.nps):'<span style="color:#ccc">&#8212;</span>')+"</td>";}).join("")+"</tr>";}).join("")+"</tbody>";
 }
-
 function renderOwnerTrend() {
-  const owner = document.getElementById('owner-select').value;
-  const d = D.by_owner_quarter[owner]||{};
-  const qs = QUARTERS.filter(q=>d[q]);
-  makeChart('owner-trend',{
-    type:'line',
-    data:{labels:qs,datasets:[{label:owner,data:qs.map(q=>d[q].nps),borderColor:'#1a5fb4',backgroundColor:'rgba(26,95,180,0.08)',borderWidth:2,pointRadius:5,pointBackgroundColor:qs.map(q=>npsColor(d[q].nps)),tension:0.3,fill:true}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+d[qs[c.dataIndex]].n+')'}}},
-      scales:{x:{ticks:{color:TICK},grid:{color:GRID}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}}}}
-  });
+  var o=document.getElementById("owner-select").value, d=D.by_owner_quarter[o]||{}, qs=QUARTERS.filter(function(q){return d[q];});
+  makeChart("owner-trend",{type:"line",data:{labels:qs,datasets:[{label:o,data:qs.map(function(q){return d[q].nps;}),borderColor:"#1a5fb4",backgroundColor:"rgba(26,95,180,0.08)",borderWidth:2,pointRadius:5,pointBackgroundColor:qs.map(function(q){return npsColor(d[q].nps);}),tension:0.3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:T},grid:{color:G}},y:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G}}}}});
 }
 
-// ===== AE =====
 function initAE() {
-  const ae = D.by_ae;
-  const sorted = Object.entries(ae).sort((a,b)=>b[1].nps-a[1].nps);
-  makeChart('ae-bar',{
-    type:'bar',
-    data:{labels:sorted.map(([k])=>k),datasets:[{label:'NPS',data:sorted.map(([,v])=>v.nps),backgroundColor:sorted.map(([,v])=>v.nps>=0?'#1a5fb4':'#c0392b'),borderRadius:4,borderSkipped:false}]},
-    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+sorted[c.dataIndex][1].n+')'}}},
-      scales:{x:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}},y:{ticks:{color:TICK,font:{size:11}},grid:{display:false}}}}
-  });
-
-  const sel = document.getElementById('ae-select');
-  const aeWithQtr = Object.keys(D.by_ae_quarter).filter(a=>Object.keys(D.by_ae_quarter[a]).length>=3);
-  sel.innerHTML = aeWithQtr.map(a=>`<option value="${a}">${a}</option>`).join('');
-  sel.value = 'Bobby Orozco';
-  renderAETrend();
-
-  const tableEl = document.getElementById('ae-table');
-  const yr25qs = QUARTERS.filter(q=>q.startsWith('2025'));
-  const yr26qs = QUARTERS.filter(q=>q.startsWith('2026'));
-  function qNPS(ae, qlist) {
-    const d = D.by_ae_quarter[ae]||{};
-    const vals = qlist.map(q=>d[q]?.nps).filter(v=>v!==undefined);
-    return vals.length ? Math.round(vals.reduce((a,b)=>a+b,0)/vals.length*10)/10 : null;
-  }
-  tableEl.innerHTML = '<thead><tr><th>Account Executive</th><th>All-time</th><th>n</th><th>2025 avg</th><th>2026 avg</th><th>Δ</th>'+QUARTERS.map(q=>`<th>${q}</th>`).join('')+'</tr></thead><tbody>'+
-    Object.entries(ae).sort((a,b)=>b[1].n-a[1].n).map(([k,v])=>{
-      const n25=qNPS(k,yr25qs),n26=qNPS(k,yr26qs);
-      return `<tr><td><strong>${k}</strong></td><td>${npsPill(v.nps)}</td><td>${v.n}</td><td>${n25!==null?npsPill(n25):'—'}</td><td>${n26!==null?npsPill(n26):'—'}</td><td>${delta(n25,n26)}</td>${QUARTERS.map(q=>{const qd=D.by_ae_quarter[k]?.[q]; return `<td>${qd?npsPill(qd.nps):'<span style="color:#ccc">—</span>'}</td>`}).join('')}</tr>`;
-    }).join('')+'</tbody>';
+  var ae=D.by_ae, sorted=Object.entries(ae).sort(function(a,b){return b[1].nps-a[1].nps;});
+  makeChart("ae-bar",{type:"bar",data:{labels:sorted.map(function(e){return e[0];}),datasets:[{label:"NPS",data:sorted.map(function(e){return e[1].nps;}),backgroundColor:sorted.map(function(e){return e[1].nps>=0?"#1a5fb4":"#c0392b";}),borderRadius:4,borderSkipped:false}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G}},y:{ticks:{color:T,font:{size:11}},grid:{display:false}}}}});
+  var sel=document.getElementById("ae-select");
+  var aeq=Object.keys(D.by_ae_quarter).filter(function(a){return Object.keys(D.by_ae_quarter[a]).length>=3;});
+  sel.innerHTML=aeq.map(function(a){return "<option>"+a+"</option>";}).join("");
+  sel.value="Bobby Orozco"; renderAETrend();
+  var yr25=QUARTERS.filter(function(q){return q.indexOf("2025")===0;}), yr26=QUARTERS.filter(function(q){return q.indexOf("2026")===0;});
+  function aN(a,ql){var d=D.by_ae_quarter[a]||{},vs=ql.map(function(q){return d[q]?d[q].nps:null;}).filter(function(v){return v!==null;});return vs.length?Math.round(vs.reduce(function(x,y){return x+y;},0)/vs.length*10)/10:null;}
+  document.getElementById("ae-table").innerHTML="<thead><tr><th>AE</th><th>All-time</th><th>n</th><th>2025</th><th>2026</th><th>&#916;</th>"+QUARTERS.map(function(q){return "<th>"+q+"</th>";}).join("")+"</tr></thead><tbody>"+Object.entries(ae).sort(function(a,b){return b[1].n-a[1].n;}).map(function(en){var k=en[0],v=en[1],n25=aN(k,yr25),n26=aN(k,yr26);return "<tr><td><strong>"+k+"</strong></td><td>"+npsPill(v.nps)+"</td><td>"+v.n+"</td><td>"+(n25!==null?npsPill(n25):"&#8212;")+"</td><td>"+(n26!==null?npsPill(n26):"&#8212;")+"</td><td>"+delta(n25,n26)+"</td>"+QUARTERS.map(function(q){var qd=D.by_ae_quarter[k]?D.by_ae_quarter[k][q]:null;return "<td>"+(qd?npsPill(qd.nps):'<span style="color:#ccc">&#8212;</span>')+"</td>";}).join("")+"</tr>";}).join("")+"</tbody>";
 }
-
 function renderAETrend() {
-  const ae = document.getElementById('ae-select').value;
-  const d = D.by_ae_quarter[ae]||{};
-  const qs = QUARTERS.filter(q=>d[q]);
-  makeChart('ae-trend',{
-    type:'line',
-    data:{labels:qs,datasets:[{label:ae,data:qs.map(q=>d[q].nps),borderColor:'#2a7a4e',backgroundColor:'rgba(42,122,78,0.08)',borderWidth:2,pointRadius:5,pointBackgroundColor:qs.map(q=>npsColor(d[q].nps)),tension:0.3,fill:true}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+d[qs[c.dataIndex]].n+')'}}},
-      scales:{x:{ticks:{color:TICK},grid:{color:GRID}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID}}}}
-  });
+  var ae=document.getElementById("ae-select").value, d=D.by_ae_quarter[ae]||{}, qs=QUARTERS.filter(function(q){return d[q];});
+  makeChart("ae-trend",{type:"line",data:{labels:qs,datasets:[{label:ae,data:qs.map(function(q){return d[q].nps;}),borderColor:"#2a7a4e",backgroundColor:"rgba(42,122,78,0.08)",borderWidth:2,pointRadius:5,pointBackgroundColor:qs.map(function(q){return npsColor(d[q].nps);}),tension:0.3,fill:true}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:T},grid:{color:G}},y:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G}}}}});
 }
 
-// ===== SEGMENTS =====
 function initSegments() {
-  const lb = D.by_lead_bucket;
-  const lbKeys = Object.keys(lb).filter(k=>lb[k].n>0);
-  makeChart('seg-leads',{
-    type:'bar',
-    data:{labels:lbKeys,datasets:[{label:'NPS',data:lbKeys.map(k=>lb[k].nps),backgroundColor:lbKeys.map(k=>lb[k].nps>=20?'#2a7a4e':lb[k].nps>=0?'#1a5fb4':'#c0392b'),borderRadius:4,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+lb[lbKeys[c.dataIndex]].n+')'}}},
-      scales:{x:{ticks:{color:TICK},grid:{display:false}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID},min:0}}}
-  });
-
-  const tca = D.by_tca_bucket;
-  const tcaKeys = Object.keys(tca).filter(k=>tca[k].n>0);
-  makeChart('seg-tca',{
-    type:'bar',
-    data:{labels:tcaKeys,datasets:[{label:'NPS',data:tcaKeys.map(k=>tca[k].nps),backgroundColor:tcaKeys.map(k=>tca[k].nps>=40?'#2a7a4e':tca[k].nps>=20?'#1a5fb4':'#b35a00'),borderRadius:4,borderSkipped:false}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+tca[tcaKeys[c.dataIndex]].n+')'}}},
-      scales:{x:{ticks:{color:TICK},grid:{display:false}},y:{ticks:{color:TICK,callback:v=>(v>0?'+':'')+v},grid:{color:GRID},min:0}}}
-  });
+  var lb=D.by_lead_bucket, lbk=Object.keys(lb).filter(function(k){return lb[k].n>0;});
+  makeChart("seg-leads",{type:"bar",data:{labels:lbk,datasets:[{label:"NPS",data:lbk.map(function(k){return lb[k].nps;}),backgroundColor:lbk.map(function(k){return lb[k].nps>=20?"#2a7a4e":"#1a5fb4";}),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:T},grid:{display:false}},y:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G},min:0}}}});
+  var tca=D.by_tca_bucket, tcak=Object.keys(tca).filter(function(k){return tca[k].n>0;});
+  makeChart("seg-tca",{type:"bar",data:{labels:tcak,datasets:[{label:"NPS",data:tcak.map(function(k){return tca[k].nps;}),backgroundColor:tcak.map(function(k){return tca[k].nps>=40?"#2a7a4e":tca[k].nps>=20?"#1a5fb4":"#b35a00";}),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:T},grid:{display:false}},y:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G},min:0}}}});
 }
 
-// ===== COMMENTS =====
-function initComments() {
-  const comments = D.recent_detractor_comments;
-  const qSel = document.getElementById('comment-q-filter');
-  const oSel = document.getElementById('comment-owner-filter');
-  const uniqueQs = [...new Set(comments.map(c=>c.quarter))].sort();
-  const uniqueOwners = [...new Set(comments.map(c=>c.owner))].sort();
-  qSel.innerHTML = '<option value="all">All recent</option>'+uniqueQs.map(q=>`<option value="${q}">${q}</option>`).join('');
-  oSel.innerHTML = '<option value="all">All owners</option>'+uniqueOwners.map(o=>`<option value="${o}">${o}</option>`).join('');
-  renderComments();
+function initTenure() {
+  var TB=D.tenure_buckets;
+  function tbc(tb){return tb.indexOf("0")===0?"#c0392b":tb.indexOf("3")===0?"#e67e22":tb.indexOf("6")===0?"#eda100":tb.indexOf("12")===0?"#2a78d6":"#2a7a4e";}
+  document.getElementById("tenure-kpis").innerHTML=TB.map(function(tb){var d=D.by_tenure[tb],cls=d.nps>=20?"up":d.nps>=0?"neutral":"down",s=d.nps>0?"+":"";return '<div class="kpi"><div class="kpi-label">'+tb+'</div><div class="kpi-val '+cls+'">'+(d.nps!==null?s+d.nps:"&#8212;")+'</div><div class="kpi-sub">n='+d.n+' &middot; '+d.pct_p+'% P &middot; '+d.pct_d+'% D</div></div>';}).join("");
+  makeChart("tenure-bar",{type:"bar",data:{labels:TB,datasets:[{label:"NPS",data:TB.map(function(tb){return D.by_tenure[tb].nps;}),backgroundColor:TB.map(function(tb){return D.by_tenure[tb].nps>=0?tbc(tb):"#c0392b";}),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:T},grid:{color:G}},y:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G},min:-20,max:40}}}});
+  var atb=TB.filter(function(tb){return tb.indexOf("0")!==0;});
+  makeChart("tenure-lines",{type:"line",data:{labels:QUARTERS,datasets:atb.map(function(tb){var d=D.by_tenure_quarter[tb]||{};return {label:tb,data:QUARTERS.map(function(q){return d[q]?d[q].nps:null;}),borderColor:tbc(tb),backgroundColor:"transparent",borderWidth:2,pointRadius:4,pointBackgroundColor:tbc(tb),tension:0.3,spanGaps:false};})},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{boxWidth:10,padding:14,font:{size:11}}}},scales:{x:{ticks:{color:T},grid:{color:G}},y:{ticks:{color:T,callback:function(v){return (v>0?"+":"")+v;}},grid:{color:G}}}}});
+  var tk=["Ease of use / UX","Bugs / reliability","Support access","Onboarding / setup","Product gaps","Pricing / value","Sales mismatch"];
+  document.getElementById("tenure-themes-table").innerHTML="<thead><tr><th>Theme</th>"+atb.map(function(tb){return "<th>"+tb+"</th>";}).join("")+"</tr></thead><tbody>"+tk.map(function(t){var cells=atb.map(function(tb){var d=D.tenure_themes[tb];if(!d||!d.total)return '<td style="color:var(--text3)">&#8212;</td>';var cnt=d.themes[t]||0,pct=Math.round(cnt/d.total*100),bg=pct>=25?"var(--red-bg)":pct>=15?"var(--amber-bg)":"",col=pct>=25?"var(--red)":pct>=15?"var(--amber)":"var(--text2)";return "<td style='background:"+bg+";color:"+col+";font-weight:"+(pct>=15?600:400)+"'>"+(cnt?pct+"%":"&#8212;")+"</td>";});return "<tr><td><strong>"+t+"</strong></td>"+cells.join("")+"</tr>";}).join("")+"</tbody>";
+  var kpa=["Estate Planning","Family Law","Criminal Defense","Immigration","Personal Injury","Employment Law"];
+  document.getElementById("tenure-pa-table").innerHTML="<thead><tr><th>Practice</th>"+atb.map(function(tb){return "<th>"+tb+"</th>";}).join("")+"</tr></thead><tbody>"+kpa.map(function(pa){if(!D.by_practice_tenure[pa])return"";var cells=atb.map(function(tb){var d=D.by_practice_tenure[pa]?D.by_practice_tenure[pa][tb]:null;return "<td>"+(d?npsPill(d.nps):'<span style="color:var(--text3)">&#8212;</span>')+"</td>";});return "<tr><td><strong>"+pa+"</strong></td>"+cells.join("")+"</tr>";}).join("")+"</tbody>";
+  document.getElementById("tenure-narrative").innerHTML=[
+    "<p><strong style=\"color:var(--text)\">The first 12 months are the highest-risk window.</strong> Customers in months 3&ndash;11 score NPS of &minus;3 to +4. By month 12 it jumps to +24.6, and by year two holds at +27.8. There is a clear valley of despair in the first year where customers haven&#39;t found value but are paying full price.</p>",
+    "<p><strong style=\"color:var(--text)\">New customers complain about completely different things than tenured ones.</strong> Months 3&ndash;5: product gaps and support access. Months 6&ndash;11: onboarding (22%), UX (20%), and bugs (20%) simultaneously &mdash; the most volatile mix. By 24+ months, product gaps dominate (37%).</p>",
+    "<p><strong style=\"color:var(--text)\">Family Law&#39;s early-tenure pattern is the most urgent signal.</strong> 3&ndash;5 month firms score 0.0 NPS. 6&ndash;11 months drops to &minus;19.2. Only after 12 months do they recover to +84. A targeted check-in at month 6 for Family Law would have outsized impact.</p>",
+    "<p><strong style=\"color:var(--text)\">Criminal Defense never recovers in the early window.</strong> 3&ndash;5 months: &minus;60. Only 24+ month firms score positive (+28). The 2026 redesign hit Criminal Defense mid-journey &mdash; any account currently in months 3&ndash;18 is at elevated churn risk.</p>",
+    "<p><strong style=\"color:var(--text)\">The 6&ndash;11 month cohort is inflating in 2026.</strong> It grew from 13&ndash;14 responses/quarter in 2025 to 26&ndash;30 in 2026. Their Q1 2026 NPS was &minus;30.0 &mdash; the worst single cohort-quarter in the dataset.</p>"
+  ].join("");
 }
 
-function renderComments() {
-  const qFilter = document.getElementById('comment-q-filter').value;
-  const oFilter = document.getElementById('comment-owner-filter').value;
-  let comments = D.recent_detractor_comments;
-  if (qFilter !== 'all') comments = comments.filter(c=>c.quarter===qFilter);
-  if (oFilter !== 'all') comments = comments.filter(c=>c.owner===oFilter);
-  const scoreTag = s => s<=2?`<span class="tag tag-score-bad">Score ${s}</span>`:`<span class="tag tag-score-ok">Score ${s}</span>`;
-  document.getElementById('comment-list').innerHTML = comments.map(c=>`
-    <div class="comment-item">
-      <div class="comment-meta">
-        ${scoreTag(c.score)}
-        <span class="tag tag-q">${c.quarter}</span>
-        ${c.owner?`<span class="tag tag-owner">AM: ${c.owner}</span>`:''}
-        ${c.ae?`<span class="tag tag-ae">AE: ${c.ae}</span>`:''}
-        ${c.practice&&c.practice!=='Unknown'?`<span class="tag tag-pa">${c.practice}</span>`:''}
-      </div>
-      <div class="comment-text">"${c.comment}"</div>
-      <div class="comment-account">${c.account}</div>
-    </div>`).join('') || '<div style="color:#888;padding:20px;text-align:center">No comments match these filters</div>';
-}
-
-// INIT ALL
 initOverview();
 initTrends();
+initThemes();
 initPractice();
 initOwners();
 initAE();
 initSegments();
-initComments();
-
-function initTenure() {
-  var D = window.__NPS_DATA__;
-  var TB = D.tenure_buckets;
-  var QTRS = D.quarters;
-  var GRID = '#e2e1d8';
-  var TICK = '#888';
-  var tbColors = {'0-2 mo':'#c0392b','3-5 mo':'#e67e22','6-11 mo':'#eda100','12-23 mo':'#2a78d6','24+ mo':'#2a7a4e'};
-  function tbColor(tb) {
-    if (tb.indexOf('0') === 0) return '#c0392b';
-    if (tb.indexOf('3') === 0) return '#e67e22';
-    if (tb.indexOf('6') === 0) return '#eda100';
-    if (tb.indexOf('12') === 0) return '#2a78d6';
-    return '#2a7a4e';
-  }
-
-  // KPIs
-  var kpis = TB.map(function(tb) {
-    var d = D.by_tenure[tb];
-    var cls = d.nps >= 20 ? 'up' : d.nps >= 0 ? 'neutral' : 'down';
-    var sign = d.nps > 0 ? '+' : '';
-    return '<div class="kpi"><div class="kpi-label">'+tb+'</div><div class="kpi-val '+cls+'">'+(d.nps !== null ? sign+d.nps : '&#8212;')+'</div><div class="kpi-sub">n='+d.n+' &middot; '+d.pct_p+'% promoter &middot; '+d.pct_d+'% detractor</div></div>';
-  });
-  document.getElementById('tenure-kpis').innerHTML = kpis.join('');
-
-  // Bar
-  makeChart('tenure-bar', {
-    type: 'bar',
-    data: {
-      labels: TB,
-      datasets: [{
-        label: 'NPS',
-        data: TB.map(function(tb){ return D.by_tenure[tb].nps; }),
-        backgroundColor: TB.map(function(tb){ return D.by_tenure[tb].nps >= 0 ? tbColor(tb) : '#c0392b'; }),
-        borderRadius: 4, borderSkipped: false
-      }]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: function(c){ return ' NPS: '+(c.raw>0?'+':'')+c.raw+' (n='+D.by_tenure[TB[c.dataIndex]].n+')'; } } } },
-      scales: {
-        x: { ticks: { color: TICK }, grid: { color: GRID } },
-        y: { ticks: { color: TICK, callback: function(v){ return (v>0?'+':'')+v; } }, grid: { color: GRID }, min: -20, max: 40 }
-      }
-    }
-  });
-
-  // Multi-line
-  var activeTB = TB.filter(function(tb){ return tb.indexOf('0') !== 0; });
-  var datasets = activeTB.map(function(tb) {
-    var d = D.by_tenure_quarter[tb] || {};
-    return {
-      label: tb,
-      data: QTRS.map(function(q){ return d[q] ? d[q].nps : null; }),
-      borderColor: tbColor(tb),
-      backgroundColor: 'transparent',
-      borderWidth: 2, pointRadius: 4,
-      pointBackgroundColor: tbColor(tb),
-      tension: 0.3, spanGaps: false
-    };
-  });
-  makeChart('tenure-lines', {
-    type: 'line',
-    data: { labels: QTRS, datasets: datasets },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14, font: { size: 11 } } }, tooltip: { callbacks: { label: function(c){ return ' '+c.dataset.label+': '+(c.raw>0?'+':'')+c.raw; } } } },
-      scales: {
-        x: { ticks: { color: TICK }, grid: { color: GRID } },
-        y: { ticks: { color: TICK, callback: function(v){ return (v>0?'+':'')+v; } }, grid: { color: GRID } }
-      }
-    }
-  });
-
-  // Themes table
-  var themeKeys = ['Ease of use / UX','Bugs / reliability','Support access','Onboarding / setup','Product gaps','Pricing / value','Sales mismatch'];
-  var activeTB2 = TB.filter(function(tb){ return tb.indexOf('0') !== 0; });
-  var thEl = document.getElementById('tenure-themes-table');
-  var thead = '<thead><tr><th>Theme</th>'+activeTB2.map(function(tb){ return '<th>'+tb+'</th>'; }).join('')+'</tr></thead>';
-  var tbody = '<tbody>'+themeKeys.map(function(t) {
-    var cells = activeTB2.map(function(tb) {
-      var d = D.tenure_themes[tb];
-      if (!d || !d.total) return '<td style="color:var(--text3)">&#8212;</td>';
-      var cnt = d.themes[t] || 0;
-      var pct = Math.round(cnt / d.total * 100);
-      var bg = pct >= 25 ? 'var(--red-bg)' : pct >= 15 ? 'var(--amber-bg)' : '';
-      var col = pct >= 25 ? 'var(--red)' : pct >= 15 ? 'var(--amber)' : 'var(--text2)';
-      return '<td style="background:'+bg+';color:'+col+';font-weight:'+(pct>=15?600:400)+'">'+(cnt ? pct+'%' : '&#8212;')+'</td>';
-    });
-    return '<tr><td><strong>'+t+'</strong></td>'+cells.join('')+'</tr>';
-  }).join('')+'</tbody>';
-  thEl.innerHTML = thead + tbody;
-
-  // PA x tenure table
-  var keyPAs = ['Estate Planning','Family Law','Criminal Defense','Immigration','Personal Injury','Employment Law'];
-  var paEl = document.getElementById('tenure-pa-table');
-  var pHead = '<thead><tr><th>Practice</th>'+activeTB2.map(function(tb){ return '<th>'+tb+'</th>'; }).join('')+'</tr></thead>';
-  var pBody = '<tbody>'+keyPAs.map(function(pa) {
-    if (!D.by_practice_tenure[pa]) return '';
-    var cells = activeTB2.map(function(tb) {
-      var d = D.by_practice_tenure[pa] ? D.by_practice_tenure[pa][tb] : null;
-      if (!d) return '<td style="color:var(--text3)">&#8212;</td>';
-      return '<td>'+npsPill(d.nps)+'</td>';
-    });
-    return '<tr><td><strong>'+pa+'</strong></td>'+cells.join('')+'</tr>';
-  }).join('')+'</tbody>';
-  paEl.innerHTML = pHead + pBody;
-
-  // Narrative
-  document.getElementById('tenure-narrative').innerHTML =
-    '<p><strong style="color:var(--text)">The first 12 months are the highest-risk window.</strong> Customers in months 3&#8211;11 score NPS of &#8722;3 to +4 &#8212; effectively flat or negative. By month 12 it jumps to +24.6, and by year two holds at +27.8. The platform has a clear valley of despair in the first year where customers haven&#8217;t yet found value but are paying full price.</p>' +
-    '<p><strong style="color:var(--text)">New customers complain about completely different things than tenured ones.</strong> Months 3&#8211;5: product gaps and support access &#8212; they can&#8217;t figure out what they need and can&#8217;t get help. Months 6&#8211;11: onboarding (22%), UX (20%), and bugs (20%) simultaneously &#8212; the most volatile mix in the dataset. By 24+ months, product gaps dominate (37%) &#8212; these customers know the product and are hitting its ceiling.</p>' +
-    '<p><strong style="color:var(--text)">Family Law&#8217;s early-tenure pattern is the most urgent signal.</strong> 3&#8211;5 month Family Law customers score 0.0 NPS. 6&#8211;11 months drops to &#8722;19.2. Only after 12 months do they recover to +84. That 6&#8211;11 month window is where Family Law firms churn before finding value. A targeted check-in at month 6 for Family Law specifically would have outsized impact.</p>' +
-    '<p><strong style="color:var(--text)">Criminal Defense never recovers in the early window.</strong> 3&#8211;5 months: &#8722;60. 12&#8211;23 months: 0. Only 24+ month firms score positive (+28). The 2026 redesign hit Criminal Defense firms mid-journey &#8212; any Criminal Defense account currently in months 3&#8211;18 is at elevated churn risk.</p>' +
-    '<p><strong style="color:var(--text)">The 6&#8211;11 month cohort is inflating in 2026.</strong> It grew from 13&#8211;14 responses per quarter in 2025 to 26&#8211;30 in 2026, reflecting the surge of new accounts signed in mid-2025. Their Q1 2026 NPS was &#8722;30.0 &#8212; the worst single cohort&#8211;quarter in the dataset. These firms are in the valley right now.</p>';
-}
 initTenure();
 
 </script>
