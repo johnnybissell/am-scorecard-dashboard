@@ -434,7 +434,7 @@ function renderDrillComments() {
   var theme = activeTheme;
   var kws = THEME_KWS_JS[theme]||[];
   var qFilter = document.getElementById("drill-q-filter").value;
-  var comments = D.recent_detractor_comments||[];
+  var comments = D.all_detractor_comments||[];
   var filtered = comments.filter(function(c){
     var txt=(c.comment||"").toLowerCase();
     var m=kws.some(function(k){return txt.indexOf(k)>-1;});
@@ -465,7 +465,7 @@ function renderHighlights() {
   var el = document.getElementById("all-theme-highlights");
   if(!el) return;
   var themeKeys = Object.keys(THEME_COLORS);
-  var comments = D.recent_detractor_comments||[];
+  var comments = D.all_detractor_comments||[];
   el.innerHTML = themeKeys.map(function(theme) {
     var kws=THEME_KWS_JS[theme]||[], col=THEME_COLORS[theme];
     var matching=comments.filter(function(c){
@@ -574,7 +574,7 @@ fetch('nps_data.json')
     data.tenure_themes     = data.tenure_themes     || {};
     data.by_practice_tenure= data.by_practice_tenure|| {};
     data.detractor_themes_by_quarter = data.detractor_themes_by_quarter || {};
-    data.recent_detractor_comments   = data.recent_detractor_comments   || [];
+    data.all_detractor_comments   = data.all_detractor_comments   || [];
     data.by_practice_quarter = data.by_practice_quarter || {};
     data.by_owner_quarter    = data.by_owner_quarter    || {};
     data.by_ae_quarter       = data.by_ae_quarter       || {};
