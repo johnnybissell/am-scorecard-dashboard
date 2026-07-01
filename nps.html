@@ -404,8 +404,11 @@ function initThemes() {
     row.innerHTML = themeKeys.map(function(t) {
       var col = THEME_COLORS[t];
       var total = QUARTERS.reduce(function(s,q){var qd=D.detractor_themes_by_quarter[q]||{};return s+(qd[t]||0);},0);
-      return '<button data-theme="'+t+'" onclick="selectTheme(this)" style="font-size:12px;padding:5px 14px;border-radius:20px;border:2px solid '+col+';background:transparent;color:'+col+';cursor:pointer;font-weight:500;margin:2px">'+t+' <span style="opacity:.65">('+total+')</span></button>';
+      return '<button data-theme="'+t+'" style="font-size:12px;padding:5px 14px;border-radius:20px;border:2px solid '+col+';background:transparent;color:'+col+';cursor:pointer;font-weight:500;margin:2px">'+t+' <span style="opacity:.65">('+total+')</span></button>';
     }).join("");
+    row.querySelectorAll("button").forEach(function(btn) {
+      btn.addEventListener("click", function() { selectTheme(this); });
+    });
   }
 
   renderHighlights();
