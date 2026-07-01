@@ -457,7 +457,7 @@ function renderDrillComments() {
     var isTeam=AM_TEAM.indexOf((c.owner||"").toLowerCase())>-1;
     var ow=c.owner?(isTeam?'<span class="tag tag-owner">AM: '+c.owner+"</span>":'<span class="tag" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;font-weight:600">3rd Party: '+c.owner+"</span>"):"";
     return '<div class="comment-item"><div class="comment-meta"><span class="tag '+sc+'">Score '+c.score+'</span><span class="tag tag-q">'+c.quarter+"</span>"+ow+(c.ae?'<span class="tag tag-ae">AE: '+c.ae+"</span>":"")+pa+"</div>"
-      +(c.account?'<div class="comment-account" style="font-weight:600;color:var(--text);margin-bottom:4px">'+c.account+"</div>":"")
+      +(c.account?'<div class="comment-account" style="font-weight:600;color:var(--text);margin-bottom:2px">'+c.account+(c.start_date?' <span style="font-weight:400;color:var(--text3);font-size:11px">started '+c.start_date+'</span>':"")+"</div>":"")
       +'<div class="comment-text">"'+c.comment+'"</div>'
       +"</div>";
   }).join("");
@@ -484,7 +484,7 @@ function renderHighlights() {
         var sc=c.score<=2?"tag-score-bad":"tag-score-ok";
         var pa=c.practice&&c.practice!=="Unknown"?'<span class="tag tag-pa">'+c.practice+"</span>":"";
         return '<div class="comment-item"><div class="comment-meta"><span class="tag '+sc+'">Score '+c.score+'</span><span class="tag tag-q">'+c.quarter+"</span>"+pa+"</div>"
-          +(c.account?'<div class="comment-account" style="font-weight:600;color:var(--text);margin-bottom:4px">'+c.account+"</div>":"")
+          +(c.account?'<div class="comment-account" style="font-weight:600;color:var(--text);margin-bottom:2px">'+c.account+(c.start_date?' <span style="font-weight:400;color:var(--text3);font-size:11px">started '+c.start_date+'</span>':"")+"</div>":"")
           +'<div class="comment-text">"'+c.comment.slice(0,220)+(c.comment.length>220?"&#8230;":"")+'"</div>'
           +"</div>";
       }).join("")+"</div>";
