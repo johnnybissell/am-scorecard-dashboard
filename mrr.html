@@ -3434,18 +3434,13 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
       '  noSfMatch=' + d.noSfMatch +
       '  sfMatchNoReason=' + d.sfMatchNoReason);
   }
-  // Limit to the top N reasons by total $, lump the rest as "Other".
-  const TOP_N = 7;
-  const reasonsByTotal = Object.keys(reasonTotals).sort(function (a, b) {
+  // Every distinct reason gets its own stack segment — no "Other" bucket.
+  // Sorted by total $ so the biggest reasons anchor the bottom of the stack.
+  const stackKeys = Object.keys(reasonTotals).sort(function (a, b) {
     return reasonTotals[b] - reasonTotals[a];
   });
-  const topReasons = reasonsByTotal.slice(0, TOP_N);
-  const includeOther = reasonsByTotal.length > TOP_N;
-  const stackKeys = topReasons.concat(includeOther ? ['Other'] : []);
-  // Second pass — now that we know which reasons are "top" vs. lumped into
-  // "Other," build the actual firm-level rows behind each (month, stack
-  // segment) so clicking a bar segment can open a real drill-down instead
-  // of a dead end, even for "Other."
+  // Second pass — build the actual firm-level rows behind each (month,
+  // reason) so clicking a bar segment opens a real drill-down.
   histReasonDrillRows = {};
   for (const ym of yms) {
     histReasonDrillRows[ym] = {};
@@ -3456,7 +3451,7 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
       const sfReason = (sf['Churn Reason'] || '').trim();
       const cbReason = (r['Cancel Reason'] || '').trim();
       const effectiveReason = sfReason || cbReason || 'Voluntary / unspecified';
-      const bucketKey = topReasons.indexOf(effectiveReason) !== -1 ? effectiveReason : 'Other';
+      const bucketKey = effectiveReason;
       if (!histReasonDrillRows[ym][bucketKey]) histReasonDrillRows[ym][bucketKey] = [];
       histReasonDrillRows[ym][bucketKey].push(Object.assign({}, r, {
         'SF Churn Reason': effectiveReason,
@@ -3465,17 +3460,12 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
       }));
     }
   }
-  // Build per-reason series across months.
-  const palette = ['#ef4444','#f97316','#eab308','#84cc16','#10b981','#06b6d4','#6366f1','#94a3b8'];
+  // Build per-reason series across months. Palette cycles if there are more
+  // distinct reasons than colors — the legend label is still the source of
+  // truth for which reason is which.
+  const palette = ['#ef4444','#f97316','#eab308','#84cc16','#10b981','#06b6d4','#6366f1','#94a3b8','#ec4899','#14b8a6','#a855f7','#f59e0b','#3b82f6','#22c55e'];
   const datasets = stackKeys.map(function (reason, i) {
     const data = yms.map(function (ym) {
-      if (reason === 'Other') {
-        let sum = 0;
-        for (const r in grid[ym]) {
-          if (topReasons.indexOf(r) === -1) sum += grid[ym][r];
-        }
-        return sum;
-      }
       return grid[ym][reason] || 0;
     });
     return {
@@ -3528,18 +3518,13 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
 }
 /**
  * Click handler for the "Churn $ by reason per month" chart. bucketKey is
- * either one of the top-7 reason strings or the literal string "Other" —
- * either way, opens the real firm-level rows behind that (month, bucket)
- * combo, so "Other" is never a dead end: every row in that table still
- * shows its own actual, specific reason in the Cancel Reason column, even
- * though the chart lumped it in with other low-dollar reasons.
+ * the exact reason string for that stack segment — opens the firm-level
+ * rows behind that (month, reason) combo.
  */
 function drillHistoricalReasonBucket(ym, bucketKey) {
   const rows = (histReasonDrillRows[ym] && histReasonDrillRows[ym][bucketKey]) || [];
-  const title = (bucketKey === 'Other' ? 'Other reasons' : bucketKey) + ' — ' + monthLabel(ym);
-  const sub = bucketKey === 'Other'
-    ? 'Each row below has its own real reason — grouped here only because none of them individually moved enough $ to get a dedicated color in the chart.'
-    : 'Firms in ' + monthLabel(ym) + ' with this reason';
+  const title = bucketKey + ' — ' + monthLabel(ym);
+  const sub = 'Firms in ' + monthLabel(ym) + ' with this reason';
   openDrill(title, sub, rows);
 }
 /**
