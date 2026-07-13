@@ -4,11 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Lawmatics MRR</title>
-
 <!-- Chart.js + PapaParse from CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
 <style>
 :root {
   --bg: #f7f8fa;
@@ -87,7 +85,6 @@ td.negative { color: var(--negative); }
   main, header { padding: 16px; }
   .churn-charts { grid-template-columns: 1fr !important; }
 }
-
 /* Period tabs (Last/This/Next month + next 120) */
 .period-tabs {
   display: inline-flex;
@@ -113,7 +110,6 @@ td.negative { color: var(--negative); }
   color: var(--text);
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
-
 /* Churn deep dive grid */
 .dd-grid {
   display: grid;
@@ -182,7 +178,6 @@ td.negative { color: var(--negative); }
   .hero { padding: 20px; }
   .hero .value { font-size: 40px; }
 }
-
 /* Month-end projection card. */
 .projection {
   background: var(--card);
@@ -236,7 +231,6 @@ td.negative { color: var(--negative); }
   font-size: 11px;
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
-
 /* Drill-down modal — opens when user clicks a category card, leaderboard
    row, or chart bar to inspect the underlying firms. */
 .drill-overlay {
@@ -336,9 +330,7 @@ td.negative { color: var(--negative); }
 .clickable-row:hover td { background: #fafafa; }
 </style>
 </head>
-
 <body>
-
 <header>
   <h1>Lawmatics MRR</h1>
   <div class="meta">
@@ -347,10 +339,8 @@ td.negative { color: var(--negative); }
     <button class="refresh-btn" id="refreshBtn" onclick="loadAll()">Refresh now</button>
   </div>
 </header>
-
 <main>
   <div id="errorBox"></div>
-
   <div class="hero">
     <div class="label" id="heroLabel">Net customer movement so far</div>
     <div class="value" id="heroValue">—</div>
@@ -359,7 +349,6 @@ td.negative { color: var(--negative); }
       Excludes new business.
     </div>
   </div>
-
   <div class="projection" id="projectionCard">
     <div class="top">
       <div class="top-left">
@@ -373,7 +362,6 @@ td.negative { color: var(--negative); }
     </div>
     <div class="projection-detail" id="projectionDetail"></div>
   </div>
-
   <div class="categories">
     <div class="category-card clickable" onclick="drillCategory('upgrades', currentYm())">
       <div class="cat-label">Upgrades</div>
@@ -399,7 +387,6 @@ td.negative { color: var(--negative); }
   <div style="font-size:11px;color:var(--text-muted);margin:-12px 0 24px 4px;">
     Click any card, leaderboard row, or chart bar to drill into the underlying firms.
   </div>
-
   <div class="section">
     <div class="card">
       <h2 id="leaderboardTitle">Account Manager leaderboard — this month</h2>
@@ -411,7 +398,6 @@ td.negative { color: var(--negative); }
       </div>
     </div>
   </div>
-
   <div class="section">
     <div class="card">
       <h2>Net customer movement by month — last 12 months</h2>
@@ -426,7 +412,6 @@ td.negative { color: var(--negative); }
       </div>
     </div>
   </div>
-
   <div class="section">
     <div class="card" style="border-left:4px solid var(--negative);padding:24px 28px;">
       <div style="display:flex;align-items:baseline;justify-content:space-between;gap:24px;flex-wrap:wrap;">
@@ -442,7 +427,6 @@ td.negative { color: var(--negative); }
       <div class="projection-detail" id="churnForecastDetail"></div>
     </div>
   </div>
-
   <div class="section">
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
@@ -474,8 +458,6 @@ td.negative { color: var(--negative); }
       </div>
     </div>
   </div>
-
-
   <!-- Drill-down modal. Hidden by default; openDrill() shows it. -->
   <div class="drill-overlay" id="drillOverlay" onclick="if(event.target===this) closeDrill()">
     <div class="drill-panel">
@@ -492,7 +474,6 @@ td.negative { color: var(--negative); }
       <div class="drill-footer" id="drillFooter"></div>
     </div>
   </div>
-
   <div class="section">
     <div class="card">
       <h2 id="ddHeading">Churn deep dive — next 120 days</h2>
@@ -509,8 +490,8 @@ td.negative { color: var(--negative); }
           <div class="chart-container" style="height:260px;"><canvas id="ddOwnerChart"></canvas></div>
         </div>
         <div class="dd-card">
-          <div class="dd-title">By Cancel Reason</div>
-          <div class="chart-container" style="height:260px;"><canvas id="ddReasonChart"></canvas></div>
+          <div class="dd-title">By Churn Category</div>
+          <div class="chart-container" style="height:300px;"><canvas id="ddReasonChart"></canvas></div>
         </div>
         <div class="dd-card">
           <div class="dd-title">By Avg Lead Volume bucket</div>
@@ -526,7 +507,6 @@ td.negative { color: var(--negative); }
       </div>
     </div>
   </div>
-
   <div class="section">
     <div class="card">
       <h2>Historical churn trends — last 12 months</h2>
@@ -549,14 +529,12 @@ td.negative { color: var(--negative); }
       </div>
     </div>
   </div>
-
   <div class="section">
     <div class="card">
       <h2>Churn insights</h2>
       <div id="churnInsightsBody" style="font-size:14px;line-height:1.7;color:var(--text);"></div>
     </div>
   </div>
-
   <div class="section">
     <div class="card">
       <h2>Net customer movement by Account Manager — last 90 days</h2>
@@ -569,7 +547,6 @@ td.negative { color: var(--negative); }
     </div>
   </div>
 </main>
-
 <script>
 // ============================================================================
 // CONFIG — set these to the published-to-web CSV URLs from your Google Sheets.
@@ -599,14 +576,43 @@ const CSV_URLS = {
   // When empty, churn views fall back to Chargebee fields only.
   salesforceDetail: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=332446680&single=true&output=csv',
 };
-
 // Auto-refresh every N minutes (set to 0 to disable).
 const AUTO_REFRESH_MINUTES = 5;
-
+// ============================================================================
+// CHURN CATEGORY GROUPING
+// ============================================================================
+//
+// The Salesforce "Churn Category" field (published to the sheet as the
+// "Churn Reason" column, unchanged name for backwards compatibility) now
+// holds values shaped like "Product - Missing feature or integration" —
+// a broad category before " - ", a specific reason after. This lets the
+// deep-dive chart group by category first, then stack the specific reasons
+// within each category.
+//
+// Order controls left-to-right position on the stacked column chart. Any
+// category value seen in the data that isn't in this list still renders —
+// it's just appended after these, so new SF picklist categories don't
+// silently disappear.
+const CHURN_CATEGORY_ORDER = [
+  'Product', 'Onboarding', 'Support', 'Pricing', 'Sales', 'Competitor',
+  'External', 'No Reason Provided', 'Other',
+];
+/**
+ * Split a full churn reason string ("Product - Missing feature or
+ * integration") into its category prefix ("Product"). Falls back to
+ * "Other" for the "Voluntary / unspecified" sentinel, legacy Chargebee-only
+ * reasons with no " - " separator, or anything blank.
+ */
+function categoryForReason(reason) {
+  if (!reason || reason === 'Voluntary / unspecified') return 'Other';
+  const idx = reason.indexOf(' - ');
+  if (idx === -1) return 'Other';
+  const cat = reason.slice(0, idx).trim();
+  return cat || 'Other';
+}
 // ============================================================================
 // PARSING HELPERS
 // ============================================================================
-
 function parseMoney(s) {
   if (s === null || s === undefined) return 0;
   const str = String(s).trim();
@@ -618,12 +624,10 @@ function parseMoney(s) {
   if (isNaN(n)) return 0;
   return isNeg ? -n : n;
 }
-
 function fmtMoney(n) {
   const sign = n < 0 ? '-' : '';
   return sign + '$' + Math.abs(Math.round(n)).toLocaleString();
 }
-
 function fmtMoneyShort(n) {
   const abs = Math.abs(n);
   const sign = n < 0 ? '-' : '';
@@ -631,7 +635,6 @@ function fmtMoneyShort(n) {
   if (abs >= 1000) return sign + '$' + (abs / 1000).toFixed(1) + 'k';
   return sign + '$' + Math.round(abs);
 }
-
 function parseChangeDate(s) {
   // Handles two formats:
   //   "Jul-24"   — written by the Apps Script (live MonthlyMRRImpact tab)
@@ -640,19 +643,15 @@ function parseChangeDate(s) {
   const months = { Jan:0, Feb:1, Mar:2, Apr:3, May:4, Jun:5, Jul:6, Aug:7, Sep:8, Oct:9, Nov:10, Dec:11 };
   const str = String(s).trim();
   let mo, year;
-
   let m = str.match(/^(\w{3})-(\d{2})$/);                // "Jul-24"
   if (m) { mo = months[m[1]]; year = 2000 + parseInt(m[2], 10); }
-
   if (mo === undefined) {
     m = str.match(/^(\w{3})\s+(\d{4})$/);                // "Jul 2024"
     if (m) { mo = months[m[1]]; year = parseInt(m[2], 10); }
   }
-
   if (mo === undefined || isNaN(year)) return null;
   return new Date(year, mo, 1);
 }
-
 /**
  * Normalize a Firm ID value so SF-side and Chargebee-side keys reliably
  * match. Handles several quirks Google Sheets / CSV exports can introduce:
@@ -674,12 +673,10 @@ function normalizeFirmId(v) {
   if (/^\d+\.0+$/.test(s)) s = s.replace(/\.0+$/, '');
   return s;
 }
-
 function parseDateTime(s) {
   if (!s) return null;
   const str = String(s).trim();
   if (!str) return null;
-
   // Format 1 (the format the Apps Script writes via UTC formatDate):
   //   "2026-05-18 07:00:00"  ←  YYYY-MM-DD HH:MM:SS (UTC)
   //   "2026-05-18"           ←  YYYY-MM-DD (date only, used by some CSV
@@ -694,7 +691,6 @@ function parseDateTime(s) {
     const ss = m[6] ? parseInt(m[6], 10) : 0;
     return new Date(Date.UTC(yr, mo, day, hh, mm, ss));
   }
-
   // Format 2: US date format Google Sheets may auto-export when a cell is
   // formatted as a date in a Pacific-locale sheet:
   //   "5/18/2026"            ←  M/D/YYYY (date only)
@@ -711,13 +707,11 @@ function parseDateTime(s) {
     // Assume UTC — matches how the Apps Script wrote the original value.
     return new Date(Date.UTC(yr, mo, day, hh, mm, ss));
   }
-
   // Last resort — let the Date constructor try. Adds Z if it looks like
   // an ISO-shaped string missing one.
   const fallback = new Date(str.indexOf('T') >= 0 || str.indexOf('Z') >= 0 ? str : str + 'Z');
   return isNaN(fallback.getTime()) ? null : fallback;
 }
-
 async function fetchCsv(url, label) {
   if (!url || url.startsWith('PASTE_')) {
     throw new Error('[' + label + '] CSV URL not configured. Edit CSV_URLS at top of this file.');
@@ -745,11 +739,9 @@ async function fetchCsv(url, label) {
     });
   });
 }
-
 // ============================================================================
 // LOADERS — pull each CSV, normalize into useful shapes.
 // ============================================================================
-
 let charts = {
   movement: null, am: null, churn: null, churnMrr: null,
   // Churn Deep Dive sub-charts
@@ -757,24 +749,20 @@ let charts = {
   // Historical 12-month charts
   hist12Mrr: null, hist12Rate: null, hist12Reason: null,
 };
-
 // Drill-down dataset — kept around so click handlers can filter without
 // re-fetching. Each row is tagged with its source feed so the modal can
 // show whether a row came from the live tab or the historical backfill.
 let drillRows = [];
 // Drill-down sort state — persisted across reopens so the user's preference sticks.
 let drillSort = { col: 'date', dir: 'desc' };
-
 // Currently-selected churn period for the deep dive + table. Switching this
 // re-runs all the churn renderers with the new filter window.
 let currentChurnPeriod = 'next120';
 // Cached references so setChurnPeriod can re-render without re-fetching.
 let cachedChurn = [], cachedMrr = [], cachedSfById = {};
-
 async function loadAll() {
   showError(null);
   document.getElementById('lastRefreshed').textContent = 'Refreshing…';
-
   try {
     // We fetch only what the CS-focused dashboard renders. Projections CSV is
     // intentionally not loaded — it's a new-business-aware artifact and this
@@ -797,7 +785,6 @@ async function loadAll() {
     push('historical',       CSV_URLS.historical);
     push('mrrSnapshot',      CSV_URLS.mrrSnapshot);
     push('salesforceDetail', CSV_URLS.salesforceDetail);
-
     const results = await Promise.all(fetches);
     function get(name) {
       const i = fetchIndex[name];
@@ -808,7 +795,6 @@ async function loadAll() {
     const historicalRaw     = get('historical');
     const mrrSnapshot       = get('mrrSnapshot');
     const salesforceDetail  = get('salesforceDetail');
-
     // ── Permanent exclusions ──────────────────────────────────────────────────
     // Firms listed here are stripped from ALL data feeds before any processing.
     // To add another firm: add a lowercase substring of the company name.
@@ -831,7 +817,6 @@ async function loadAll() {
     const mrrRawClean     = mrrRawFiltered;
     const historicalClean = historicalRawFiltered;
     // ─────────────────────────────────────────────────────────────────────────
-
     // Build SF lookup map: Firm ID → SF fields. Used by the churn renderers
     // below to enrich Chargebee data with SF context. We join on Firm ID
     // (cf_firm_id in Chargebee ↔ Firm_ID__c in Salesforce) rather than the
@@ -851,7 +836,6 @@ async function loadAll() {
       console.log('[MRR Dashboard] SF Detail rows:', salesforceDetail.length,
                   '| Sample SF firm IDs:', Object.keys(sfById).slice(0, 5));
     }
-
     // Collapse cancel+reactivate pairs within the same month. A firm that
     // leaves and comes back the same month is a wash — neither event
     // should count in the cancellation or reactivation tallies.
@@ -859,7 +843,6 @@ async function loadAll() {
     const historicalAfterCancelReact = dropSameMonthCancelReactivatePairs(historicalClean);
     const pairsCollapsed = (mrrAfterCancelReact.__pairsCollapsed || 0) +
                            (historicalAfterCancelReact.__pairsCollapsed || 0);
-
     // Net UPGRADE+DOWNGRADE per (sub, month) so the UPGRADE/DOWNGRADE buckets
     // match Chargebee's per-sub-net methodology. Without this, a sub that
     // had both an upgrade and a downgrade in the same month would inflate
@@ -874,7 +857,6 @@ async function loadAll() {
       console.log('[MRR Dashboard] Collapsed', upDownCollapsed,
                   'UPGRADE/DOWNGRADE rows into per-(sub,month) nets to match Chargebee.');
     }
-
     // Aggregate each source separately, then merge.
     //
     // Historical is used ONLY to backfill months strictly older than the
@@ -885,7 +867,6 @@ async function loadAll() {
     const movementsHistorical = aggregateMovements(historical);
     const liveYms = Object.keys(movementsLive).sort();
     const earliestLiveYm = liveYms[0] || null;
-
     const movements = {};
     for (const ym in movementsHistorical) {
       if (!earliestLiveYm || ym < earliestLiveYm) {
@@ -895,7 +876,6 @@ async function loadAll() {
     for (const ym in movementsLive) {
       movements[ym] = movementsLive[ym];
     }
-
     // Fold scheduled non-renewing cancellations into the current-month
     // cancellations bucket. These are firms that have a future cancel date
     // but haven't actually fired yet — the live MonthlyMRRImpact won't show
@@ -903,7 +883,6 @@ async function loadAll() {
     // forward-looking by intent: we want the full picture of what's leaving
     // this month, including what's still scheduled.
     augmentCurrentMonthWithScheduledChurn(movements, churnClean);
-
     // Build the merged row-level dataset used by drill-down click handlers.
     // We tag each row with its source so the modal can label it (live vs
     // historical), and we apply the same "live wins per month" rule so the
@@ -939,16 +918,13 @@ async function loadAll() {
     // drill matches the augmented card total. Pass sfById so the synthetic
     // rows carry the SF Practice Area / Churn Reason / etc. for drill-down.
     appendScheduledChurnAsDrillRows(drillRows, churnClean, sfById);
-
     // Derive beginning-of-month MRR baselines from the snapshot tab. Used
     // to render movement metrics as % of beginning ARR. Empty {} when
     // the MRR Snapshot CSV isn't configured/populated — renderers handle that.
     const beginningByYm = computeBeginningMrrByMonth(movements, mrrSnapshot);
-
     // Compute AM 12-month renewal rate from the MonthlyMRRImpact + historical
     // rows we already have. Uses Creation Date + Subscription Status fields.
     const amRetention = computeAmRetention(mrr.concat(historical));
-
     renderHero(movements, beginningByYm);
     renderProjection(movements, mrr, historical);
     renderCategoryCards(movements);
@@ -967,7 +943,6 @@ async function loadAll() {
     renderChurnInsights(mrr, historical, sfById);
     renderAmBreakdown(mrr);
     renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm, upDownCollapsed);
-
     const now = new Date();
     document.getElementById('lastRefreshed').textContent =
       'Last refreshed ' + now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
@@ -977,7 +952,6 @@ async function loadAll() {
     document.getElementById('lastRefreshed').textContent = 'Refresh failed';
   }
 }
-
 // ----------------------------------------------------------------------------
 // Movement aggregator — the core of the new dashboard.
 // ----------------------------------------------------------------------------
@@ -1003,7 +977,6 @@ function categoryFor(status) {
   if (status === 'NEW' || status === 'FREE_TO_PAID' || status === 'FUTURE') return 'newBusiness';
   return null;
 }
-
 /**
  * Drop CANCEL_FROM_* and REACTIVE/PAUSE_TO_PAID rows whose Subscription ID
  * has BOTH a cancel event and a reactivate event in the same month. A firm
@@ -1039,7 +1012,6 @@ function dropSameMonthCancelReactivatePairs(rows) {
       pairCount++;
     }
   }
-
   // Second pass — return all rows except the cancel/reactivate ones inside
   // a matched key. Non-cancel/reactivate rows are always kept.
   const out = rows.filter(function (r) {
@@ -1059,7 +1031,6 @@ function dropSameMonthCancelReactivatePairs(rows) {
   out.__pairsCollapsed = pairCount;
   return out;
 }
-
 /**
  * Collapse UPGRADE + DOWNGRADE rows per (Subscription ID, YYYY-MM) into ONE
  * net row per group. This makes our bucket totals match Chargebee's
@@ -1096,7 +1067,6 @@ function collapseUpgradeDowngradeWithinMonth(rows) {
   const isUpDown = function (s) { return s === 'UPGRADE' || s === 'DOWNGRADE'; };
   const groups = {};        // key 'ym|subId' → { rows: [], net: 0 }
   const passthrough = [];
-
   for (const r of rows) {
     const status = r['Impact Sub status'];
     if (!isUpDown(status)) { passthrough.push(r); continue; }
@@ -1109,7 +1079,6 @@ function collapseUpgradeDowngradeWithinMonth(rows) {
     groups[key].rows.push(r);
     groups[key].net += parseMoney(r['MRR Impact']);
   }
-
   let collapsedCount = 0;
   const collapsed = [];
   for (const key in groups) {
@@ -1136,12 +1105,10 @@ function collapseUpgradeDowngradeWithinMonth(rows) {
     rep['MRR Impact'] = (g.net >= 0 ? '$' : '-$') + abs;
     collapsed.push(rep);
   }
-
   const out = passthrough.concat(collapsed);
   out.__upgradeDowngradeCollapsed = collapsedCount;
   return out;
 }
-
 function aggregateMovements(mrrRows) {
   // {YYYY-MM: {upgrades:{$,n}, reactivations:..., downgrades:..., cancellations:..., newBusiness:..., net, totalNet}}
   const byMonth = {};
@@ -1150,11 +1117,9 @@ function aggregateMovements(mrrRows) {
     const status = r['Impact Sub status'];
     const cat = categoryFor(status);
     if (!cat) continue;
-
     const d = parseChangeDate(r['Change Date']);
     if (!d) continue;
     const ym = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-
     if (!byMonth[ym]) {
       byMonth[ym] = {
         ym: ym,
@@ -1171,7 +1136,6 @@ function aggregateMovements(mrrRows) {
     byMonth[ym][cat].dollars += impact;
     byMonth[ym][cat].count += 1;
   }
-
   // Finalize derived metrics.
   for (const ym in byMonth) {
     const m = byMonth[ym];
@@ -1180,7 +1144,6 @@ function aggregateMovements(mrrRows) {
   }
   return byMonth;
 }
-
 /**
  * Compute Month-12 renewal rate per Account Manager from existing rows.
  *
@@ -1200,7 +1163,6 @@ function aggregateMovements(mrrRows) {
  */
 function computeAmRetention(allRows) {
   if (!Array.isArray(allRows) || allRows.length === 0) return [];
-
   // Dedupe by Subscription ID, keeping the LATEST row per sub (so the
   // Subscription Status reflects the most recent state).
   const bySub = {};
@@ -1219,12 +1181,10 @@ function computeAmRetention(allRows) {
       };
     }
   }
-
   // Cohort window: Creation Date 11–13 months ago.
   const now = new Date();
   const cohortNewest = new Date(now); cohortNewest.setMonth(now.getMonth() - 11);
   const cohortOldest = new Date(now); cohortOldest.setMonth(now.getMonth() - 13);
-
   const byAm = {};
   for (const subId in bySub) {
     const s = bySub[subId];
@@ -1238,7 +1198,6 @@ function computeAmRetention(allRows) {
       byAm[s.am].retained += 1;
     }
   }
-
   const rows = [];
   for (const am in byAm) {
     const v = byAm[am];
@@ -1253,12 +1212,10 @@ function computeAmRetention(allRows) {
   }
   return rows;
 }
-
 function currentYm() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 }
-
 /**
  * Compute beginning-of-month MRR for every month in `movements`, working
  * backward from the most recent MRR Snapshot reading.
@@ -1281,16 +1238,13 @@ function computeBeginningMrrByMonth(movements, snapshotRows) {
     if (!latest || t > latest.t) latest = { t: t, mrr: val };
   }
   if (!latest) return {};
-
   const yms = Object.keys(movements).sort();
   if (yms.length === 0) return {};
-
   // current = latest snapshot value (today)
   // beginningOf(currentMonth) = current − net_so_far_this_month
   const currentYmStr = currentYm();
   const result = {};
   let runningCurrentMrr = latest.mrr;
-
   // Walk backwards from the latest month present in movements.
   // For each month, beginning = end_of_month − net_change(that month)
   // and end_of_month = beginning of next month.
@@ -1307,13 +1261,11 @@ function computeBeginningMrrByMonth(movements, snapshotRows) {
   }
   return result;
 }
-
 function fmtPct(n) {
   if (!isFinite(n)) return '';
   const sign = n >= 0 ? '+' : '';
   return sign + (n * 100).toFixed(2) + '%';
 }
-
 /**
  * Fold scheduled non-renewing cancellations dated in the current month into
  * movements[currentYm].cancellations. These are firms whose subscription is
@@ -1333,7 +1285,6 @@ function augmentCurrentMonthWithScheduledChurn(movements, churnRows) {
   const [yr, mo] = ym.split('-').map(Number);
   const monthStart = new Date(yr, mo - 1, 1);
   const monthEnd   = new Date(yr, mo, 1);
-
   let addedDollars = 0;
   let addedCount = 0;
   for (const r of churnRows) {
@@ -1351,7 +1302,6 @@ function augmentCurrentMonthWithScheduledChurn(movements, churnRows) {
     addedCount += 1;
   }
   if (addedCount === 0) return;
-
   if (!movements[ym]) {
     movements[ym] = {
       ym: ym,
@@ -1374,28 +1324,23 @@ function augmentCurrentMonthWithScheduledChurn(movements, churnRows) {
   m.net = m.upgrades.dollars + m.reactivations.dollars + m.downgrades.dollars + m.cancellations.dollars;
   m.totalNet = m.net + m.newBusiness.dollars;
 }
-
 function monthLabel(ym) {
   const [y, m] = ym.split('-').map(Number);
   return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
-
 function showError(msg) {
   const box = document.getElementById('errorBox');
   if (!msg) { box.innerHTML = ''; return; }
   box.innerHTML = '<div class="error"><strong>Couldn\'t load data:</strong> ' + escapeHtml(msg) + '</div>';
 }
-
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, function (c) {
     return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
   });
 }
-
 // ============================================================================
 // DRILL-DOWN — modal showing the firms behind any aggregate number.
 // ============================================================================
-
 /**
  * Synthesize drill-down rows from the Scheduled Churn feed so the
  * Cancellations card's drill matches the augmented total. We mirror the
@@ -1442,7 +1387,6 @@ function appendScheduledChurnAsDrillRows(rows, churnRows, sfById) {
     });
   }
 }
-
 /** Click handler — category card click. */
 function drillCategory(category, ym) {
   const labels = {
@@ -1462,7 +1406,6 @@ function drillCategory(category, ym) {
   });
   openDrill(info.title + ' — ' + monthLabel(ym), info.sub, filtered);
 }
-
 /** Click handler — leaderboard row (current month, specific AM). */
 function drillAm(amName, ym) {
   const filtered = drillRows.filter(function (r) {
@@ -1479,7 +1422,6 @@ function drillAm(amName, ym) {
             'All existing-customer movement attributed to this AM this month',
             filtered);
 }
-
 /** Click handler — bar in the 13-month movement chart. */
 function drillMonth(ym) {
   const filtered = drillRows.filter(function (r) {
@@ -1494,7 +1436,6 @@ function drillMonth(ym) {
             'All existing-customer movement this month (upgrades, reactivations, downgrades, cancellations)',
             filtered);
 }
-
 /** Click handler — bar in the AM 90-day chart. */
 function drillAm90(amName) {
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
@@ -1510,7 +1451,6 @@ function drillAm90(amName) {
             'All existing-customer movement attributed to this AM in the past 90 days',
             filtered);
 }
-
 function openDrill(title, sub, rows) {
   document.getElementById('drillTitle').textContent = title;
   document.getElementById('drillSub').textContent = sub || '';
@@ -1518,17 +1458,14 @@ function openDrill(title, sub, rows) {
   document.getElementById('drillOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 }
-
 function closeDrill() {
   document.getElementById('drillOverlay').classList.remove('open');
   document.body.style.overflow = '';
 }
-
 // Esc to close.
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') closeDrill();
 });
-
 /** Render the table inside the modal. Sortable by column header. */
 function renderDrillTable(rows) {
   // Cache the row set for re-sorting (when the user clicks a column header,
@@ -1536,13 +1473,11 @@ function renderDrillTable(rows) {
   window.__drillRowsCache = rows;
   const body = document.getElementById('drillBody');
   const footer = document.getElementById('drillFooter');
-
   if (rows.length === 0) {
     body.innerHTML = '<div class="drill-empty">No firms match this slice.</div>';
     footer.textContent = '';
     return;
   }
-
   // Normalize each row to a flat shape the table understands.
   const items = rows.map(function (r) {
     // Cancel reason: SF preferred, CB fallback.
@@ -1564,23 +1499,18 @@ function renderDrillTable(rows) {
       details:      (r['SF Churn Details'] || '').trim(),
     };
   });
-
   // Show SF columns only when at least one row has SF data.
   const hasSfData = items.some(function (it) {
     return it.practiceArea || it.reason || it.details;
   });
-
   // Apply current sort.
   sortDrillItems(items, drillSort.col, drillSort.dir);
-
   const totalMrr = items.reduce(function (s, i) { return s + i.mrr; }, 0);
   const totalCount = items.length;
-
   function arrow(col) {
     if (drillSort.col !== col) return '<span class="sort-ind">▾</span>';
     return '<span class="sort-ind">' + (drillSort.dir === 'asc' ? '↑' : '↓') + '</span>';
   }
-
   let html = '<table><thead><tr>'
     + '<th onclick="changeDrillSort(\'company\')">Company' + arrow('company') + '</th>'
     + '<th onclick="changeDrillSort(\'am\')">Account Manager' + arrow('am') + '</th>'
@@ -1590,7 +1520,6 @@ function renderDrillTable(rows) {
     + '<th onclick="changeDrillSort(\'date\')">Date' + arrow('date') + '</th>'
     + '<th class="numeric" onclick="changeDrillSort(\'mrr\')">MRR Impact' + arrow('mrr') + '</th>'
     + '</tr></thead><tbody>';
-
   for (const it of items) {
     const cls = it.mrr > 0 ? 'positive' : it.mrr < 0 ? 'negative' : '';
     const sourceBadge = it.source !== 'live'
@@ -1612,14 +1541,12 @@ function renderDrillTable(rows) {
   }
   html += '</tbody></table>';
   body.innerHTML = html;
-
   const totalCls = totalMrr > 0 ? 'positive' : totalMrr < 0 ? 'negative' : '';
   footer.innerHTML = '<span><strong>' + totalCount + '</strong> '
     + (totalCount === 1 ? 'firm' : 'firms') + '</span>'
     + '<span>Total: <strong class="' + totalCls + '">'
     + (totalMrr >= 0 ? '+' : '') + fmtMoney(totalMrr) + '</strong></span>';
 }
-
 function sortDrillItems(items, col, dir) {
   const mult = dir === 'asc' ? 1 : -1;
   items.sort(function (a, b) {
@@ -1635,7 +1562,6 @@ function sortDrillItems(items, col, dir) {
     return 0;
   });
 }
-
 function changeDrillSort(col) {
   if (drillSort.col === col) {
     drillSort.dir = drillSort.dir === 'asc' ? 'desc' : 'asc';
@@ -1652,11 +1578,9 @@ function changeDrillSort(col) {
   const cached = window.__drillRowsCache;
   if (cached) renderDrillTable(cached);
 }
-
 // ============================================================================
 // RENDERERS
 // ============================================================================
-
 // ----------------------------------------------------------------------------
 // Hero — current-month net customer movement (excludes new business)
 // ----------------------------------------------------------------------------
@@ -1665,9 +1589,7 @@ function renderHero(movements, beginningByYm) {
   const m = movements[ym];
   const heroVal = document.getElementById('heroValue');
   const heroLabel = document.getElementById('heroLabel');
-
   heroLabel.textContent = monthLabel(ym) + ' — net customer movement so far';
-
   if (!m) {
     heroVal.textContent = '$0';
     heroVal.className = 'value';
@@ -1676,7 +1598,6 @@ function renderHero(movements, beginningByYm) {
   const net = m.net;
   heroVal.textContent = (net >= 0 ? '+' : '') + fmtMoney(net);
   heroVal.className = 'value ' + (net > 0 ? 'positive' : net < 0 ? 'negative' : '');
-
   // Trailing 3-month average net customer movement (last 3 complete months,
   // excluding the partial current month). This is the apples-to-apples
   // comparison for the hero — same metric, prior 3-month baseline.
@@ -1695,11 +1616,9 @@ function renderHero(movements, beginningByYm) {
   }
   const trailingAvg = trailingCount > 0 ? trailingSum / trailingCount : 0;
   const trailStr = (trailingAvg >= 0 ? '+' : '') + fmtMoney(trailingAvg);
-
   const today = new Date();
   const day = today.getDate();
   const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
-
   // % of beginning-of-month MRR, if we have the snapshot data.
   let pctStr = '';
   if (beginningByYm && beginningByYm[ym] && beginningByYm[ym] > 0) {
@@ -1711,7 +1630,6 @@ function renderHero(movements, beginningByYm) {
     'Trailing 3-month avg: <strong>' + escapeHtml(trailStr) + '/month</strong>' + pctStr + '. ' +
     'Excludes new business — only upgrades + reactivations minus downgrades + cancellations from existing customers.';
 }
-
 // ----------------------------------------------------------------------------
 // Month-end projection
 // ----------------------------------------------------------------------------
@@ -1739,7 +1657,6 @@ function computeProjection(movements, rawRows) {
   const day = today.getDate();
   const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
   const remainingFraction = Math.max(0, (lastDay - day) / lastDay);
-
   const m = movements[ym] || {
     upgrades:      { dollars: 0, count: 0 },
     reactivations: { dollars: 0, count: 0 },
@@ -1751,14 +1668,12 @@ function computeProjection(movements, rawRows) {
   // Past-fired cancellations = total card value minus the scheduled-future
   // portion we augmented in.
   const cancellationsPastFired = m.cancellations.dollars - scheduledOnly.dollars;
-
   // Trailing 3 complete months (excluding the current partial month).
   const allYms = Object.keys(movements).sort();
   const idx = allYms.indexOf(ym);
   const trailingYms = idx > 0
     ? allYms.slice(Math.max(0, idx - 3), idx)
     : allYms.slice(-3);
-
   let trailSum = { upgrades: 0, reactivations: 0, downgrades: 0, cancellations: 0 };
   let trailN = 0;
   for (const tym of trailingYms) {
@@ -1776,7 +1691,6 @@ function computeProjection(movements, rawRows) {
     downgrades:    trailN > 0 ? trailSum.downgrades    / trailN : 0,
     cancellations: trailN > 0 ? trailSum.cancellations / trailN : 0,
   };
-
   // ---- "Surprise" trailing average for cancellations ----
   // Lawmatics requires 30-day notice for voluntary churn, so voluntary
   // cancellations don't surprise us mid-month — they're already in Scheduled
@@ -1802,7 +1716,6 @@ function computeProjection(movements, rawRows) {
     }
   }
   const trailAvgNonPayment = trailN > 0 ? nonPaymentTotal / trailN : 0;
-
   // Projected remainders (for each category — the trailing avg, scaled).
   // For cancellations we use ONLY the non-payment slice — voluntary
   // cancellations require 30-day notice and so are already known via the
@@ -1813,7 +1726,6 @@ function computeProjection(movements, rawRows) {
     downgrades:    trailAvg.downgrades    * remainingFraction,
     cancellations: trailAvgNonPayment     * remainingFraction,
   };
-
   // End-of-month projection per category.
   const end = {
     upgrades:      m.upgrades.dollars      + remainder.upgrades,
@@ -1823,7 +1735,6 @@ function computeProjection(movements, rawRows) {
     cancellations: cancellationsPastFired + scheduledOnly.dollars + remainder.cancellations,
   };
   const projectedNet = end.upgrades + end.reactivations + end.downgrades + end.cancellations;
-
   return {
     ym: ym,
     day: day, lastDay: lastDay, remainingFraction: remainingFraction,
@@ -1842,7 +1753,6 @@ function computeProjection(movements, rawRows) {
     projectedNet: projectedNet,
   };
 }
-
 function renderProjection(movements, mrrRows, historicalRows) {
   // Pass both live and historical raw rows so the trailing months' non-
   // payment cancellations can be computed regardless of which feed they
@@ -1858,7 +1768,6 @@ function renderProjection(movements, mrrRows, historicalRows) {
   document.getElementById('projBasis').textContent =
     'Day ' + p.day + ' of ' + p.lastDay + ' actuals + trailing ' + p.trailN
     + '-month average (' + trailLabel + ').';
-
   // Build detail table.
   function row(label, mtd, scheduled, remainder, end, hint) {
     function fmt(n, neg) {
@@ -1876,13 +1785,11 @@ function renderProjection(movements, mrrRows, historicalRows) {
       + fmt(end)
       + '</tr>';
   }
-
   const trailLabelDetail = p.trailingYms.length > 0
     ? p.trailingYms.map(function (ym) { return ym; }).join(', ')
     : '—';
   const formula = '<code>MTD + (' + (p.trailN || 3) + '-mo avg × '
     + (p.lastDay - p.day) + '/' + p.lastDay + ')</code>';
-
   let html = ''
     + '<table>'
     + '<thead><tr>'
@@ -1940,14 +1847,12 @@ function renderProjection(movements, mrrRows, historicalRows) {
     + '</div>';
   document.getElementById('projectionDetail').innerHTML = html;
 }
-
 function toggleProjectionDetail() {
   const el = document.getElementById('projectionDetail');
   const btn = document.getElementById('projToggle');
   const open = el.classList.toggle('open');
   btn.textContent = open ? 'Hide calculation ▴' : 'Show how this is calculated ▾';
 }
-
 // ----------------------------------------------------------------------------
 // Four category cards
 // ----------------------------------------------------------------------------
@@ -1958,7 +1863,6 @@ function renderCategoryCards(movements) {
     downgrades:    { dollars: 0, count: 0 },
     cancellations: { dollars: 0, count: 0 },
   };
-
   // Helper: write $value + count to the cards.
   function setCard(idVal, idCount, dollars, count, isLossSide) {
     const el = document.getElementById(idVal);
@@ -1968,13 +1872,11 @@ function renderCategoryCards(movements) {
     document.getElementById(idCount).textContent =
       count + ' ' + (count === 1 ? 'firm' : 'firms') + ' this month';
   }
-
   setCard('catUpgrades',      'catUpgradesCount',      m.upgrades.dollars,      m.upgrades.count,      false);
   setCard('catReactivations', 'catReactivationsCount', m.reactivations.dollars, m.reactivations.count, false);
   setCard('catDowngrades',    'catDowngradesCount',    m.downgrades.dollars,    m.downgrades.count,    true);
   setCard('catCancellations', 'catCancellationsCount', m.cancellations.dollars, m.cancellations.count, true);
 }
-
 // ----------------------------------------------------------------------------
 // Stacked monthly bar chart — last 13 months of movement by category
 // ----------------------------------------------------------------------------
@@ -1988,12 +1890,10 @@ function renderMovementChart(movements, beginningByYm) {
     const d = new Date(parseInt(y), parseInt(mo) - 1, 1);
     return d.toLocaleDateString('en-US', { month: 'short' }) + " '" + y.slice(2);
   });
-
   const upgrades      = ymsToShow.map(ym => movements[ym] ? movements[ym].upgrades.dollars : 0);
   const reactivations = ymsToShow.map(ym => movements[ym] ? movements[ym].reactivations.dollars : 0);
   const downgrades    = ymsToShow.map(ym => movements[ym] ? movements[ym].downgrades.dollars : 0);
   const cancellations = ymsToShow.map(ym => movements[ym] ? movements[ym].cancellations.dollars : 0);
-
   if (charts.movement) charts.movement.destroy();
   const ctx = document.getElementById('movementChart').getContext('2d');
   charts.movement = new Chart(ctx, {
@@ -2051,7 +1951,6 @@ function renderMovementChart(movements, beginningByYm) {
     },
   });
 }
-
 // ----------------------------------------------------------------------------
 // Including-new-business scorecards (the old projection-driven readouts,
 // moved below the hero into their own clearly-labeled section)
@@ -2070,7 +1969,6 @@ function renderDataDiagnostic(movements, pairsCollapsed, snapshotRows, beginning
   const eventsThisMonth = m
     ? (m.upgrades.count + m.reactivations.count + m.downgrades.count + m.cancellations.count)
     : 0;
-
   let html = '<div style="font-size:12px;color:var(--text-muted);text-align:center;padding:24px 0;">'
     + 'Data spans ' + escapeHtml(first) + ' → ' + escapeHtml(last) + '. ';
   if (pairsCollapsed && pairsCollapsed > 0) {
@@ -2117,7 +2015,6 @@ function renderDataDiagnostic(movements, pairsCollapsed, snapshotRows, beginning
     html += escapeHtml(ymCurrent) + ' has ' + eventsThisMonth + ' existing-customer events so far.';
   }
   html += '</div>';
-
   // Append to the bottom of <main>.
   let host = document.getElementById('dataDiagnostic');
   if (!host) {
@@ -2127,7 +2024,6 @@ function renderDataDiagnostic(movements, pairsCollapsed, snapshotRows, beginning
   }
   host.innerHTML = html;
 }
-
 /**
  * Bar chart of churn $ by month. Now period-aware — the X axis spans
  * whatever date range the current period covers (1 month for last/this/next,
@@ -2143,7 +2039,6 @@ function renderChurnChart(filtered) {
     byMonth[ym].dollars += x.mrr;
     byMonth[ym].count += 1;
   }
-
   // Span the months covered by the current period so empty months still show.
   const range = dateRangeForPeriod(currentChurnPeriod);
   const yms = [];
@@ -2155,11 +2050,9 @@ function renderChurnChart(filtered) {
     yms.push(ym);
     cursor.setMonth(cursor.getMonth() + 1);
   }
-
   const labels = yms.map(monthLabel);
   const values = yms.map(ym => -(byMonth[ym]?.dollars || 0)); // negative since it's loss
   const counts = yms.map(ym => byMonth[ym]?.count || 0);
-
   if (charts.churn) charts.churn.destroy();
   const ctx = document.getElementById('churnChart').getContext('2d');
   charts.churn = new Chart(ctx, {
@@ -2208,7 +2101,6 @@ function renderChurnChart(filtered) {
     },
   });
 }
-
 /**
  * MRR-bucket distribution chart for committed churn.
  *
@@ -2222,7 +2114,6 @@ const CHURN_MRR_BUCKETS = [
   { label: '$501–$700',   min: 501,  max: 700 },
   { label: '$701+',       min: 701,  max: Infinity },
 ];
-
 function bucketForMrr(mrr) {
   for (let i = 0; i < CHURN_MRR_BUCKETS.length; i++) {
     const b = CHURN_MRR_BUCKETS[i];
@@ -2230,7 +2121,6 @@ function bucketForMrr(mrr) {
   }
   return -1;
 }
-
 function renderChurnMrrChart(filtered) {
   const counts = CHURN_MRR_BUCKETS.map(() => 0);
   const dollars = CHURN_MRR_BUCKETS.map(() => 0);
@@ -2240,7 +2130,6 @@ function renderChurnMrrChart(filtered) {
     counts[idx] += 1;
     dollars[idx] += x.mrr;
   }
-
   if (charts.churnMrr) charts.churnMrr.destroy();
   const ctx = document.getElementById('churnMrrChart').getContext('2d');
   charts.churnMrr = new Chart(ctx, {
@@ -2288,7 +2177,6 @@ function renderChurnMrrChart(filtered) {
     },
   });
 }
-
 /**
  * Returns drillRows that fall within the current churn period and that
  * represent a cancellation (either past-fired CANCEL_FROM_* or a synthetic
@@ -2311,7 +2199,6 @@ function drillRowsInCurrentChurnPeriod() {
     return true;
   });
 }
-
 function drillChurnBucket(bucketIdx) {
   const b = CHURN_MRR_BUCKETS[bucketIdx];
   if (!b) return;
@@ -2323,7 +2210,6 @@ function drillChurnBucket(bucketIdx) {
             'Firms in this period whose MRR falls in this bucket',
             filtered);
 }
-
 /**
  * Header summary: count, total MRR, median MRR.
  */
@@ -2354,7 +2240,6 @@ function renderChurnSummary(filtered) {
     + '<span style="color:var(--negative);">Agency clients: <strong>' + agencyCount + '</strong> firms / <strong>'
       + fmtMoney(agencyMrr) + '</strong></span>';
 }
-
 /** Drill on a churn-chart bar — shows all churned firms (past or scheduled) in that month. */
 function drillScheduledMonth(ym) {
   const filtered = drillRowsInCurrentChurnPeriod().filter(function (r) {
@@ -2367,20 +2252,16 @@ function drillScheduledMonth(ym) {
             'All firms cancelling or scheduled to cancel in this month',
             filtered);
 }
-
 function renderChurnTable(filtered, sfById) {
   sfById = sfById || {};
   const hasSf = Object.keys(sfById).length > 0;
-
   const upcoming = filtered.slice().sort(function (a, b) { return a.date - b.date; });
   const total = upcoming.reduce(function (s, x) { return s + x.mrr; }, 0);
-
   if (upcoming.length === 0) {
     document.getElementById('churnTableContainer').innerHTML =
       '<p style="padding:16px;color:var(--text-muted);">No firms in this period.</p>';
     return;
   }
-
   const stickyTh = 'position:sticky;top:0;background:var(--card);';
   let html = '<table><thead><tr>'
     + '<th style="' + stickyTh + '">Cancel date</th>'
@@ -2396,7 +2277,6 @@ function renderChurnTable(filtered, sfById) {
     + '<th class="numeric" style="' + stickyTh + '">Avg monthly leads</th>'
     + '<th class="numeric" style="' + stickyTh + '">MRR</th>'
     + '</tr></thead><tbody>';
-
   for (const x of upcoming) {
     const r = x.row;
     const startDate = parseDateTime(r['Creation Date']);
@@ -2416,7 +2296,6 @@ function renderChurnTable(filtered, sfById) {
     const score   = (sf['Primary ChurnScore'] || '').toString().trim();
     const csat    = (sf['Onboarding CSAT'] || '').toString().trim();
     const practiceArea = (sf['Primary Practice Area'] || '').toString().trim();
-
     html += '<tr>'
       + '<td>' + escapeHtml(x.date.toISOString().slice(0, 10)) + '</td>'
       + '<td style="color:var(--text-muted);font-size:12px;">' + escapeHtml(startStr) + '</td>'
@@ -2439,10 +2318,8 @@ function renderChurnTable(filtered, sfById) {
     + '<td class="numeric negative">' + fmtMoney(-total) + '</td>'
     + '</tr>';
   html += '</tbody></table>';
-
   document.getElementById('churnTableContainer').innerHTML = html;
 }
-
 // ----------------------------------------------------------------------------
 // Account Manager leaderboard — current month, ranked by net customer movement.
 // ----------------------------------------------------------------------------
@@ -2456,7 +2333,6 @@ function renderAmLeaderboard(rows, retentionRows) {
   const [yr, mo] = ym.split('-').map(Number);
   const monthStart = new Date(yr, mo - 1, 1);
   const monthEnd   = new Date(yr, mo, 1);
-
   // Build {am → { cohort, retained, pct }} from the AM Retention CSV.
   const retentionByAm = {};
   if (Array.isArray(retentionRows)) {
@@ -2470,7 +2346,6 @@ function renderAmLeaderboard(rows, retentionRows) {
     }
   }
   const hasRetention = Object.keys(retentionByAm).length > 0;
-
   const byAm = {};
   for (const r of rows) {
     const status = r['Impact Sub status'];
@@ -2493,17 +2368,14 @@ function renderAmLeaderboard(rows, retentionRows) {
     byAm[am][cat].count += 1;
     byAm[am].net += impact;
   }
-
   const entries = Object.entries(byAm).sort((a, b) => b[1].net - a[1].net);
   const host = document.getElementById('leaderboardContainer');
   document.getElementById('leaderboardTitle').textContent =
     'Account Manager leaderboard — ' + monthLabel(ym);
-
   if (entries.length === 0) {
     host.innerHTML = '<p style="padding:16px;color:var(--text-muted);">No existing-customer movement yet this month.</p>';
     return;
   }
-
   let html = '<table><thead><tr>'
     + '<th style="width:48px;">Rank</th>'
     + '<th>Account Manager</th>'
@@ -2514,7 +2386,6 @@ function renderAmLeaderboard(rows, retentionRows) {
     + '<th class="numeric" style="color:var(--negative);">Cancellations</th>'
     + (hasRetention ? '<th class="numeric" title="% of subs from ~11–13 months ago that are still active">12-mo Renewal</th>' : '')
     + '</tr></thead><tbody>';
-
   entries.forEach(function (e, i) {
     const name = e[0];
     const v = e[1];
@@ -2559,7 +2430,6 @@ function renderAmLeaderboard(rows, retentionRows) {
       + retentionCell
       + '</tr>';
   });
-
   // Total row
   const totals = entries.reduce(function (acc, e) {
     acc.net += e[1].net;
@@ -2613,14 +2483,11 @@ function renderAmLeaderboard(rows, retentionRows) {
     + teamRetentionCell
     + '</tr>';
   html += '</tbody></table>';
-
   host.innerHTML = html;
 }
-
 // ----------------------------------------------------------------------------
 // Churn Deep Dive — slice committed cancellations several ways
 // ----------------------------------------------------------------------------
-
 /**
  * Filter Scheduled Churn rows to the next-120-day, future-only window we
  * use everywhere in the churn section.
@@ -2628,7 +2495,6 @@ function renderAmLeaderboard(rows, retentionRows) {
 function filterUpcomingChurn(rows) {
   return filterChurnForPeriod(rows, [], 'next120');
 }
-
 /**
  * Compute the [start, end) date range for a churn period selector value.
  */
@@ -2662,7 +2528,6 @@ function dateRangeForPeriod(period) {
   const end120 = new Date(now); end120.setDate(end120.getDate() + 120);
   return { start: now, end: end120, includePast: false, includeFuture: true };
 }
-
 /**
  * Build a unified list of churn rows for a period, drawing past-fired
  * cancellations from the live MonthlyMRRImpact data and future-scheduled
@@ -2675,7 +2540,6 @@ function filterChurnForPeriod(churnRows, mrrRows, period) {
   const { start, end, includePast, includeFuture } = dateRangeForPeriod(period);
   const now = new Date();
   const out = [];
-
   // Fired cancellations from MonthlyMRRImpact.
   if (includePast && Array.isArray(mrrRows)) {
     for (const r of mrrRows) {
@@ -2711,7 +2575,6 @@ function filterChurnForPeriod(churnRows, mrrRows, period) {
       });
     }
   }
-
   // Scheduled cancellations from the Scheduled Churn feed.
   if (includeFuture && Array.isArray(churnRows)) {
     for (const r of churnRows) {
@@ -2726,10 +2589,8 @@ function filterChurnForPeriod(churnRows, mrrRows, period) {
       });
     }
   }
-
   return out;
 }
-
 // ----------------------------------------------------------------------------
 // Churn Forecast — month-end prediction tailored to Lawmatics' policy
 // ----------------------------------------------------------------------------
@@ -2754,7 +2615,6 @@ function computeChurnForecast(mrrRows, historicalRows, churnRows) {
   const lastDay = new Date(yr, mo, 0).getDate();
   const daysRemaining = Math.max(0, lastDay - day);
   const remainingFraction = daysRemaining / lastDay;
-
   // === MTD: cancellations that have already fired this month ===
   let mtdCount = 0,  mtdDollars = 0;
   let mtdAgencyCount = 0,  mtdAgencyDollars = 0;
@@ -2774,7 +2634,6 @@ function computeChurnForecast(mrrRows, historicalRows, churnRows) {
     else if (isAgency)   { mtdAgencyCount  += 1; mtdAgencyDollars  += dollars; }
     else                 { mtdOtherCount   += 1; mtdOtherDollars   += dollars; }
   }
-
   // === Future scheduled this month (from Scheduled Churn) ===
   let scheduledCount = 0, scheduledDollars = 0;
   for (const r of (churnRows || [])) {
@@ -2783,7 +2642,6 @@ function computeChurnForecast(mrrRows, historicalRows, churnRows) {
     scheduledCount  += 1;
     scheduledDollars += parseMoney(r['Current MRR']);
   }
-
   // === Trailing 3-month baseline for the two "surprise" categories ===
   const LOOKBACK = 3;
   const trailingYms = [];
@@ -2793,7 +2651,6 @@ function computeChurnForecast(mrrRows, historicalRows, churnRows) {
   }
   const trailingYmSet = {};
   for (const t of trailingYms) trailingYmSet[t] = true;
-
   let trailAgencyCount = 0,  trailAgencyDollars = 0;
   let trailNotPaidCount = 0, trailNotPaidDollars = 0;
   const seenSubs = {};
@@ -2819,12 +2676,10 @@ function computeChurnForecast(mrrRows, historicalRows, churnRows) {
     // Churn in their month, so they're not "surprises" from the forecast's
     // perspective. Don't add them to the trailing surprise baseline.
   }
-
   const avgAgencyPerMonth        = trailAgencyCount       / LOOKBACK;
   const avgAgencyDollarsPerMonth = trailAgencyDollars     / LOOKBACK;
   const avgNotPaidPerMonth       = trailNotPaidCount      / LOOKBACK;
   const avgNotPaidDollarsPerMonth = trailNotPaidDollars   / LOOKBACK;
-
   // === Predicted surprises for remainder of month ===
   // Apply the trailing per-month average × remaining fraction. This is
   // separate from MTD — even if MTD has already absorbed some surprises,
@@ -2833,13 +2688,10 @@ function computeChurnForecast(mrrRows, historicalRows, churnRows) {
   const predictedAgencyDollars  = avgAgencyDollarsPerMonth * remainingFraction;
   const predictedNotPaidCount   = avgNotPaidPerMonth       * remainingFraction;
   const predictedNotPaidDollars = avgNotPaidDollarsPerMonth * remainingFraction;
-
   const predictedSurpriseCount   = predictedAgencyCount   + predictedNotPaidCount;
   const predictedSurpriseDollars = predictedAgencyDollars + predictedNotPaidDollars;
-
   const totalCount   = mtdCount   + scheduledCount   + predictedSurpriseCount;
   const totalDollars = mtdDollars + scheduledDollars + predictedSurpriseDollars;
-
   return {
     ym, day, lastDay, daysRemaining, remainingFraction,
     mtdCount, mtdDollars,
@@ -2856,10 +2708,8 @@ function computeChurnForecast(mrrRows, historicalRows, churnRows) {
     trailingYms,
   };
 }
-
 function renderChurnForecast(mrrRows, historicalRows, churnRows) {
   const f = computeChurnForecast(mrrRows, historicalRows, churnRows);
-
   document.getElementById('churnForecastLabel').textContent =
     'Projected churn — ' + monthLabel(f.ym) + ' month-end';
   document.getElementById('churnForecastValue').textContent =
@@ -2867,7 +2717,6 @@ function renderChurnForecast(mrrRows, historicalRows, churnRows) {
   document.getElementById('churnForecastBasis').textContent =
     'Day ' + f.day + ' of ' + f.lastDay + ' + scheduled + surprise estimate ('
     + 'trailing 3-mo avg agency + NOT_PAID, prorated).';
-
   // Detail breakdown
   function row(label, count, dollars, hint) {
     return '<tr>'
@@ -2885,7 +2734,6 @@ function renderChurnForecast(mrrRows, historicalRows, churnRows) {
       + '<td class="numeric" style="color:var(--text-muted);">' + (dollars > 0 ? '-' + fmtMoney(dollars) : '—') + '</td>'
       + '</tr>';
   }
-
   let html = ''
     + '<table style="margin-top:18px;">'
     + '<thead><tr>'
@@ -2918,17 +2766,14 @@ function renderChurnForecast(mrrRows, historicalRows, churnRows) {
     +   '<br><br>'
     +   '<strong>Caveats.</strong> Linear pacing — assumes surprises arrive evenly through the month. Treats agency and NOT_PAID as independent (so we double-count any agency NOT_PAID, which is rare). If MTD already has more surprises than the trailing baseline, the forecast may under-shoot.'
     + '</div>';
-
   document.getElementById('churnForecastDetail').innerHTML = html;
 }
-
 function toggleChurnForecastDetail() {
   const el = document.getElementById('churnForecastDetail');
   const btn = document.getElementById('churnForecastToggle');
   const open = el.classList.toggle('open');
   btn.textContent = open ? 'Hide breakdown ▴' : 'Show breakdown ▾';
 }
-
 /**
  * Re-renders every churn-section widget for the currently-selected period.
  * Called on initial load and whenever the user clicks a period tab.
@@ -2949,20 +2794,17 @@ function renderChurnSection() {
     if (b.dataset.period === currentChurnPeriod) b.classList.add('active');
     else b.classList.remove('active');
   });
-
   renderChurnSummary(filtered);
   renderChurnChart(filtered);
   renderChurnMrrChart(filtered);
   renderChurnTable(filtered, cachedSfById);
   renderChurnDeepDive(filtered, cachedSfById);
 }
-
 function setChurnPeriod(period) {
   if (currentChurnPeriod === period) return;
   currentChurnPeriod = period;
   renderChurnSection();
 }
-
 const LEAD_VOLUME_BUCKETS = [
   { label: 'Not set',  test: function (n) { return n === null; } },
   { label: '0–10',     test: function (n) { return n >= 0  && n <= 10; } },
@@ -2971,7 +2813,6 @@ const LEAD_VOLUME_BUCKETS = [
   { label: '51–100',   test: function (n) { return n >= 51 && n <= 100; } },
   { label: '101+',     test: function (n) { return n >  100; } },
 ];
-
 function leadVolumeBucketIndex(rawValue) {
   if (rawValue === undefined || rawValue === null) return 0;
   const s = String(rawValue).trim();
@@ -2983,19 +2824,22 @@ function leadVolumeBucketIndex(rawValue) {
   }
   return 0;
 }
-
 /**
  * Main entry — render all five breakdown mini-charts. Now takes pre-filtered
  * period rows so it respects the time selector at the top of the churn
  * section. When Salesforce data is available, switches the Cancel Reason
  * and Avg Volume cuts to use SF fields (richer than Chargebee's) and
  * lights up the Practice Area chart.
+ *
+ * 2026-07-13: the Cancel Reason cut is now grouped two levels deep —
+ * category (the part of the SF Churn Category value before " - ", e.g.
+ * "Product") then the full reason within that category. See
+ * renderChurnReasonStacked() for the chart itself.
  */
 function renderChurnDeepDive(filtered, sfById) {
   sfById = sfById || {};
   const hasSf = Object.keys(sfById).length > 0;
   const upcoming = filtered;
-
   // Diagnostic — how many of the period's churn rows are joining to SF?
   // If this number is 0 the join key is broken; if it equals upcoming.length
   // every row has SF data.
@@ -3011,19 +2855,24 @@ function renderChurnDeepDive(filtered, sfById) {
                 'rows, joined to SF:', joined,
                 '| Sample unmatched:', unmatched);
   }
-
   const byAm     = {};
   const byOwner  = {};
-  const byReason = {};
+  // category -> reason -> {count, dollars}. Replaces the old flat byReason
+  // map now that the SF field carries a "Category - Specific reason" shape.
+  const byReasonCategory = {};
   const byPA     = {};
   const byLeads  = LEAD_VOLUME_BUCKETS.map(function () { return { count: 0, dollars: 0 }; });
-
   function bump(map, key, mrr) {
     if (!map[key]) map[key] = { count: 0, dollars: 0 };
     map[key].count += 1;
     map[key].dollars += mrr;
   }
-
+  function bumpReason(category, reason, mrr) {
+    if (!byReasonCategory[category]) byReasonCategory[category] = {};
+    if (!byReasonCategory[category][reason]) byReasonCategory[category][reason] = { count: 0, dollars: 0 };
+    byReasonCategory[category][reason].count += 1;
+    byReasonCategory[category][reason].dollars += mrr;
+  }
   for (const x of upcoming) {
     const r = x.row;
     const firmId = normalizeFirmId(r['Customers.FirmID']);
@@ -3034,29 +2883,125 @@ function renderChurnDeepDive(filtered, sfById) {
     const sfReason = (sf['Churn Reason'] || '').trim();
     const cbReason = (r['Cancel Reason'] || '').trim();
     const reason   = sfReason || cbReason || 'Voluntary / unspecified';
+    const category = categoryForReason(reason);
     // Practice Area only available with SF.
     const pa = (sf['Primary Practice Area'] || '').trim() || '— Unknown —';
     // Avg lead volume: prefer SF Avg Monthly Volume when present.
     const sfVol   = sf['Avg Monthly Volume'];
     const cbVol   = r['Customers.Avg Lead Volume'];
     const useVol  = (sfVol !== undefined && sfVol !== null && String(sfVol).trim() !== '') ? sfVol : cbVol;
-
     bump(byAm,     am,     x.mrr);
     bump(byOwner,  owner,  x.mrr);
-    bump(byReason, reason, x.mrr);
+    bumpReason(category, reason, x.mrr);
     bump(byPA,     pa,     x.mrr);
     const li = leadVolumeBucketIndex(useVol);
     byLeads[li].count   += 1;
     byLeads[li].dollars += x.mrr;
   }
-
   renderChurnDdHorizontal('ddAm',     'ddAm',     byAm,     'amName',     drillChurnByField.bind(null, 'Customers.Account Manager'));
   renderChurnDdHorizontal('ddOwner',  'ddOwner',  byOwner,  'ownerName',  drillChurnByField.bind(null, 'Customers.Owner'));
-  renderChurnDdHorizontal('ddReason', 'ddReason', byReason, 'reasonName', drillChurnReason);
+  renderChurnReasonStacked(byReasonCategory);
   renderChurnDdBuckets   ('ddLeads',  'ddLeads',  byLeads,  LEAD_VOLUME_BUCKETS, drillChurnByLeadBucket);
   renderChurnPracticeArea(hasSf, byPA);
 }
-
+/**
+ * "By Churn Category" chart — a stacked vertical bar chart. X axis =
+ * category (Product, Onboarding, Support, Pricing, Sales, Competitor,
+ * External, No Reason Provided, Other), each bar stacked by the specific
+ * full reason within that category (e.g. "Product - Missing feature or
+ * integration"). Clicking a segment drills into the firms for that exact
+ * reason — reuses drillChurnReason(), which already matches on the full
+ * SF Churn Reason string, so no drill-logic changes were needed.
+ *
+ * @param {Object} grid  category -> reason -> {count, dollars}, built by
+ *   renderChurnDeepDive() from the current period's filtered churn rows.
+ */
+function renderChurnReasonStacked(grid) {
+  // Column order: predefined categories first (only if present in the
+  // data), then any unexpected category values so nothing silently
+  // disappears if SF adds a new picklist category later.
+  const presentCats = Object.keys(grid);
+  const categories = CHURN_CATEGORY_ORDER.filter(function (c) { return grid[c]; })
+    .concat(presentCats.filter(function (c) { return CHURN_CATEGORY_ORDER.indexOf(c) === -1; }));
+  if (categories.length === 0) {
+    if (charts.ddReason) { charts.ddReason.destroy(); charts.ddReason = null; }
+    return;
+  }
+  // Collect every distinct reason across all categories, ordered by total
+  // dollars desc so the biggest slices get the most legible legend spots
+  // and stack from the bottom up.
+  const reasonTotals = {};
+  for (const cat in grid) {
+    for (const reason in grid[cat]) {
+      reasonTotals[reason] = (reasonTotals[reason] || 0) + grid[cat][reason].dollars;
+    }
+  }
+  const reasons = Object.keys(reasonTotals).sort(function (a, b) {
+    return reasonTotals[b] - reasonTotals[a];
+  });
+  const palette = [
+    '#ef4444', '#f97316', '#eab308', '#84cc16', '#10b981', '#06b6d4',
+    '#6366f1', '#8b5cf6', '#ec4899', '#94a3b8', '#dc2626', '#ea580c',
+    '#ca8a04', '#4d7c0f', '#059669', '#0891b2', '#4f46e5', '#7c3aed',
+    '#db2777', '#64748b',
+  ];
+  const datasets = reasons.map(function (reason, i) {
+    const data = categories.map(function (cat) {
+      const cell = grid[cat] && grid[cat][reason];
+      return cell ? cell.count : 0;
+    });
+    return {
+      label: reason,
+      data: data,
+      backgroundColor: palette[i % palette.length],
+      borderColor: palette[i % palette.length],
+      borderWidth: 1,
+      stack: 'reasons',
+    };
+  });
+  if (charts.ddReason) charts.ddReason.destroy();
+  const ctx = document.getElementById('ddReasonChart').getContext('2d');
+  charts.ddReason = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: categories, datasets: datasets },
+    options: {
+      maintainAspectRatio: false,
+      onClick: function (evt, items) {
+        if (items.length === 0) return;
+        const item = items[0];
+        const reason = datasets[item.datasetIndex].label;
+        drillChurnReason(reason);
+      },
+      onHover: function (evt, items) {
+        evt.native.target.style.cursor = items.length ? 'pointer' : 'default';
+      },
+      plugins: {
+        legend: {
+          display: true,
+          position: 'bottom',
+          labels: { boxWidth: 8, font: { size: 9 } },
+        },
+        tooltip: {
+          callbacks: {
+            label: function (c) {
+              const cat = categories[c.dataIndex];
+              const reason = c.dataset.label;
+              const cell = grid[cat] && grid[cat][reason];
+              const dollars = cell ? cell.dollars : 0;
+              return reason + ': ' + c.parsed.y + ' firm' + (c.parsed.y === 1 ? '' : 's')
+                + '  —  ' + fmtMoney(dollars);
+            },
+            footer: function () { return 'Click a segment to drill into that reason'; },
+          },
+        },
+      },
+      scales: {
+        x: { stacked: true, grid: { display: false } },
+        y: { stacked: true, beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f3f4f6' } },
+      },
+    },
+  });
+}
 /**
  * Practice Area chart — replaces the placeholder card. Renders a chart when
  * SF is connected, an inline "not connected" message otherwise.
@@ -3083,7 +3028,6 @@ function renderChurnPracticeArea(hasSf, byPA) {
     + '<div class="chart-container" style="height:260px;"><canvas id="ddPracticeAreaChart"></canvas></div>';
   renderChurnDdHorizontal('ddPracticeArea', 'ddPracticeArea', byPA, 'paName', drillChurnByField.bind(null, 'SF Practice Area'));
 }
-
 /**
  * Drill handler — for reason chart. Tries both SF Churn Reason and Chargebee
  * Cancel Reason (since the chart merges them into a single "reason" value).
@@ -3103,7 +3047,6 @@ function drillChurnReason(value) {
             'Firms in this period for this reason',
             filtered);
 }
-
 /**
  * Generic horizontal-bar renderer for {label → {count, dollars}} data.
  * Sort by count desc. Each bar's click invokes the provided drillFn with
@@ -3161,7 +3104,6 @@ function renderChurnDdHorizontal(chartKey, canvasIdSuffix, byKey, labelParam, dr
     },
   });
 }
-
 /**
  * Render the lead-volume bucket chart. Different from the generic one
  * because we want bucket order preserved (not sorted by count).
@@ -3214,7 +3156,6 @@ function renderChurnDdBuckets(chartKey, canvasIdSuffix, bucketData, bucketsDef, 
     },
   });
 }
-
 /**
  * Drill handler — filter the scheduled-churn drill rows by a single field
  * match. Used for AM, Owner, and Cancel Reason cuts.
@@ -3242,7 +3183,6 @@ function drillChurnByField(field, value) {
             'Firms in this period for this slice',
             filtered);
 }
-
 function drillChurnByLeadBucket(bucketIdx) {
   const bucket = LEAD_VOLUME_BUCKETS[bucketIdx];
   if (!bucket) return;
@@ -3265,11 +3205,9 @@ function drillChurnByLeadBucket(bucketIdx) {
             'Firms in this period whose Avg Lead Volume falls in this bucket',
             filtered);
 }
-
 // ----------------------------------------------------------------------------
 // Historical churn trends — last 12 months
 // ----------------------------------------------------------------------------
-
 /**
  * Walk all past CANCEL_FROM_* events across mrr + historical for the last
  * 12 calendar months. Returns:
@@ -3289,7 +3227,6 @@ function aggregateChurn12Months(mrrRows, historicalRows) {
   }
   const byMonth = {};
   for (const ym of yms) byMonth[ym] = { dollars: 0, count: 0, rows: [] };
-
   // Dedup by Subscription ID so we don't double-count a sub appearing in
   // both mrr (live) and historical (backfill) for an overlap month.
   const seen = {};
@@ -3313,7 +3250,6 @@ function aggregateChurn12Months(mrrRows, historicalRows) {
   }
   return { yms: yms, byMonth: byMonth };
 }
-
 /**
  * Dual-axis line chart — MRR ($) churned per month and # of logos.
  */
@@ -3322,7 +3258,6 @@ function renderHistorical12Mrr(mrrRows, historicalRows) {
   const labels  = yms.map(monthLabel);
   const dollars = yms.map(function (ym) { return byMonth[ym].dollars; });
   const counts  = yms.map(function (ym) { return byMonth[ym].count;   });
-
   if (charts.hist12Mrr) charts.hist12Mrr.destroy();
   const ctx = document.getElementById('hist12MrrChart').getContext('2d');
   charts.hist12Mrr = new Chart(ctx, {
@@ -3372,7 +3307,6 @@ function renderHistorical12Mrr(mrrRows, historicalRows) {
     },
   });
 }
-
 /**
  * Stacked column — last 12 months, each month's MRR churn split by reason
  * (SF Churn Reason preferred; falls back to Chargebee Cancel Reason).
@@ -3380,7 +3314,6 @@ function renderHistorical12Mrr(mrrRows, historicalRows) {
 function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
   sfById = sfById || {};
   const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
-
   // Collect all reasons across all months. Sum MRR per (month, reason).
   const reasonTotals = {}; // reason → total MRR across all months
   const grid = {};         // ym → reason → MRR
@@ -3397,7 +3330,6 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
       reasonTotals[reason] = (reasonTotals[reason] || 0) + entry.mrr;
     }
   }
-
   // Limit to the top N reasons by total $, lump the rest as "Other".
   const TOP_N = 7;
   const reasonsByTotal = Object.keys(reasonTotals).sort(function (a, b) {
@@ -3406,7 +3338,6 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
   const topReasons = reasonsByTotal.slice(0, TOP_N);
   const includeOther = reasonsByTotal.length > TOP_N;
   const stackKeys = topReasons.concat(includeOther ? ['Other'] : []);
-
   // Build per-reason series across months.
   const palette = ['#ef4444','#f97316','#eab308','#84cc16','#10b981','#06b6d4','#6366f1','#94a3b8'];
   const datasets = stackKeys.map(function (reason, i) {
@@ -3429,7 +3360,6 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
       stack: 'reasons',
     };
   });
-
   if (charts.hist12Reason) charts.hist12Reason.destroy();
   const ctx = document.getElementById('hist12ReasonChart').getContext('2d');
   charts.hist12Reason = new Chart(ctx, {
@@ -3456,7 +3386,6 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
     },
   });
 }
-
 /**
  * Monthly churn % line chart. Two series:
  *   Logo churn % = firms cancelled in month / customer count at start of month
@@ -3468,7 +3397,6 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
  */
 function renderHistorical12Rate(mrrRows, historicalRows, snapshotRows) {
   const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
-
   // Build a map: ym → earliest snapshot in that month, with both customer
   // count and active MRR. Earliest snapshot in the month = best proxy for
   // "beginning of month" state.
@@ -3487,7 +3415,6 @@ function renderHistorical12Rate(mrrRows, historicalRows, snapshotRows) {
     }
   }
   const haveSnapshots = Object.keys(earliestForYm).length > 0;
-
   const logoData = yms.map(function (ym) {
     const snap = earliestForYm[ym];
     if (!snap || !isFinite(snap.count) || snap.count <= 0) return null;
@@ -3498,7 +3425,6 @@ function renderHistorical12Rate(mrrRows, historicalRows, snapshotRows) {
     if (!snap || !isFinite(snap.mrr) || snap.mrr <= 0) return null;
     return (byMonth[ym].dollars / snap.mrr) * 100;
   });
-
   if (charts.hist12Rate) charts.hist12Rate.destroy();
   const ctx = document.getElementById('hist12RateChart').getContext('2d');
   charts.hist12Rate = new Chart(ctx, {
@@ -3560,21 +3486,17 @@ function renderHistorical12Rate(mrrRows, historicalRows, snapshotRows) {
     },
   });
 }
-
 // ----------------------------------------------------------------------------
 // Churn Insights narrative — rule-based pattern surfacing
 // ----------------------------------------------------------------------------
-
 // Lawmatics-specific business context. Edit here if anything changes.
 const LAWMATICS_CONTEXT = {
   icpLeadsPerMonth: 50, // ICP = customers with 50+ leads/month
   minPlanSeats: 3,      // No solo plan; lowest plan = 3 seats
 };
-
 function renderChurnInsights(mrrRows, historicalRows, sfById) {
   sfById = sfById || {};
   const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
-
   // Scope: previous month + this month, anchored to the calendar (not to
   // whatever the rolling 12-month window happens to end on).
   const thisMonth = currentYm();
@@ -3583,7 +3505,6 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
   const prevMonth = prevDate.getFullYear() + '-' + String(prevDate.getMonth() + 1).padStart(2, '0');
   const focusYms = [prevMonth, thisMonth];
   const focusLabels = focusYms.map(monthLabel).join(' + ');
-
   // Walk all churn rows across the 2-month window.
   let total = 0;
   let totalDollars = 0;
@@ -3594,7 +3515,6 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
   let agencyClientDollars = 0;
   const reasonAgg = {};
   const detailSamples = [];
-
   for (const ym of focusYms) {
     // byMonth might not have an entry if the month is empty or outside the
     // 12-month window edge; treat as zero rows.
@@ -3634,19 +3554,15 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
       }
     }
   }
-
   const topReasons = Object.entries(reasonAgg)
     .sort(function (a, b) { return b[1].dollars - a[1].dollars; })
     .slice(0, 5);
-
   const pct = function (n, d) { return d > 0 ? Math.round(n / d * 100) : 0; };
-
   let html = ''
     + '<p style="margin-top:0;">'
     +   'Across <strong>' + escapeHtml(focusLabels) + '</strong> we lost <strong>' + total + ' firms</strong> totalling <strong>'
     +   fmtMoney(totalDollars) + '</strong> in MRR.'
     + '</p>';
-
   // ICP framing — below-ICP firms are likely under-served by our minimum plan.
   if (total > 0) {
     const knownLead = total - unknownLead;
@@ -3666,7 +3582,6 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
         + '</p>';
     }
   }
-
   // Agency clients
   if (agencyClientCount > 0) {
     html += '<p>'
@@ -3674,7 +3589,6 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
       + '<strong>' + fmtMoney(agencyClientDollars) + '</strong> of the loss.'
       + '</p>';
   }
-
   // Top reasons
   if (topReasons.length > 0) {
     html += '<p>Top churn reasons by dollars:</p>';
@@ -3685,7 +3599,6 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
     }
     html += '</ul>';
   }
-
   // Business-context observations
   html += '<div style="margin-top:18px;padding:14px 16px;background:#fafbfc;border:1px solid var(--border);border-radius:8px;font-size:13px;color:var(--text-muted);line-height:1.65;">'
     +   '<strong style="color:var(--text);">Context informing these patterns:</strong>'
@@ -3695,7 +3608,6 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
     +     '<li>NOT_PAID cancellations are involuntary — usually a credit-card or billing failure, not a churn-intent signal.</li>'
     +   '</ul>'
     + '</div>';
-
   // Recent churn details samples
   if (detailSamples.length > 0) {
     html += '<div style="margin-top:18px;">';
@@ -3707,10 +3619,8 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
     }
     html += '</ul></div>';
   }
-
   document.getElementById('churnInsightsBody').innerHTML = html;
 }
-
 function renderAmBreakdown(rows) {
   // Sum existing-customer movement by Customers.Account Manager for last 90 days.
   // Excludes NEW / FREE_TO_PAID / FUTURE — AMs aren't responsible for new business.
@@ -3726,13 +3636,11 @@ function renderAmBreakdown(rows) {
     const impact = parseMoney(r['MRR Impact']);
     byAm[am] = (byAm[am] || 0) + impact;
   }
-
   const entries = Object.entries(byAm).sort((a, b) => b[1] - a[1]);
   const labels = entries.map(e => e[0]);
   const values = entries.map(e => e[1]);
   const colors = values.map(v => v >= 0 ? 'rgba(16,185,129,0.85)' : 'rgba(239,68,68,0.85)');
   const borders = values.map(v => v >= 0 ? '#10b981' : '#ef4444');
-
   if (charts.am) charts.am.destroy();
   const ctx = document.getElementById('amChart').getContext('2d');
   charts.am = new Chart(ctx, {
@@ -3778,16 +3686,13 @@ function renderAmBreakdown(rows) {
     },
   });
 }
-
 // ============================================================================
 // BOOT
 // ============================================================================
-
 loadAll();
 if (AUTO_REFRESH_MINUTES > 0) {
   setInterval(loadAll, AUTO_REFRESH_MINUTES * 60 * 1000);
 }
 </script>
-
 </body>
 </html>
