@@ -3374,6 +3374,12 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
   const reasonTotals = {}; // reason → total MRR across all months
   const grid = {};         // ym → reason → MRR
   for (const ym of yms) grid[ym] = {};
+  // Diagnostic — tells us exactly WHERE the join breaks for any given
+  // month, instead of just "unspecified": no Firm ID on the row at all vs.
+  // a Firm ID that doesn't exist in sfById vs. a Firm ID that matched but
+  // whose Churn Reason cell is itself blank in Salesforce Detail.
+  const diag = {}; // ym -> { total, resolved, noFirmId, noSfMatch, sfMatchNoReason }
+  for (const ym of yms) diag[ym] = { total: 0, resolved: 0, noFirmId: 0, noSfMatch: 0, sfMatchNoReason: 0 };
   for (const ym of yms) {
     for (const entry of byMonth[ym].rows) {
       const r = entry.row;
@@ -3384,7 +3390,35 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
       const reason = sfReason || cbReason || 'Voluntary / unspecified';
       grid[ym][reason]  = (grid[ym][reason]  || 0) + entry.mrr;
       reasonTotals[reason] = (reasonTotals[reason] || 0) + entry.mrr;
+
+      diag[ym].total++;
+      if (sfReason) {
+        diag[ym].resolved++;
+      } else if (!firmId) {
+        diag[ym].noFirmId++;
+      } else if (!sfById[firmId]) {
+        diag[ym].noSfMatch++;
+      } else {
+        diag[ym].sfMatchNoReason++;
+      }
     }
+  }
+  console.log('[MRR Dashboard] Churn-reason join diagnostic by month ' +
+    '(resolved = got a Salesforce reason | noFirmId = row has no Customers.FirmID | ' +
+    'noSfMatch = has a Firm ID but it is not in the Salesforce Detail sheet | ' +
+    'sfMatchNoReason = Firm ID matched but that Account\'s Churn Reason cell is blank):');
+  console.table(yms.map(function (ym) {
+    return Object.assign({ month: ym }, diag[ym]);
+  }));
+  // Plain-text version too — console.table often doesn't survive a
+  // copy/paste out of DevTools, this does.
+  for (const ym of yms) {
+    const d = diag[ym];
+    console.log('[MRR Dashboard]   ' + ym + ' — total=' + d.total +
+      '  resolved=' + d.resolved +
+      '  noFirmId=' + d.noFirmId +
+      '  noSfMatch=' + d.noSfMatch +
+      '  sfMatchNoReason=' + d.sfMatchNoReason);
   }
   // Limit to the top N reasons by total $, lump the rest as "Other".
   const TOP_N = 7;
