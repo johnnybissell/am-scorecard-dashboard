@@ -3384,9 +3384,12 @@ function renderHistorical12Mrr(mrrRows, historicalRows) {
 function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
   sfById = sfById || {};
   const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
-  // Collect all reasons across all months. Sum MRR per (month, reason).
-  const reasonTotals = {}; // reason → total MRR across all months
-  const grid = {};         // ym → reason → MRR
+  // Collect all reasons across all months, bucketed by CATEGORY (the part
+  // before " - " in "Product - Missing feature or integration") via the
+  // shared categoryForReason() helper — same bucketing as the deep-dive
+  // chart. Sum MRR per (month, category).
+  const reasonTotals = {}; // category → total MRR across all months
+  const grid = {};         // ym → category → MRR
   for (const ym of yms) grid[ym] = {};
   // Diagnostic — tells us exactly WHERE the join breaks for any given
   // month, instead of just "unspecified": no Firm ID on the row at all vs.
@@ -3402,8 +3405,9 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
       const sfReason = (sf['Churn Reason'] || '').trim();
       const cbReason = (r['Cancel Reason'] || '').trim();
       const reason = sfReason || cbReason || 'Voluntary / unspecified';
-      grid[ym][reason]  = (grid[ym][reason]  || 0) + entry.mrr;
-      reasonTotals[reason] = (reasonTotals[reason] || 0) + entry.mrr;
+      const category = categoryForReason(reason);
+      grid[ym][category]  = (grid[ym][category]  || 0) + entry.mrr;
+      reasonTotals[category] = (reasonTotals[category] || 0) + entry.mrr;
 
       diag[ym].total++;
       if (sfReason) {
@@ -3434,13 +3438,20 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
       '  noSfMatch=' + d.noSfMatch +
       '  sfMatchNoReason=' + d.sfMatchNoReason);
   }
-  // Every distinct reason gets its own stack segment — no "Other" bucket.
-  // Sorted by total $ so the biggest reasons anchor the bottom of the stack.
-  const stackKeys = Object.keys(reasonTotals).sort(function (a, b) {
-    return reasonTotals[b] - reasonTotals[a];
-  });
+  // Every category gets its own stack segment. Ordered per
+  // CHURN_CATEGORY_ORDER first (same convention as the deep-dive chart),
+  // then any other category the data happens to contain, sorted by $.
+  const seenCategories = Object.keys(reasonTotals);
+  const extraCategories = seenCategories
+    .filter(function (c) { return CHURN_CATEGORY_ORDER.indexOf(c) === -1; })
+    .sort(function (a, b) { return reasonTotals[b] - reasonTotals[a]; });
+  const stackKeys = CHURN_CATEGORY_ORDER
+    .filter(function (c) { return seenCategories.indexOf(c) !== -1; })
+    .concat(extraCategories);
   // Second pass — build the actual firm-level rows behind each (month,
-  // reason) so clicking a bar segment opens a real drill-down.
+  // category) so clicking a bar segment opens a real drill-down. Each row
+  // still carries its own specific reason (SF Churn Reason) even though the
+  // chart groups by the broader category.
   histReasonDrillRows = {};
   for (const ym of yms) {
     histReasonDrillRows[ym] = {};
@@ -3451,7 +3462,7 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
       const sfReason = (sf['Churn Reason'] || '').trim();
       const cbReason = (r['Cancel Reason'] || '').trim();
       const effectiveReason = sfReason || cbReason || 'Voluntary / unspecified';
-      const bucketKey = effectiveReason;
+      const bucketKey = categoryForReason(effectiveReason);
       if (!histReasonDrillRows[ym][bucketKey]) histReasonDrillRows[ym][bucketKey] = [];
       histReasonDrillRows[ym][bucketKey].push(Object.assign({}, r, {
         'SF Churn Reason': effectiveReason,
@@ -3460,16 +3471,14 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
       }));
     }
   }
-  // Build per-reason series across months. Palette cycles if there are more
-  // distinct reasons than colors — the legend label is still the source of
-  // truth for which reason is which.
-  const palette = ['#ef4444','#f97316','#eab308','#84cc16','#10b981','#06b6d4','#6366f1','#94a3b8','#ec4899','#14b8a6','#a855f7','#f59e0b','#3b82f6','#22c55e'];
-  const datasets = stackKeys.map(function (reason, i) {
+  // Build per-category series across months.
+  const palette = ['#ef4444','#f97316','#eab308','#84cc16','#10b981','#06b6d4','#6366f1','#94a3b8','#ec4899','#14b8a6'];
+  const datasets = stackKeys.map(function (category, i) {
     const data = yms.map(function (ym) {
-      return grid[ym][reason] || 0;
+      return grid[ym][category] || 0;
     });
     return {
-      label: reason,
+      label: category,
       data: data,
       backgroundColor: palette[i % palette.length],
       borderColor: palette[i % palette.length],
@@ -3518,13 +3527,14 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
 }
 /**
  * Click handler for the "Churn $ by reason per month" chart. bucketKey is
- * the exact reason string for that stack segment — opens the firm-level
- * rows behind that (month, reason) combo.
+ * the category (the part before " - ", e.g. "Product") for that stack
+ * segment — opens the firm-level rows behind that (month, category) combo.
+ * Each row's own "SF Churn Reason" column still shows its specific reason.
  */
 function drillHistoricalReasonBucket(ym, bucketKey) {
   const rows = (histReasonDrillRows[ym] && histReasonDrillRows[ym][bucketKey]) || [];
   const title = bucketKey + ' — ' + monthLabel(ym);
-  const sub = 'Firms in ' + monthLabel(ym) + ' with this reason';
+  const sub = 'Firms in ' + monthLabel(ym) + ' in the "' + bucketKey + '" category — see the SF Churn Reason column for the specific reason';
   openDrill(title, sub, rows);
 }
 /**
