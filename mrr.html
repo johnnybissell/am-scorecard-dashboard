@@ -940,7 +940,7 @@ async function loadAll() {
     renderHistorical12Mrr(mrr, historical);
     renderHistorical12Reason(mrr, historical, sfById);
     renderHistorical12Rate(mrr, historical, mrrSnapshot);
-    renderChurnInsights(mrr, historical, sfById);
+    renderChurnInsights(mrr, historical, sfById, churnClean);
     renderAmBreakdown(mrr);
     renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm, upDownCollapsed);
     const now = new Date();
@@ -3494,7 +3494,7 @@ const LAWMATICS_CONTEXT = {
   icpLeadsPerMonth: 50, // ICP = customers with 50+ leads/month
   minPlanSeats: 3,      // No solo plan; lowest plan = 3 seats
 };
-function renderChurnInsights(mrrRows, historicalRows, sfById) {
+function renderChurnInsights(mrrRows, historicalRows, sfById, churnRows) {
   sfById = sfById || {};
   const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
   // Scope: previous month + this month, anchored to the calendar (not to
@@ -3505,7 +3505,39 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
   const prevMonth = prevDate.getFullYear() + '-' + String(prevDate.getMonth() + 1).padStart(2, '0');
   const focusYms = [prevMonth, thisMonth];
   const focusLabels = focusYms.map(monthLabel).join(' + ');
-  // Walk all churn rows across the 2-month window.
+  // aggregateChurn12Months() only walks fired CANCEL_FROM_* events, so a
+  // firm scheduled to cancel later this month (still non_renewing, hasn't
+  // fired yet) wouldn't show up here otherwise — the insights would look
+  // artificially light on churn until the last few days of the month. Fold
+  // in this month's not-yet-fired Scheduled Churn rows so insights match
+  // what the Cancellations card / Churn Forecast already treat as "this
+  // month's churn." No double-counting: a sub is either still non_renewing
+  // (scheduled feed) or has already fired (CANCEL_FROM_* in mrrRows) —
+  // never both at once.
+  if (Array.isArray(churnRows) && byMonth[thisMonth]) {
+    const [curYr, curMo] = thisMonth.split('-').map(Number);
+    const curMonthStart = new Date(curYr, curMo - 1, 1);
+    const curMonthEnd   = new Date(curYr, curMo, 1);
+    for (const r of churnRows) {
+      const d = parseDateTime(r['Cancellation Date']);
+      if (!d || d < curMonthStart || d >= curMonthEnd || d < now) continue;
+      const mrr = Math.abs(parseMoney(r['Current MRR']));
+      byMonth[thisMonth].rows.push({
+        row: {
+          'Company':                      r['Company'] || '',
+          'Customers.FirmID':              r['Customers.FirmID'] || '',
+          'Customers.Avg Lead Volume':     r['Customers.Avg Lead Volume'] || '',
+          'Customers.Agency Client Firm':  r['Customers.Agency Client Firm'] || '',
+          'Cancel Reason':                 r['Cancel Reason'] || '',
+        },
+        mrr: mrr,
+      });
+      byMonth[thisMonth].dollars += mrr;
+      byMonth[thisMonth].count   += 1;
+    }
+  }
+  // Walk all churn rows across the 2-month window (now includes this
+  // month's scheduled-but-not-yet-fired cancellations, folded in above).
   let total = 0;
   let totalDollars = 0;
   let belowIcp = 0;
@@ -3560,8 +3592,8 @@ function renderChurnInsights(mrrRows, historicalRows, sfById) {
   const pct = function (n, d) { return d > 0 ? Math.round(n / d * 100) : 0; };
   let html = ''
     + '<p style="margin-top:0;">'
-    +   'Across <strong>' + escapeHtml(focusLabels) + '</strong> we lost <strong>' + total + ' firms</strong> totalling <strong>'
-    +   fmtMoney(totalDollars) + '</strong> in MRR.'
+    +   'Across <strong>' + escapeHtml(focusLabels) + '</strong> we\'ve churned or have scheduled to churn <strong>' + total + ' firms</strong> totalling <strong>'
+    +   fmtMoney(totalDollars) + '</strong> in MRR. (Includes firms already cancelled this window plus firms still non-renewing with a cancel date later this month.)'
     + '</p>';
   // ICP framing — below-ICP firms are likely under-served by our minimum plan.
   if (total > 0) {
