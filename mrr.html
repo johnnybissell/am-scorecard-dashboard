@@ -2616,7 +2616,7 @@ function renderAmLeaderboard(rows, retentionRows) {
  * use everywhere in the churn section.
  */
 function filterUpcomingChurn(rows) {
-  return filterChurnForPeriod(rows, [], 'next120');
+  return filterChurnForPeriod(rows, [], [], 'next120');
 }
 /**
  * Compute the [start, end) date range for a churn period selector value.
@@ -2672,13 +2672,22 @@ function dateRangeForPeriod(period) {
  * consume both. Returns [{ row, date, mrr }] with `row._churnType` set
  * to 'fired' or 'scheduled' so renderers can distinguish if needed.
  */
-function filterChurnForPeriod(churnRows, mrrRows, period) {
+function filterChurnForPeriod(churnRows, mrrRows, historicalRows, period) {
   const { start, end, includePast, includeFuture } = dateRangeForPeriod(period);
   const now = new Date();
   const out = [];
-  // Fired cancellations from MonthlyMRRImpact.
-  if (includePast && Array.isArray(mrrRows)) {
-    for (const r of mrrRows) {
+  // Fired cancellations. Live MonthlyMRRImpact only reliably covers what's
+  // still inside Chargebee's ~90-day event-replay window — anything older
+  // (e.g. the Month navigator stepping back past that) has to come from the
+  // historical backfill tab instead. Concat live-then-historical and dedupe
+  // by Subscription ID so an overlap month doesn't get double-counted;
+  // live wins on a collision since it's processed first.
+  if (includePast) {
+    const seenSubIds = {};
+    const combined = (mrrRows || []).map(function (r) { return { r: r, source: 'live' }; })
+      .concat((historicalRows || []).map(function (r) { return { r: r, source: 'historical' }; }));
+    for (const entry of combined) {
+      const r = entry.r;
       const status = r['Impact Sub status'];
       if (!status || status.indexOf('CANCEL_FROM_') !== 0) continue;
       // Prefer the precise Cancellation Date column; fall back to the
@@ -2689,6 +2698,11 @@ function filterChurnForPeriod(churnRows, mrrRows, period) {
       // For thisMonth, only fired = strictly before now (future-of-this-month
       // comes from scheduled).
       if (period === 'thisMonth' && cancelD > now) continue;
+      const subId = r['Subscription ID'];
+      if (subId) {
+        if (seenSubIds[subId]) continue;
+        seenSubIds[subId] = true;
+      }
       const mrr = Math.abs(parseMoney(r['MRR Impact']));
       out.push({
         row: {
@@ -2705,6 +2719,7 @@ function filterChurnForPeriod(churnRows, mrrRows, period) {
           'Creation Date':               r['Creation Date'] || '',
           'Cancel Reason':               r['Cancel Reason'] || '',
           '_churnType':                  'fired',
+          '_source':                     entry.source,
         },
         date: cancelD,
         mrr:  mrr,
@@ -2915,7 +2930,7 @@ function toggleChurnForecastDetail() {
  * Called on initial load and whenever the user clicks a period tab.
  */
 function renderChurnSection() {
-  const filtered = filterChurnForPeriod(cachedChurn, cachedMrr, currentChurnPeriod);
+  const filtered = filterChurnForPeriod(cachedChurn, cachedMrr, cachedHistorical, currentChurnPeriod);
   const periodLabel = {
     lastMonth: 'Last Month',
     thisMonth: 'This Month',
