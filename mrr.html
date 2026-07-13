@@ -110,6 +110,8 @@ td.negative { color: var(--negative); }
   color: var(--text);
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
 }
+.period-tabs button:disabled { opacity: 0.35; cursor: not-allowed; }
+.period-tabs button:disabled:hover { color: var(--text-muted); }
 /* Churn deep dive grid */
 .dd-grid {
   display: grid;
@@ -434,7 +436,9 @@ td.negative { color: var(--negative); }
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
         <h2 id="churnHeading" style="margin:0;">Churn — next 120 days</h2>
         <div class="period-tabs" id="churnPeriodTabs">
-          <button data-period="lastMonth"  onclick="setChurnPeriod('lastMonth')">Last month</button>
+          <button type="button" id="churnMonthPrevBtn" onclick="shiftChurnMonth(-1)" title="Earlier month" style="padding:6px 8px;">◀</button>
+          <button data-period="month" id="churnMonthBtn" onclick="setChurnPeriod('month')">Month</button>
+          <button type="button" id="churnMonthNextBtn" onclick="shiftChurnMonth(1)" title="Later month" style="padding:6px 8px;">▶</button>
           <button data-period="thisMonth"  onclick="setChurnPeriod('thisMonth')">This month</button>
           <button data-period="nextMonth"  onclick="setChurnPeriod('nextMonth')">Next month</button>
           <button data-period="next120" class="active" onclick="setChurnPeriod('next120')">Next 120 days</button>
@@ -807,6 +811,33 @@ let drillSort = { col: 'date', dir: 'desc' };
 let currentChurnPeriod = 'next120';
 // Cached references so setChurnPeriod can re-render without re-fetching.
 let cachedChurn = [], cachedMrr = [], cachedSfById = {}, cachedHistorical = [];
+// Selected month for the "◀ Month ▶" navigator (period === 'month'),
+// YYYY-MM. Lets the Churn / Churn Deep Dive cards look further back than
+// just "last month" — clickable through the trailing 12 months. Defaults
+// to last month on first use; shiftChurnMonth() moves it.
+let churnMonthYm = null;
+/** Shift a "YYYY-MM" string by `delta` calendar months. */
+function shiftYm(ym, delta) {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m - 1 + delta, 1);
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+/**
+ * Move the churn-period month navigator back/forward and re-render.
+ * Clamped to the trailing 12 months (this month minus 1 through minus 12) —
+ * "This month"/"Next month" tabs already cover anything more recent, and
+ * MonthlyMRRImpact/historical only go back so far anyway.
+ */
+function shiftChurnMonth(delta) {
+  if (!churnMonthYm) churnMonthYm = shiftYm(currentYm(), -1);
+  const earliest = shiftYm(currentYm(), -12);
+  const latest = shiftYm(currentYm(), -1);
+  const next = shiftYm(churnMonthYm, delta);
+  if (next < earliest || next > latest) return;
+  churnMonthYm = next;
+  currentChurnPeriod = 'month';
+  renderChurnSection();
+}
 // Selected month for the Churn Insights card, YYYY-MM. Defaults to the
 // current month on first render; shiftInsightsMonth() moves it and
 // re-renders from the cached data above (no re-fetch).
@@ -1613,15 +1644,19 @@ function renderDrillTable(rows) {
     const sourceBadge = it.source !== 'live'
       ? '<span class="drill-source-badge">' + escapeHtml(it.source) + '</span>'
       : '';
-    const detailsCell = it.details.length > 100
-      ? '<span title="' + escapeHtml(it.details) + '">' + escapeHtml(it.details.slice(0, 98)) + '…</span>'
-      : escapeHtml(it.details || '—');
+    // Always set a full-text title on the cell (native browser tooltip) so
+    // a truncated value is never a dead end — hovering shows the whole
+    // thing regardless of length. The ellipsis/nowrap/overflow-hidden combo
+    // is what makes long text actually get cut off with "…" in the first
+    // place; without it the title attribute would have nothing to rescue.
+    const detailsCell = escapeHtml(it.details || '—');
+    const detailsTitle = it.details ? ' title="' + escapeHtml(it.details) + '"' : '';
     html += '<tr>'
       + '<td><strong>' + escapeHtml(it.company) + '</strong>' + sourceBadge + '</td>'
       + '<td>' + escapeHtml(it.am) + '</td>'
       + (hasSfData ? '<td style="color:var(--text-muted);font-size:12px;">' + escapeHtml(it.practiceArea || '—') + '</td>' : '')
       + (hasSfData ? '<td style="font-size:12px;">' + escapeHtml(it.reason || '—') + '</td>' : '')
-      + (hasSfData ? '<td style="max-width:260px;font-size:12px;color:var(--text-muted);">' + detailsCell + '</td>' : '')
+      + (hasSfData ? '<td style="max-width:260px;font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"' + detailsTitle + '>' + detailsCell + '</td>' : '')
       + '<td>' + escapeHtml(it.dateStr) + (it.source === 'scheduled' && it.cancelDateStr ?
           ' <span style="color:var(--text-muted);font-size:11px;">(' + escapeHtml(it.cancelDateStr.slice(0,10)) + ')</span>' : '') + '</td>'
       + '<td class="numeric ' + cls + '">' + (it.mrr >= 0 ? '+' : '') + fmtMoney(it.mrr) + '</td>'
@@ -2596,6 +2631,19 @@ function dateRangeForPeriod(period) {
       includeFuture: false,
     };
   }
+  // Arbitrary past month selected via the "◀ Month ▶" navigator. Always
+  // strictly in the past (clamped in shiftChurnMonth), so only fired
+  // cancellations apply — nothing to schedule-fold in.
+  if (period === 'month') {
+    const ym = churnMonthYm || shiftYm(currentYm(), -1);
+    const [y, m] = ym.split('-').map(Number);
+    return {
+      start: new Date(y, m - 1, 1),
+      end:   new Date(y, m,     1),
+      includePast: true,
+      includeFuture: false,
+    };
+  }
   if (period === 'thisMonth') {
     return {
       start: new Date(now.getFullYear(), now.getMonth(),     1),
@@ -2873,6 +2921,7 @@ function renderChurnSection() {
     thisMonth: 'This Month',
     nextMonth: 'Next Month',
     next120:   'Next 120 days',
+    month:     monthLabel(churnMonthYm || shiftYm(currentYm(), -1)),
   }[currentChurnPeriod] || '';
   document.getElementById('churnHeading').textContent = 'Churn — ' + periodLabel;
   document.getElementById('ddHeading').textContent   = 'Churn deep dive — ' + periodLabel;
@@ -2882,6 +2931,18 @@ function renderChurnSection() {
     if (b.dataset.period === currentChurnPeriod) b.classList.add('active');
     else b.classList.remove('active');
   });
+  // Keep the month-navigator pill's label and arrow enabled/disabled state
+  // in sync even when a different tab is active (so it reads sensibly the
+  // moment the user switches back to it).
+  const navYm = churnMonthYm || shiftYm(currentYm(), -1);
+  const navBtn = document.getElementById('churnMonthBtn');
+  if (navBtn) navBtn.textContent = monthLabel(navYm);
+  const earliestYm = shiftYm(currentYm(), -12);
+  const latestYm = shiftYm(currentYm(), -1);
+  const prevBtn = document.getElementById('churnMonthPrevBtn');
+  const nextBtn = document.getElementById('churnMonthNextBtn');
+  if (prevBtn) prevBtn.disabled = (navYm <= earliestYm);
+  if (nextBtn) nextBtn.disabled = (navYm >= latestYm);
   renderChurnSummary(filtered);
   renderChurnChart(filtered);
   renderChurnMrrChart(filtered);
@@ -2889,6 +2950,7 @@ function renderChurnSection() {
   renderChurnDeepDive(filtered, cachedSfById);
 }
 function setChurnPeriod(period) {
+  if (period === 'month' && !churnMonthYm) churnMonthYm = shiftYm(currentYm(), -1);
   if (currentChurnPeriod === period) return;
   currentChurnPeriod = period;
   renderChurnSection();
