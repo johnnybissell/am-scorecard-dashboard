@@ -499,6 +499,10 @@ td.negative { color: var(--negative); }
           <div class="dd-title">By Avg Lead Volume bucket</div>
           <div class="chart-container" style="height:260px;"><canvas id="ddLeadsChart"></canvas></div>
         </div>
+        <div class="dd-card">
+          <div class="dd-title">By Tenure at cancellation</div>
+          <div class="chart-container" style="height:260px;"><canvas id="ddTenureChart"></canvas></div>
+        </div>
         <div class="dd-card dd-placeholder">
           <div class="dd-title">By Practice Area</div>
           <div style="padding:48px 16px;text-align:center;color:var(--text-muted);font-size:13px;line-height:1.6;">
@@ -528,6 +532,13 @@ td.negative { color: var(--negative); }
       <div style="margin-top:24px;">
         <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Churn $ by reason per month</div>
         <div class="chart-container" style="height:340px;"><canvas id="hist12ReasonChart"></canvas></div>
+      </div>
+      <div style="margin-top:24px;">
+        <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Accounts churned by reason per month</div>
+        <div style="font-size:12px;color:var(--text-muted);padding:0 0 6px;">
+          Same category buckets as the chart above, but counting firms instead of dollars — a small account and a large account both count as 1 here.
+        </div>
+        <div class="chart-container" style="height:340px;"><canvas id="hist12ReasonCountChart"></canvas></div>
       </div>
     </div>
   </div>
@@ -780,7 +791,7 @@ async function fetchCsv(url, label) {
 let charts = {
   movement: null, am: null, churn: null, churnMrr: null,
   // Churn Deep Dive sub-charts
-  ddAm: null, ddOwner: null, ddReason: null, ddLeads: null, ddPracticeArea: null,
+  ddAm: null, ddOwner: null, ddReason: null, ddLeads: null, ddPracticeArea: null, ddTenure: null,
   // Historical 12-month charts
   hist12Mrr: null, hist12Rate: null, hist12Reason: null,
   renewalRate: null,
@@ -805,6 +816,11 @@ let insightsYm = null;
 // of the "Churn $ by reason per month" chart — including "Other" — open the
 // actual firm list behind it, so "Other" is never a dead end.
 let histReasonDrillRows = {};
+// Same idea as histReasonDrillRows, but for the accounts-count version of
+// the chart (renderHistorical12ReasonCount / "Accounts churned by reason
+// per month") — kept separate so the two charts' drill-downs don't clobber
+// each other if both are rendered on the same page load.
+let histReasonCountDrillRows = {};
 async function loadAll() {
   showError(null);
   document.getElementById('lastRefreshed').textContent = 'Refreshing…';
@@ -1006,9 +1022,10 @@ async function loadAll() {
     cachedHistorical = historical;
     renderChurnForecast(mrr, historical, churnClean);
     renderChurnSection();
-    renderHistorical12Mrr(mrr, historical);
-    renderHistorical12Reason(mrr, historical, sfById);
-    renderHistorical12Rate(mrr, historical, mrrSnapshot);
+    renderHistorical12Mrr(mrr, historical, churnClean);
+    renderHistorical12Reason(mrr, historical, sfById, churnClean);
+    renderHistorical12ReasonCount(mrr, historical, sfById, churnClean);
+    renderHistorical12Rate(mrr, historical, mrrSnapshot, churnClean);
     renderRenewalRate(renewalRate);
     renderChurnInsights(mrr, historical, sfById, churnClean);
     renderAmBreakdown(mrr);
@@ -1444,6 +1461,7 @@ function appendScheduledChurnAsDrillRows(rows, churnRows, sfById) {
       'Customers.FirmID':            firmId,
       'Customers.Avg Lead Volume':   r['Customers.Avg Lead Volume'] || '',
       'Cancellation Date':           r['Cancellation Date'] || '',
+      'Creation Date':               r['Creation Date'] || '',
       'Subscription Status':         'NON_RENEWING',
       'Cancel Reason':               r['Cancel Reason'] || '',
       // Salesforce-derived fields:
@@ -2894,6 +2912,36 @@ function leadVolumeBucketIndex(rawValue) {
   }
   return 0;
 }
+// Same 5 buckets used server-side in mrr-sync.gs's tenureBucket_() /
+// diagnoseChurnByTenureBucket() — kept in sync deliberately so a number you
+// see here means the same thing as a number from that Apps Script log.
+const TENURE_BUCKETS = [
+  { label: 'Unknown',  test: function (m) { return m === null; } },
+  { label: '<12mo',    test: function (m) { return m < 12; } },
+  { label: '12-15mo',  test: function (m) { return m >= 12 && m < 15; } },
+  { label: '15-24mo',  test: function (m) { return m >= 15 && m < 24; } },
+  { label: '24-27mo',  test: function (m) { return m >= 24 && m < 27; } },
+  { label: '27mo+',    test: function (m) { return m >= 27; } },
+];
+/**
+ * Tenure in months at cancellation = (Cancellation Date − Creation Date),
+ * using the same 30.44-day/month approximation as tenureBucket_() in
+ * mrr-sync.gs. Returns null if either date is missing/unparseable (e.g. a
+ * scheduled row whose Creation Date didn't come through).
+ */
+function tenureMonthsForRow(r) {
+  const createD = parseDateTime(r['Creation Date']);
+  const cancelD = parseDateTime(r['Cancellation Date']) || parseChangeDate(r['Change Date']);
+  if (!createD || !cancelD) return null;
+  return (cancelD.getTime() - createD.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+}
+function tenureBucketIndex(months) {
+  if (months === null || months === undefined || isNaN(months)) return 0;
+  for (let i = 1; i < TENURE_BUCKETS.length; i++) {
+    if (TENURE_BUCKETS[i].test(months)) return i;
+  }
+  return 0;
+}
 /**
  * Main entry — render all five breakdown mini-charts. Now takes pre-filtered
  * period rows so it respects the time selector at the top of the churn
@@ -2932,6 +2980,7 @@ function renderChurnDeepDive(filtered, sfById) {
   const byReasonCategory = {};
   const byPA     = {};
   const byLeads  = LEAD_VOLUME_BUCKETS.map(function () { return { count: 0, dollars: 0 }; });
+  const byTenure = TENURE_BUCKETS.map(function () { return { count: 0, dollars: 0 }; });
   function bump(map, key, mrr) {
     if (!map[key]) map[key] = { count: 0, dollars: 0 };
     map[key].count += 1;
@@ -2967,11 +3016,15 @@ function renderChurnDeepDive(filtered, sfById) {
     const li = leadVolumeBucketIndex(useVol);
     byLeads[li].count   += 1;
     byLeads[li].dollars += x.mrr;
+    const ti = tenureBucketIndex(tenureMonthsForRow(r));
+    byTenure[ti].count   += 1;
+    byTenure[ti].dollars += x.mrr;
   }
   renderChurnDdHorizontal('ddAm',     'ddAm',     byAm,     'amName',     drillChurnByField.bind(null, 'Customers.Account Manager'));
   renderChurnDdHorizontal('ddOwner',  'ddOwner',  byOwner,  'ownerName',  drillChurnByField.bind(null, 'Customers.Owner'));
   renderChurnReasonStacked(byReasonCategory);
   renderChurnDdBuckets   ('ddLeads',  'ddLeads',  byLeads,  LEAD_VOLUME_BUCKETS, drillChurnByLeadBucket);
+  renderChurnDdBuckets   ('ddTenure', 'ddTenure', byTenure, TENURE_BUCKETS,      drillChurnByTenureBucket);
   renderChurnPracticeArea(hasSf, byPA);
 }
 /**
@@ -3275,6 +3328,17 @@ function drillChurnByLeadBucket(bucketIdx) {
             'Firms in this period whose Avg Lead Volume falls in this bucket',
             filtered);
 }
+function drillChurnByTenureBucket(bucketIdx) {
+  const bucket = TENURE_BUCKETS[bucketIdx];
+  if (!bucket) return;
+  const filtered = drillRowsInCurrentChurnPeriod().filter(function (r) {
+    return tenureBucketIndex(tenureMonthsForRow(r)) === bucketIdx;
+  });
+  openDrill('Churn — Tenure ' + bucket.label,
+            'Firms in this period whose tenure at cancellation falls in this bucket ' +
+            '(Cancellation Date minus Creation Date)',
+            filtered);
+}
 // ----------------------------------------------------------------------------
 // Historical churn trends — last 12 months
 // ----------------------------------------------------------------------------
@@ -3284,8 +3348,9 @@ function drillChurnByLeadBucket(bucketIdx) {
  *   yms: ['2025-06', '2025-07', ..., '2026-05']
  *   byMonth: { ym → { dollars, count, rows: [...] } }
  */
-function aggregateChurn12Months(mrrRows, historicalRows) {
+function aggregateChurn12Months(mrrRows, historicalRows, scheduledRows, sfById) {
   const all = (mrrRows || []).concat(historicalRows || []);
+  sfById = sfById || {};
   const now = new Date();
   // First day of (now - 11 months), so we get 12 months including current.
   const horizonStart = new Date(now.getFullYear(), now.getMonth() - 11, 1);
@@ -3318,13 +3383,45 @@ function aggregateChurn12Months(mrrRows, historicalRows) {
     byMonth[ym].count   += 1;
     byMonth[ym].rows.push({ row: r, mrr: mrr });
   }
+  // Fold in the current month's not-yet-fired Scheduled Churn rows (mirrors
+  // augmentCurrentMonthWithScheduledChurn / appendScheduledChurnAsDrillRows
+  // used elsewhere on this dashboard). Without this, the current month's
+  // bar only shows cancellations that have already fired as of today and
+  // looks artificially low for the rest of the month.
+  if (Array.isArray(scheduledRows)) {
+    const curYm = currentYm();
+    if (byMonth[curYm]) {
+      const [curYr, curMo] = curYm.split('-').map(Number);
+      const curMonthStart = new Date(curYr, curMo - 1, 1);
+      const curMonthEnd   = new Date(curYr, curMo, 1);
+      for (const r of scheduledRows) {
+        const d = parseDateTime(r['Cancellation Date']);
+        if (!d || d < now || d < curMonthStart || d >= curMonthEnd) continue;
+        const mrr = Math.abs(parseMoney(r['Current MRR']));
+        const firmId = normalizeFirmId(r['Customers.FirmID']);
+        byMonth[curYm].dollars += mrr;
+        byMonth[curYm].count   += 1;
+        byMonth[curYm].rows.push({
+          row: {
+            'Company':                   r['Company'] || '',
+            'Customers.FirmID':           firmId,
+            'Customers.Avg Lead Volume':  r['Customers.Avg Lead Volume'] || '',
+            'Cancellation Date':          r['Cancellation Date'] || '',
+            'Cancel Reason':              r['Cancel Reason'] || '',
+            '_source':                    'scheduled',
+          },
+          mrr: mrr,
+        });
+      }
+    }
+  }
   return { yms: yms, byMonth: byMonth };
 }
 /**
  * Dual-axis line chart — MRR ($) churned per month and # of logos.
  */
-function renderHistorical12Mrr(mrrRows, historicalRows) {
-  const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
+function renderHistorical12Mrr(mrrRows, historicalRows, scheduledRows) {
+  const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows, scheduledRows);
   const labels  = yms.map(monthLabel);
   const dollars = yms.map(function (ym) { return byMonth[ym].dollars; });
   const counts  = yms.map(function (ym) { return byMonth[ym].count;   });
@@ -3381,9 +3478,9 @@ function renderHistorical12Mrr(mrrRows, historicalRows) {
  * Stacked column — last 12 months, each month's MRR churn split by reason
  * (SF Churn Reason preferred; falls back to Chargebee Cancel Reason).
  */
-function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
+function renderHistorical12Reason(mrrRows, historicalRows, sfById, scheduledRows) {
   sfById = sfById || {};
-  const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
+  const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows, scheduledRows, sfById);
   // Collect all reasons across all months, bucketed by CATEGORY (the part
   // before " - " in "Product - Missing feature or integration") via the
   // shared categoryForReason() helper — same bucketing as the deep-dive
@@ -3538,6 +3635,121 @@ function drillHistoricalReasonBucket(ym, bucketKey) {
   openDrill(title, sub, rows);
 }
 /**
+ * Stacked column — same category bucketing as "Churn $ by reason per
+ * month," but counting FIRMS (accounts) instead of summing MRR. A firm
+ * with a small plan and a firm with a large plan both count as 1 here,
+ * which is the point: this chart answers "which category is losing us the
+ * most LOGOS," while the $ chart answers "which category is costing us
+ * the most revenue" — they can point at different categories when churn
+ * skews toward either small or large accounts in a given month.
+ */
+function renderHistorical12ReasonCount(mrrRows, historicalRows, sfById, scheduledRows) {
+  sfById = sfById || {};
+  const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows, scheduledRows, sfById);
+  const categoryTotals = {}; // category → total # of firms across all months
+  const grid = {};           // ym → category → # of firms
+  for (const ym of yms) grid[ym] = {};
+  for (const ym of yms) {
+    for (const entry of byMonth[ym].rows) {
+      const r = entry.row;
+      const firmId = normalizeFirmId(r['Customers.FirmID']);
+      const sf = firmId && sfById[firmId] ? sfById[firmId] : {};
+      const sfReason = (sf['Churn Reason'] || '').trim();
+      const cbReason = (r['Cancel Reason'] || '').trim();
+      const reason = sfReason || cbReason || 'Voluntary / unspecified';
+      const category = categoryForReason(reason);
+      grid[ym][category] = (grid[ym][category] || 0) + 1;
+      categoryTotals[category] = (categoryTotals[category] || 0) + 1;
+    }
+  }
+  const seenCategories = Object.keys(categoryTotals);
+  const extraCategories = seenCategories
+    .filter(function (c) { return CHURN_CATEGORY_ORDER.indexOf(c) === -1; })
+    .sort(function (a, b) { return categoryTotals[b] - categoryTotals[a]; });
+  const stackKeys = CHURN_CATEGORY_ORDER
+    .filter(function (c) { return seenCategories.indexOf(c) !== -1; })
+    .concat(extraCategories);
+  // Firm-level rows behind each (month, category), same shape as the $ chart's
+  // drill rows, for the same click-through drill-down behavior.
+  histReasonCountDrillRows = {};
+  for (const ym of yms) {
+    histReasonCountDrillRows[ym] = {};
+    for (const entry of byMonth[ym].rows) {
+      const r = entry.row;
+      const firmId = normalizeFirmId(r['Customers.FirmID']);
+      const sf = firmId && sfById[firmId] ? sfById[firmId] : {};
+      const sfReason = (sf['Churn Reason'] || '').trim();
+      const cbReason = (r['Cancel Reason'] || '').trim();
+      const effectiveReason = sfReason || cbReason || 'Voluntary / unspecified';
+      const bucketKey = categoryForReason(effectiveReason);
+      if (!histReasonCountDrillRows[ym][bucketKey]) histReasonCountDrillRows[ym][bucketKey] = [];
+      histReasonCountDrillRows[ym][bucketKey].push(Object.assign({}, r, {
+        'SF Churn Reason': effectiveReason,
+        'SF Practice Area': sf['Primary Practice Area'] || '',
+        'SF Churn Details': sf['Churn Details'] || '',
+      }));
+    }
+  }
+  const palette = ['#ef4444','#f97316','#eab308','#84cc16','#10b981','#06b6d4','#6366f1','#94a3b8','#ec4899','#14b8a6'];
+  const datasets = stackKeys.map(function (category, i) {
+    const data = yms.map(function (ym) { return grid[ym][category] || 0; });
+    return {
+      label: category,
+      data: data,
+      backgroundColor: palette[i % palette.length],
+      borderColor: palette[i % palette.length],
+      borderWidth: 1,
+      stack: 'reasonsCount',
+    };
+  });
+  if (charts.hist12ReasonCount) charts.hist12ReasonCount.destroy();
+  const ctx = document.getElementById('hist12ReasonCountChart').getContext('2d');
+  charts.hist12ReasonCount = new Chart(ctx, {
+    type: 'bar',
+    data: { labels: yms.map(monthLabel), datasets: datasets },
+    options: {
+      maintainAspectRatio: false,
+      onClick: function (evt, elements, chart) {
+        const hit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (!hit || hit.length === 0) return;
+        const ym = yms[hit[0].index];
+        const bucketKey = stackKeys[hit[0].datasetIndex];
+        drillHistoricalReasonCountBucket(ym, bucketKey);
+      },
+      onHover: function (evt, elements, chart) {
+        chart.canvas.style.cursor = elements.length ? 'pointer' : 'default';
+      },
+      plugins: {
+        legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            label: function (c) { return c.dataset.label + ': ' + c.parsed.y + ' firm' + (c.parsed.y === 1 ? '' : 's'); },
+            footer: function (items) {
+              const total = items.reduce(function (s, it) { return s + it.parsed.y; }, 0);
+              return 'Total: ' + total + ' firms\nClick a segment to see the firms behind it.';
+            },
+          },
+        },
+      },
+      scales: {
+        y: { stacked: true, ticks: { precision: 0 }, grid: { color: '#f3f4f6' } },
+        x: { stacked: true, grid: { display: false } },
+      },
+    },
+  });
+}
+/**
+ * Click handler for the "Accounts churned by reason per month" chart —
+ * mirrors drillHistoricalReasonBucket but reads from the count chart's own
+ * drill-row cache.
+ */
+function drillHistoricalReasonCountBucket(ym, bucketKey) {
+  const rows = (histReasonCountDrillRows[ym] && histReasonCountDrillRows[ym][bucketKey]) || [];
+  const title = bucketKey + ' — ' + monthLabel(ym);
+  const sub = 'Firms in ' + monthLabel(ym) + ' in the "' + bucketKey + '" category — see the SF Churn Reason column for the specific reason';
+  openDrill(title, sub, rows);
+}
+/**
  * Monthly churn % line chart. Two series:
  *   Logo churn % = firms cancelled in month / customer count at start of month
  *   MRR churn %  = $ churned in month / active MRR at start of month
@@ -3546,8 +3758,8 @@ function drillHistoricalReasonBucket(ym, bucketKey) {
  * — high logo churn with low MRR churn means you're losing many small
  * firms; the inverse means you're losing fewer but bigger ones.
  */
-function renderHistorical12Rate(mrrRows, historicalRows, snapshotRows) {
-  const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows);
+function renderHistorical12Rate(mrrRows, historicalRows, snapshotRows, scheduledRows) {
+  const { yms, byMonth } = aggregateChurn12Months(mrrRows, historicalRows, scheduledRows);
   // Build a map: ym → earliest snapshot in that month, with both customer
   // count and active MRR. Earliest snapshot in the month = best proxy for
   // "beginning of month" state.
