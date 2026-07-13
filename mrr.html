@@ -533,14 +533,14 @@ td.negative { color: var(--negative); }
   </div>
   <div class="section">
     <div class="card">
-      <h2>Signup cohort churn rate — trailing 12 months</h2>
+      <h2>12-month renewal rate — trailing 12 months</h2>
       <div style="font-size:12px;color:var(--text-muted);padding:0 0 12px;">
-        For each signup month, what % of the firms who signed up that month have cancelled as of today. Answers "was this signup cohort worse than the ones around it" — separate from calendar-month churn, which mixes firms of every age together. Cohorts younger than ~12 months are shown faded: they haven't had time to reach their first renewal yet, so a low rate there doesn't mean much — only compare cohorts of similar age.
+        For each month, of the firms whose 12-month contract anniversary fell in that month, what % renewed (weren't cancelled). Each bar's cohort is the firms who signed up exactly 12 months before that bar's month — hover for the signup month. Unlike a raw signup-cohort view, every renewal month here (except possibly the current, still-in-progress one, shown faded) is fully resolved: 12 months have already passed, so the outcome is final.
       </div>
-      <div id="cohortChurnEmpty" style="display:none;padding:32px 16px;text-align:center;color:var(--text-muted);font-size:13px;line-height:1.6;">
-        Not configured yet. Run <code>runCohortChurnOnly()</code> (or a full sync) in the Apps Script, publish the "Cohort Churn" tab to web as CSV, and paste the URL into <code>CSV_URLS.cohortChurn</code> at the top of this file.
+      <div id="renewalRateEmpty" style="display:none;padding:32px 16px;text-align:center;color:var(--text-muted);font-size:13px;line-height:1.6;">
+        Not configured yet. Run <code>runRenewalRateOnly()</code> (or a full sync) in the Apps Script, publish the "Renewal Rate" tab to web as CSV, and paste the URL into <code>CSV_URLS.renewalRate</code> at the top of this file.
       </div>
-      <div id="cohortChurnWrap" class="chart-container" style="height:300px;"><canvas id="cohortChurnChart"></canvas></div>
+      <div id="renewalRateWrap" class="chart-container" style="height:300px;"><canvas id="renewalRateChart"></canvas></div>
     </div>
   </div>
   <div class="section">
@@ -596,11 +596,11 @@ const CSV_URLS = {
   // in the Apps Script. Publish that tab as CSV and paste the URL here.
   // When empty, churn views fall back to Chargebee fields only.
   salesforceDetail: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=332446680&single=true&output=csv',
-  // Cohort Churn tab — written by buildCohortChurn_ in the Apps Script.
-  // After running runCohortChurnOnly() (or a full sync) once, publish that
-  // tab to web as CSV and paste the URL here. Until then, the "Signup
-  // cohort churn rate" card below just shows a not-configured message.
-  cohortChurn:      '',
+  // Renewal Rate tab — written by buildRenewalRate_ in the Apps Script.
+  // After running runRenewalRateOnly() (or a full sync) once, publish that
+  // tab to web as CSV and paste the URL here. Until then, the "12-month
+  // renewal rate" card below just shows a not-configured message.
+  renewalRate:      '',
 };
 // Auto-refresh every N minutes (set to 0 to disable).
 const AUTO_REFRESH_MINUTES = 5;
@@ -774,7 +774,7 @@ let charts = {
   ddAm: null, ddOwner: null, ddReason: null, ddLeads: null, ddPracticeArea: null,
   // Historical 12-month charts
   hist12Mrr: null, hist12Rate: null, hist12Reason: null,
-  cohortChurn: null,
+  renewalRate: null,
 };
 // Drill-down dataset — kept around so click handlers can filter without
 // re-fetching. Each row is tagged with its source feed so the modal can
@@ -816,7 +816,7 @@ async function loadAll() {
     push('historical',       CSV_URLS.historical);
     push('mrrSnapshot',      CSV_URLS.mrrSnapshot);
     push('salesforceDetail', CSV_URLS.salesforceDetail);
-    push('cohortChurn',      CSV_URLS.cohortChurn);
+    push('renewalRate',      CSV_URLS.renewalRate);
     const results = await Promise.all(fetches);
     function get(name) {
       const i = fetchIndex[name];
@@ -827,7 +827,7 @@ async function loadAll() {
     const historicalRaw     = get('historical');
     const mrrSnapshot       = get('mrrSnapshot');
     const salesforceDetail  = get('salesforceDetail');
-    const cohortChurn       = get('cohortChurn');
+    const renewalRate       = get('renewalRate');
     // ── Permanent exclusions ──────────────────────────────────────────────────
     // Firms listed here are stripped from ALL data feeds before any processing.
     // To add another firm: add a lowercase substring of the company name.
@@ -995,7 +995,7 @@ async function loadAll() {
     renderHistorical12Mrr(mrr, historical);
     renderHistorical12Reason(mrr, historical, sfById);
     renderHistorical12Rate(mrr, historical, mrrSnapshot);
-    renderCohortChurn(cohortChurn);
+    renderRenewalRate(renewalRate);
     renderChurnInsights(mrr, historical, sfById, churnClean);
     renderAmBreakdown(mrr);
     renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm, upDownCollapsed);
@@ -3543,14 +3543,16 @@ function renderHistorical12Rate(mrrRows, historicalRows, snapshotRows) {
   });
 }
 /**
- * Signup cohort churn rate — one bar per signup month (trailing 12 months,
- * from the Cohort Churn tab). Cohorts younger than ~12 months are rendered
- * faded since they haven't had a chance to reach their first renewal yet —
- * a low rate there is not evidence of health, just youth.
+ * 12-month renewal rate — one bar per RENEWAL month (trailing 12 months,
+ * from the Renewal Rate tab). Each bar's cohort is the firms who signed up
+ * exactly 12 months before that bar's month, so — unlike a plain signup-
+ * cohort view — every bar here reflects a fully-elapsed 12-month period
+ * except possibly the current (rightmost) month, which is rendered faded
+ * since some of that cohort's anniversaries haven't happened yet.
  */
-function renderCohortChurn(rows) {
-  const wrap = document.getElementById('cohortChurnWrap');
-  const empty = document.getElementById('cohortChurnEmpty');
+function renderRenewalRate(rows) {
+  const wrap = document.getElementById('renewalRateWrap');
+  const empty = document.getElementById('renewalRateEmpty');
   if (!Array.isArray(rows) || rows.length === 0) {
     if (wrap) wrap.style.display = 'none';
     if (empty) empty.style.display = 'block';
@@ -3562,30 +3564,33 @@ function renderCohortChurn(rows) {
   // Rows already arrive oldest-first from the Apps Script, but sort
   // defensively in case the sheet was hand-edited.
   const sorted = rows.slice().sort(function (a, b) {
-    return String(a['Signup Month']).localeCompare(String(b['Signup Month']));
+    return String(a['Renewal Month']).localeCompare(String(b['Renewal Month']));
   });
 
-  const labels = sorted.map(function (r) { return monthLabel(r['Signup Month']); });
-  const rates = sorted.map(function (r) { return parseFloat(r['Churn Rate %']) || 0; });
-  const ages = sorted.map(function (r) { return parseInt(r['Cohort Age (Months)'], 10) || 0; });
+  const thisYm = currentYm();
+  const labels = sorted.map(function (r) { return monthLabel(r['Renewal Month']); });
+  const rates = sorted.map(function (r) { return parseFloat(r['Renewal Rate %']) || 0; });
+  const signupMonths = sorted.map(function (r) { return r['Signup Month']; });
   const sizes = sorted.map(function (r) { return parseInt(r['Cohort Size'], 10) || 0; });
+  const renewed = sorted.map(function (r) { return parseInt(r['Renewed'], 10) || 0; });
   const cancelled = sorted.map(function (r) { return parseInt(r['Cancelled'], 10) || 0; });
+  const inProgress = sorted.map(function (r) { return String(r['Renewal Month']) === thisYm; });
 
-  const colors = ages.map(function (age) {
-    return age < 12 ? 'rgba(99,102,241,0.25)' : 'rgba(99,102,241,0.85)';
+  const colors = inProgress.map(function (p) {
+    return p ? 'rgba(16,185,129,0.25)' : 'rgba(16,185,129,0.85)';
   });
-  const borderColors = ages.map(function (age) {
-    return age < 12 ? 'rgba(99,102,241,0.4)' : '#6366f1';
+  const borderColors = inProgress.map(function (p) {
+    return p ? 'rgba(16,185,129,0.4)' : '#10b981';
   });
 
-  if (charts.cohortChurn) charts.cohortChurn.destroy();
-  const ctx = document.getElementById('cohortChurnChart').getContext('2d');
-  charts.cohortChurn = new Chart(ctx, {
+  if (charts.renewalRate) charts.renewalRate.destroy();
+  const ctx = document.getElementById('renewalRateChart').getContext('2d');
+  charts.renewalRate = new Chart(ctx, {
     type: 'bar',
     data: {
       labels: labels,
       datasets: [{
-        label: 'Churn rate %',
+        label: 'Renewal rate %',
         data: rates,
         backgroundColor: colors,
         borderColor: borderColors,
@@ -3601,11 +3606,11 @@ function renderCohortChurn(rows) {
             label: function (c) {
               const i = c.dataIndex;
               const lines = [
-                c.parsed.y.toFixed(1) + '% churned',
-                cancelled[i] + ' of ' + sizes[i] + ' firms',
+                c.parsed.y.toFixed(1) + '% renewed',
+                renewed[i] + ' renewed, ' + cancelled[i] + ' cancelled, of ' + sizes[i] + ' signed up ' + monthLabel(signupMonths[i]),
               ];
-              if (ages[i] < 12) {
-                lines.push('Only ' + ages[i] + 'mo old — hasn\'t hit first renewal yet');
+              if (inProgress[i]) {
+                lines.push('This month is still in progress — not every anniversary has happened yet');
               }
               return lines;
             },
@@ -3615,6 +3620,7 @@ function renderCohortChurn(rows) {
       scales: {
         y: {
           beginAtZero: true,
+          max: 100,
           ticks: { callback: function (v) { return v + '%'; } },
           grid: { color: '#f3f4f6' },
         },
