@@ -584,7 +584,16 @@ const CSV_URLS = {
   scheduledChurn:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vTZpH-iI5I5GDTtVH3chEYss8cMh4y8zxXQSwsp1_Lm8nAJ8TmnZHhvnj2d_V8snUjO5Dfxde_q1Jvr/pub?gid=0&single=true&output=csv',
   // Historical backfill from Chargebee RevenueStory — one-time export covering
   // months older than Chargebee's 90-day API window. Set to '' to disable.
-  historical:       'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=306369859&single=true&output=csv',
+  // 2026-07-13: swapped to the "MonthlyMRRImpact (15)" tab, which has
+  // Customers.FirmID / Customers.Agency Client Firm / Customers.Agency Firm
+  // backfilled (the old gid=306369859 export never had a Firm ID column at
+  // all, which is why every pre-April-2026 row fell back to "Voluntary /
+  // unspecified" in the churn-by-reason chart no matter what got backfilled
+  // in Salesforce). This tab only covers May 2025 onward — if you ever find
+  // you need pre-May-2025 historical detail (e.g. scrolling Churn Insights
+  // back further than that), the old export still has it; ask me to wire
+  // both sources in side by side instead of one replacing the other.
+  historical:       'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=1854593398&single=true&output=csv',
   // MRR Snapshot tab — required for the "% of beginning ARR" displays.
   // After running runDailySync, publish the MRR Snapshot tab to web as CSV
   // and paste the URL here. Until then, leave as '' and the percentages
