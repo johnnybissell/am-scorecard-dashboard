@@ -800,6 +800,11 @@ let cachedChurn = [], cachedMrr = [], cachedSfById = {}, cachedHistorical = [];
 // current month on first render; shiftInsightsMonth() moves it and
 // re-renders from the cached data above (no re-fetch).
 let insightsYm = null;
+// rowsByMonthReason[ym][stackKey] = array of drill-table-shaped rows, built
+// fresh each time renderHistorical12Reason runs. Lets clicking any segment
+// of the "Churn $ by reason per month" chart — including "Other" — open the
+// actual firm list behind it, so "Other" is never a dead end.
+let histReasonDrillRows = {};
 async function loadAll() {
   showError(null);
   document.getElementById('lastRefreshed').textContent = 'Refreshing…';
@@ -3437,6 +3442,29 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
   const topReasons = reasonsByTotal.slice(0, TOP_N);
   const includeOther = reasonsByTotal.length > TOP_N;
   const stackKeys = topReasons.concat(includeOther ? ['Other'] : []);
+  // Second pass — now that we know which reasons are "top" vs. lumped into
+  // "Other," build the actual firm-level rows behind each (month, stack
+  // segment) so clicking a bar segment can open a real drill-down instead
+  // of a dead end, even for "Other."
+  histReasonDrillRows = {};
+  for (const ym of yms) {
+    histReasonDrillRows[ym] = {};
+    for (const entry of byMonth[ym].rows) {
+      const r = entry.row;
+      const firmId = normalizeFirmId(r['Customers.FirmID']);
+      const sf = firmId && sfById[firmId] ? sfById[firmId] : {};
+      const sfReason = (sf['Churn Reason'] || '').trim();
+      const cbReason = (r['Cancel Reason'] || '').trim();
+      const effectiveReason = sfReason || cbReason || 'Voluntary / unspecified';
+      const bucketKey = topReasons.indexOf(effectiveReason) !== -1 ? effectiveReason : 'Other';
+      if (!histReasonDrillRows[ym][bucketKey]) histReasonDrillRows[ym][bucketKey] = [];
+      histReasonDrillRows[ym][bucketKey].push(Object.assign({}, r, {
+        'SF Churn Reason': effectiveReason,
+        'SF Practice Area': sf['Primary Practice Area'] || '',
+        'SF Churn Details': sf['Churn Details'] || '',
+      }));
+    }
+  }
   // Build per-reason series across months.
   const palette = ['#ef4444','#f97316','#eab308','#84cc16','#10b981','#06b6d4','#6366f1','#94a3b8'];
   const datasets = stackKeys.map(function (reason, i) {
@@ -3466,6 +3494,19 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
     data: { labels: yms.map(monthLabel), datasets: datasets },
     options: {
       maintainAspectRatio: false,
+      onClick: function (evt, elements, chart) {
+        // Don't trust the `elements` arg for a stacked chart — it can
+        // include every dataset at that x position. Ask explicitly for the
+        // segment actually under the cursor.
+        const hit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (!hit || hit.length === 0) return;
+        const ym = yms[hit[0].index];
+        const bucketKey = stackKeys[hit[0].datasetIndex];
+        drillHistoricalReasonBucket(ym, bucketKey);
+      },
+      onHover: function (evt, elements, chart) {
+        chart.canvas.style.cursor = elements.length ? 'pointer' : 'default';
+      },
       plugins: {
         legend: { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } },
         tooltip: {
@@ -3473,7 +3514,7 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
             label: function (c) { return c.dataset.label + ': ' + fmtMoney(c.parsed.y); },
             footer: function (items) {
               const total = items.reduce(function (s, it) { return s + it.parsed.y; }, 0);
-              return 'Total: ' + fmtMoney(total);
+              return 'Total: ' + fmtMoney(total) + '\nClick a segment to see the firms behind it.';
             },
           },
         },
@@ -3484,6 +3525,22 @@ function renderHistorical12Reason(mrrRows, historicalRows, sfById) {
       },
     },
   });
+}
+/**
+ * Click handler for the "Churn $ by reason per month" chart. bucketKey is
+ * either one of the top-7 reason strings or the literal string "Other" —
+ * either way, opens the real firm-level rows behind that (month, bucket)
+ * combo, so "Other" is never a dead end: every row in that table still
+ * shows its own actual, specific reason in the Cancel Reason column, even
+ * though the chart lumped it in with other low-dollar reasons.
+ */
+function drillHistoricalReasonBucket(ym, bucketKey) {
+  const rows = (histReasonDrillRows[ym] && histReasonDrillRows[ym][bucketKey]) || [];
+  const title = (bucketKey === 'Other' ? 'Other reasons' : bucketKey) + ' — ' + monthLabel(ym);
+  const sub = bucketKey === 'Other'
+    ? 'Each row below has its own real reason — grouped here only because none of them individually moved enough $ to get a dedicated color in the chart.'
+    : 'Firms in ' + monthLabel(ym) + ' with this reason';
+  openDrill(title, sub, rows);
 }
 /**
  * Monthly churn % line chart. Two series:
