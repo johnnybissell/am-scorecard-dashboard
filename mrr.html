@@ -860,14 +860,35 @@ async function loadAll() {
     // Chargebee returns cf_firm_id as a plain string ("5678"). We normalize
     // both sides to a trimmed, decimal-free string so the keys match.
     const sfById = {};
+    const sfDuplicateFirmIds = [];
     for (const r of salesforceDetail) {
       const id = normalizeFirmId(r['Firm ID']);
-      if (id) sfById[id] = r;
+      if (!id) continue;
+      const existing = sfById[id];
+      if (!existing) {
+        sfById[id] = r;
+        continue;
+      }
+      // Firm_ID__c is NOT guaranteed unique in Salesforce — duplicate/
+      // merged/renamed Accounts can share the same Firm ID. When that
+      // happens, whichever row happened to come later in the CSV would
+      // silently win, even if it's the blank duplicate — hiding a real,
+      // backfilled Churn Reason behind an empty one purely due to row
+      // order. Prefer whichever row actually has a Churn Reason set.
+      sfDuplicateFirmIds.push(id);
+      const existingHasReason = !!(existing['Churn Reason'] || '').trim();
+      const newHasReason = !!(r['Churn Reason'] || '').trim();
+      if (!existingHasReason && newHasReason) sfById[id] = r;
     }
     // Diagnostic — visible in DevTools so we can confirm the join is working.
     if (salesforceDetail.length > 0) {
       console.log('[MRR Dashboard] SF Detail rows:', salesforceDetail.length,
                   '| Sample SF firm IDs:', Object.keys(sfById).slice(0, 5));
+    }
+    if (sfDuplicateFirmIds.length > 0) {
+      console.warn('[MRR Dashboard] ' + sfDuplicateFirmIds.length + ' duplicate Firm ID(s) in Salesforce Detail ' +
+        '(same Firm_ID__c on 2+ Accounts) — resolved by preferring the row with a Churn Reason set:',
+        Array.from(new Set(sfDuplicateFirmIds)));
     }
     // Collapse cancel+reactivate pairs within the same month. A firm that
     // leaves and comes back the same month is a wash — neither event
