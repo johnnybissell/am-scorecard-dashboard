@@ -2994,7 +2994,9 @@ function leadVolumeBucketIndex(rawValue) {
 // see here means the same thing as a number from that Apps Script log.
 const TENURE_BUCKETS = [
   { label: 'Unknown',  test: function (m) { return m === null; } },
-  { label: '<12mo',    test: function (m) { return m < 12; } },
+  { label: '0-3mo',    test: function (m) { return m < 3; } },
+  { label: '3-6mo',    test: function (m) { return m >= 3 && m < 6; } },
+  { label: '6-12mo',   test: function (m) { return m >= 6 && m < 12; } },
   { label: '12-15mo',  test: function (m) { return m >= 12 && m < 15; } },
   { label: '15-24mo',  test: function (m) { return m >= 15 && m < 24; } },
   { label: '24-27mo',  test: function (m) { return m >= 24 && m < 27; } },
