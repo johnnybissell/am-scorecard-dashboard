@@ -766,28 +766,51 @@ async function fetchCsv(url, label) {
   if (!url || url.startsWith('PASTE_')) {
     throw new Error('[' + label + '] CSV URL not configured. Edit CSV_URLS at top of this file.');
   }
-  // Append a unique query param to bypass Google's edge-side CSV cache. Without
-  // this, Sheets' published-to-web CSV can serve a stale snapshot for up to
-  // ~5 minutes after the underlying sheet is updated.
-  const cacheBuster = (url.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
-  let resp;
-  try {
-    resp = await fetch(url + cacheBuster, { cache: 'no-store' });
-  } catch (e) {
-    // Network-level error (CORS, DNS, offline, sheet stopped publishing, etc.)
-    // Surface the label so we know which feed went wrong.
-    throw new Error('[' + label + '] network error: ' + (e && e.message ? e.message : String(e)));
-  }
-  if (!resp.ok) throw new Error('[' + label + '] HTTP ' + resp.status);
-  const text = await resp.text();
-  return new Promise(function (resolve, reject) {
-    Papa.parse(text, {
-      header: true,
-      skipEmptyLines: true,
-      complete: function (res) { resolve(res.data); },
-      error: function (err) { reject(new Error('[' + label + '] parse error: ' + (err && err.message ? err.message : String(err)))); },
+  // Retries: Google's publish-to-web CSV export can return a transient
+  // error — most commonly 409 — if the fetch lands while the Apps Script
+  // hourly sync is mid-write to the underlying sheet (writeSheetTabInner_
+  // does a clear() then a separate setValues(), so there's a brief window
+  // where the sheet is in an inconsistent state). A short retry clears this
+  // up without the user having to manually refresh.
+  const MAX_ATTEMPTS = 3;
+  let lastErr = null;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    // Append a unique query param to bypass Google's edge-side CSV cache. Without
+    // this, Sheets' published-to-web CSV can serve a stale snapshot for up to
+    // ~5 minutes after the underlying sheet is updated.
+    const cacheBuster = (url.indexOf('?') >= 0 ? '&' : '?') + '_t=' + Date.now();
+    let resp;
+    try {
+      resp = await fetch(url + cacheBuster, { cache: 'no-store' });
+    } catch (e) {
+      // Network-level error (CORS, DNS, offline, sheet stopped publishing, etc.)
+      // Surface the label so we know which feed went wrong.
+      lastErr = new Error('[' + label + '] network error: ' + (e && e.message ? e.message : String(e)));
+      if (attempt < MAX_ATTEMPTS) { await sleepMs_(500 * attempt); continue; }
+      throw lastErr;
+    }
+    if (!resp.ok) {
+      lastErr = new Error('[' + label + '] HTTP ' + resp.status);
+      // 409 (mid-write conflict), 429 (rate limit), and 5xx are all worth
+      // retrying — anything else (404, 403) won't fix itself on retry.
+      const retryable = resp.status === 409 || resp.status === 429 || resp.status >= 500;
+      if (retryable && attempt < MAX_ATTEMPTS) { await sleepMs_(500 * attempt); continue; }
+      throw lastErr;
+    }
+    const text = await resp.text();
+    return new Promise(function (resolve, reject) {
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function (res) { resolve(res.data); },
+        error: function (err) { reject(new Error('[' + label + '] parse error: ' + (err && err.message ? err.message : String(err)))); },
+      });
     });
-  });
+  }
+  throw lastErr;
+}
+function sleepMs_(ms) {
+  return new Promise(function (resolve) { setTimeout(resolve, ms); });
 }
 // ============================================================================
 // LOADERS — pull each CSV, normalize into useful shapes.
