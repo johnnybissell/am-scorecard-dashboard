@@ -2996,7 +2996,8 @@ const TENURE_BUCKETS = [
   { label: 'Unknown',  test: function (m) { return m === null; } },
   { label: '0-3mo',    test: function (m) { return m < 3; } },
   { label: '3-6mo',    test: function (m) { return m >= 3 && m < 6; } },
-  { label: '6-12mo',   test: function (m) { return m >= 6 && m < 12; } },
+  { label: '6-9mo',    test: function (m) { return m >= 6 && m < 9; } },
+  { label: '9-12mo',   test: function (m) { return m >= 9 && m < 12; } },
   { label: '12-15mo',  test: function (m) { return m >= 12 && m < 15; } },
   { label: '15-24mo',  test: function (m) { return m >= 15 && m < 24; } },
   { label: '24-27mo',  test: function (m) { return m >= 24 && m < 27; } },
@@ -3016,8 +3017,14 @@ function tenureMonthsForRow(r) {
 }
 function tenureBucketIndex(months) {
   if (months === null || months === undefined || isNaN(months)) return 0;
+  // Round to the nearest whole month before bucketing. The 30.44-day/month
+  // approximation above means a cancellation at exactly the ~365-day
+  // 1-year mark computes to ~11.99mo, not 12 — without rounding, true
+  // 12-month renewal-cycle churn gets miscounted as "9-12mo / never
+  // reached 1st renewal" instead of "12-15mo / at-or-near 1st renewal".
+  const rounded = Math.round(months);
   for (let i = 1; i < TENURE_BUCKETS.length; i++) {
-    if (TENURE_BUCKETS[i].test(months)) return i;
+    if (TENURE_BUCKETS[i].test(rounded)) return i;
   }
   return 0;
 }
