@@ -442,6 +442,7 @@ td.negative { color: var(--negative); }
           <button data-period="thisMonth"  onclick="setChurnPeriod('thisMonth')">This month</button>
           <button data-period="nextMonth"  onclick="setChurnPeriod('nextMonth')">Next month</button>
           <button data-period="next120" class="active" onclick="setChurnPeriod('next120')">Next 120 days</button>
+          <button data-period="ytd"  onclick="setChurnPeriod('ytd')">YTD</button>
         </div>
       </div>
       <div id="churnSummary" style="display:flex; gap:24px; flex-wrap:wrap; padding:8px 0 16px; font-size:13px; color:var(--text-muted);"></div>
@@ -550,7 +551,7 @@ td.negative { color: var(--negative); }
     <div class="card">
       <h2>12-month renewal rate — trailing 12 months</h2>
       <div style="font-size:12px;color:var(--text-muted);padding:0 0 12px;">
-        For each month, of the firms whose 12-month contract anniversary fell in that month, what % renewed (weren't cancelled). Each bar's cohort is the firms who signed up exactly 12 months before that bar's month — hover for the signup month. Unlike a raw signup-cohort view, every renewal month here (except possibly the current, still-in-progress one, shown faded) is fully resolved: 12 months have already passed, so the outcome is final.
+        For each month, of the firms whose 12-month contract anniversary fell in that month, what % renewed (weren't cancelled). Each bar's cohort is the firms who signed up exactly 12 months before that bar's month — hover for the signup month. Unlike a raw signup-cohort view, every renewal month here (except possibly the current, still-in-progress one, shown faded) is fully resolved: 12 months have already passed, so the outcome is final. Click a bar to see the specific firms.
       </div>
       <div id="renewalRateEmpty" style="display:none;padding:32px 16px;text-align:center;color:var(--text-muted);font-size:13px;line-height:1.6;">
         Not configured yet. Run <code>runRenewalRateOnly()</code> (or a full sync) in the Apps Script, publish the "Renewal Rate" tab to web as CSV, and paste the URL into <code>CSV_URLS.renewalRate</code> at the top of this file.
@@ -625,6 +626,19 @@ const CSV_URLS = {
   // tab to web as CSV and paste the URL here. Until then, the "12-month
   // renewal rate" card below just shows a not-configured message.
   renewalRate:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vTRd5wkMyPLEcUhPrCd9cDGEvsrx5Wcsw7ahrtSm_ya40t8qlcy0yqSsz61xIMT6xuBUq7pnvNE6-_I/pub?gid=1332069135&single=true&output=csv',
+  // Renewal Detail tab — written by buildRenewalRateFromContracts_ in the
+  // Apps Script, alongside Renewal Rate. One row per account behind every
+  // renewal/non-renewal event; powers clicking into a bar of the "12-month
+  // renewal rate" chart to see the specific firms. After running
+  // runRenewalRateOnly() (or a full sync) once, publish this tab to web as
+  // CSV and paste the URL here. Until then, the chart still renders but
+  // clicking a bar won't show anything.
+  renewalDetail:    '',
+  // AM Renewal tab — same events as Renewal Detail, rolled up per Account
+  // Manager. Powers the AM leaderboard's "12-mo Renewal" column. Until
+  // this is configured, that column falls back to the older, less
+  // accurate client-side estimate (computeAmRetention below).
+  amRenewal:        '',
 };
 // Auto-refresh every N minutes (set to 0 to disable).
 const AUTO_REFRESH_MINUTES = 5;
@@ -834,6 +848,10 @@ let drillSort = { col: 'date', dir: 'desc' };
 let currentChurnPeriod = 'next120';
 // Cached references so setChurnPeriod can re-render without re-fetching.
 let cachedChurn = [], cachedMrr = [], cachedSfById = {}, cachedHistorical = [];
+// Per-account rows behind the Renewal Rate chart's monthly cohorts, from
+// the "Renewal Detail" tab — lets clicking a bar drill into the specific
+// firms without a re-fetch. Empty until CSV_URLS.renewalDetail is configured.
+let cachedRenewalDetail = [];
 // Selected month for the "◀ Month ▶" navigator (period === 'month'),
 // YYYY-MM. Lets the Churn / Churn Deep Dive cards look further back than
 // just "last month" — clickable through the trailing 12 months. Defaults
@@ -901,6 +919,8 @@ async function loadAll() {
     push('mrrSnapshot',      CSV_URLS.mrrSnapshot);
     push('salesforceDetail', CSV_URLS.salesforceDetail);
     push('renewalRate',      CSV_URLS.renewalRate);
+    push('renewalDetail',    CSV_URLS.renewalDetail);
+    push('amRenewal',        CSV_URLS.amRenewal);
     const results = await Promise.all(fetches);
     function get(name) {
       const i = fetchIndex[name];
@@ -912,6 +932,8 @@ async function loadAll() {
     const mrrSnapshot       = get('mrrSnapshot');
     const salesforceDetail  = get('salesforceDetail');
     const renewalRate       = get('renewalRate');
+    const renewalDetail     = get('renewalDetail');
+    const amRenewal         = get('amRenewal');
     // ── Permanent exclusions ──────────────────────────────────────────────────
     // Firms listed here are stripped from ALL data feeds before any processing.
     // To add another firm: add a lowercase substring of the company name.
@@ -1060,9 +1082,14 @@ async function loadAll() {
     // to render movement metrics as % of beginning ARR. Empty {} when
     // the MRR Snapshot CSV isn't configured/populated — renderers handle that.
     const beginningByYm = computeBeginningMrrByMonth(movements, mrrSnapshot);
-    // Compute AM 12-month renewal rate from the MonthlyMRRImpact + historical
-    // rows we already have. Uses Creation Date + Subscription Status fields.
-    const amRetention = computeAmRetention(mrr.concat(historical));
+    // AM 12-month renewal rate. Prefer the AM Renewal tab (built from
+    // Chargebee Contract Terms — see buildRenewalRateFromContracts_ in the
+    // Apps Script) when it's configured and has data; fall back to the
+    // older, less accurate client-side estimate otherwise so the column
+    // still shows something before that tab is set up.
+    const amRetention = (Array.isArray(amRenewal) && amRenewal.length > 0)
+      ? amRenewal
+      : computeAmRetention(mrr.concat(historical));
     renderHero(movements, beginningByYm);
     renderProjection(movements, mrr, historical);
     renderCategoryCards(movements);
@@ -1074,6 +1101,7 @@ async function loadAll() {
     cachedMrr        = mrr;
     cachedSfById     = sfById;
     cachedHistorical = historical;
+    cachedRenewalDetail = Array.isArray(renewalDetail) ? renewalDetail : [];
     renderChurnForecast(mrr, historical, churnClean);
     renderChurnSection();
     renderHistorical12Mrr(mrr, historical, churnClean);
@@ -2683,6 +2711,17 @@ function dateRangeForPeriod(period) {
       includeFuture: true,
     };
   }
+  // YTD — January 1st of the current year through today. Only fired
+  // cancellations count (no scheduled-future folding), since "year to
+  // date" means what has actually happened so far.
+  if (period === 'ytd') {
+    return {
+      start: new Date(now.getFullYear(), 0, 1),
+      end:   new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1),
+      includePast: true,
+      includeFuture: false,
+    };
+  }
   // next120 default
   const end120 = new Date(now); end120.setDate(end120.getDate() + 120);
   return { start: now, end: end120, includePast: false, includeFuture: true };
@@ -2959,6 +2998,7 @@ function renderChurnSection() {
     thisMonth: 'This Month',
     nextMonth: 'Next Month',
     next120:   'Next 120 days',
+    ytd:       'YTD',
     month:     monthLabel(churnMonthYm || shiftYm(currentYm(), -1)),
   }[currentChurnPeriod] || '';
   document.getElementById('churnHeading').textContent = 'Churn — ' + periodLabel;
@@ -4015,6 +4055,15 @@ function renderRenewalRate(rows) {
     },
     options: {
       maintainAspectRatio: false,
+      onClick: function (evt, items) {
+        if (items.length === 0) return;
+        const idx = items[0].index;
+        if (idx == null || idx < 0 || idx >= sorted.length) return;
+        drillRenewalMonth(String(sorted[idx]['Renewal Month']));
+      },
+      onHover: function (evt, items) {
+        evt.native.target.style.cursor = items.length ? 'pointer' : 'default';
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -4028,6 +4077,7 @@ function renderRenewalRate(rows) {
               if (inProgress[i]) {
                 lines.push('This month is still in progress — not every anniversary has happened yet');
               }
+              lines.push('Click to see the firms');
               return lines;
             },
           },
@@ -4044,6 +4094,74 @@ function renderRenewalRate(rows) {
       },
     },
   });
+}
+/**
+ * Click handler for a "12-month renewal rate" bar — opens the drill modal
+ * with the specific accounts whose contract resolved (renewed or not) in
+ * that month, from the cached Renewal Detail rows. If that tab isn't
+ * configured yet (CSV_URLS.renewalDetail is blank), cachedRenewalDetail is
+ * just empty and the modal shows "no firms match."
+ */
+function drillRenewalMonth(ym) {
+  const filtered = cachedRenewalDetail.filter(function (r) {
+    return String(r['Renewal Month']) === ym;
+  });
+  openRenewalDrill(
+    'Renewals — ' + monthLabel(ym),
+    'Firms whose 12-month contract term resolved (renewed or not) in this month',
+    filtered
+  );
+}
+/** Same modal as the MRR drill-downs, with a renderer tailored to renewal outcomes. */
+function openRenewalDrill(title, sub, rows) {
+  document.getElementById('drillTitle').textContent = title;
+  document.getElementById('drillSub').textContent = sub || '';
+  renderRenewalDrillTable(rows);
+  document.getElementById('drillOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function renderRenewalDrillTable(rows) {
+  const body = document.getElementById('drillBody');
+  const footer = document.getElementById('drillFooter');
+  if (!rows || rows.length === 0) {
+    body.innerHTML = '<div class="drill-empty">'
+      + (cachedRenewalDetail.length === 0
+          ? 'Renewal Detail tab isn\'t configured yet — paste its published CSV URL into CSV_URLS.renewalDetail.'
+          : 'No firms match this slice.')
+      + '</div>';
+    footer.textContent = '';
+    return;
+  }
+  const items = rows.slice().sort(function (a, b) {
+    return String(a['Company'] || '').localeCompare(String(b['Company'] || ''));
+  });
+  const renewedCount = items.filter(function (r) { return r['Outcome'] === 'Renewed'; }).length;
+  const cancelledCount = items.length - renewedCount;
+  let html = '<table><thead><tr>'
+    + '<th>Company</th>'
+    + '<th>Account Manager</th>'
+    + '<th>Owner</th>'
+    + '<th>Outcome</th>'
+    + '<th>Event Date</th>'
+    + '<th class="numeric">MRR</th>'
+    + '</tr></thead><tbody>';
+  for (const r of items) {
+    const outcome = r['Outcome'] || '';
+    const cls = outcome === 'Renewed' ? 'positive' : 'negative';
+    html += '<tr>'
+      + '<td><strong>' + escapeHtml(r['Company'] || '') + '</strong></td>'
+      + '<td>' + escapeHtml(r['Customers.Account Manager'] || '—') + '</td>'
+      + '<td>' + escapeHtml(r['Customers.Owner'] || '—') + '</td>'
+      + '<td class="' + cls + '">' + escapeHtml(outcome) + '</td>'
+      + '<td>' + escapeHtml(String(r['Event Date'] || '').slice(0, 10)) + '</td>'
+      + '<td class="numeric">' + escapeHtml(r['Current MRR'] || '') + '</td>'
+      + '</tr>';
+  }
+  html += '</tbody></table>';
+  body.innerHTML = html;
+  footer.innerHTML = '<span><strong>' + items.length + '</strong> firms</span>'
+    + '<span><strong class="positive">' + renewedCount + '</strong> renewed &nbsp;·&nbsp; '
+    + '<strong class="negative">' + cancelledCount + '</strong> cancelled</span>';
 }
 // ----------------------------------------------------------------------------
 // Churn Insights narrative — rule-based pattern surfacing
