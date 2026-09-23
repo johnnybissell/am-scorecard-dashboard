@@ -4020,9 +4020,18 @@ function renderRenewalRate(rows) {
   if (empty) empty.style.display = 'none';
 
   // Rows already arrive oldest-first from the Apps Script, but sort
-  // defensively in case the sheet was hand-edited.
+  // defensively in case the sheet was hand-edited — and numerically
+  // (year*12+month) rather than as raw strings, so an unpadded month
+  // value like "2026-1" can't sort after "2026-08" the way it would as
+  // plain text (compared character-by-character, '1' > '0').
+  function ymSortKey_(ymStr) {
+    const parts = String(ymStr).split('-');
+    const y = parseInt(parts[0], 10) || 0;
+    const m = parseInt(parts[1], 10) || 0;
+    return y * 12 + m;
+  }
   const sorted = rows.slice().sort(function (a, b) {
-    return String(a['Checkpoint Month']).localeCompare(String(b['Checkpoint Month']));
+    return ymSortKey_(a['Checkpoint Month']) - ymSortKey_(b['Checkpoint Month']);
   });
 
   const labels = sorted.map(function (r) { return monthLabel(r['Checkpoint Month']); });
