@@ -556,7 +556,16 @@ td.negative { color: var(--negative); }
       <div id="renewalRateEmpty" style="display:none;padding:32px 16px;text-align:center;color:var(--text-muted);font-size:13px;line-height:1.6;">
         Not configured yet. Run <code>runRenewalRateOnly()</code> (or a full sync) in the Apps Script, publish the "Renewal Rate" tab (now holding Month 13 Retention data) to web as CSV, and paste the URL into <code>CSV_URLS.renewalRate</code> at the top of this file.
       </div>
-      <div id="renewalRateWrap" class="chart-container" style="height:300px;"><canvas id="renewalRateChart"></canvas></div>
+      <div id="renewalRateWrap" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;" class="churn-charts">
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">All firms</div>
+          <div class="chart-container" style="height:300px;"><canvas id="renewalRateChart"></canvas></div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--text-muted);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Excluding agency accounts</div>
+          <div class="chart-container" style="height:300px;"><canvas id="renewalRateExAgencyChart"></canvas></div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="section">
@@ -834,7 +843,7 @@ let charts = {
   ddAm: null, ddOwner: null, ddReason: null, ddLeads: null, ddPracticeArea: null, ddTenure: null,
   // Historical 12-month charts
   hist12Mrr: null, hist12Rate: null, hist12Reason: null,
-  renewalRate: null,
+  renewalRate: null, renewalRateExAgency: null,
 };
 // Drill-down dataset — kept around so click handlers can filter without
 // re-fetching. Each row is tagged with its source feed so the modal can
@@ -1109,6 +1118,7 @@ async function loadAll() {
     renderHistorical12ReasonCount(mrr, historical, sfById, churnClean);
     renderHistorical12Rate(mrr, historical, mrrSnapshot, churnClean);
     renderRenewalRate(renewalRate);
+    renderRenewalRateExcludingAgency();
     renderChurnInsights(mrr, historical, sfById, churnClean);
     renderAmBreakdown(mrr);
     renderDataDiagnostic(movements, pairsCollapsed, mrrSnapshot, beginningByYm, upDownCollapsed);
@@ -3999,6 +4009,18 @@ function renderHistorical12Rate(mrrRows, historicalRows, snapshotRows, scheduled
   });
 }
 /**
+ * Sort key for a "YYYY-MM" string, as a plain number (year*12+month) —
+ * used instead of string comparison so an unpadded month value like
+ * "2026-1" can't sort after "2026-08" the way it would as plain text
+ * (compared character-by-character, '1' > '0').
+ */
+function ymSortKey_(ymStr) {
+  const parts = String(ymStr).split('-');
+  const y = parseInt(parts[0], 10) || 0;
+  const m = parseInt(parts[1], 10) || 0;
+  return y * 12 + m;
+}
+/**
  * Month 13 retention — one bar per CHECKPOINT month (trailing 12 months,
  * from the Renewal Rate tab, which now holds Month 13 Retention data —
  * see buildMonth13Retention_ in the Apps Script). Each bar's cohort is the
@@ -4016,7 +4038,7 @@ function renderRenewalRate(rows) {
     if (empty) empty.style.display = 'block';
     return;
   }
-  if (wrap) wrap.style.display = '';
+  if (wrap) wrap.style.display = 'grid';
   if (empty) empty.style.display = 'none';
 
   // Rows already arrive oldest-first from the Apps Script, but sort
@@ -4024,12 +4046,6 @@ function renderRenewalRate(rows) {
   // (year*12+month) rather than as raw strings, so an unpadded month
   // value like "2026-1" can't sort after "2026-08" the way it would as
   // plain text (compared character-by-character, '1' > '0').
-  function ymSortKey_(ymStr) {
-    const parts = String(ymStr).split('-');
-    const y = parseInt(parts[0], 10) || 0;
-    const m = parseInt(parts[1], 10) || 0;
-    return y * 12 + m;
-  }
   const sorted = rows.slice().sort(function (a, b) {
     return ymSortKey_(a['Checkpoint Month']) - ymSortKey_(b['Checkpoint Month']);
   });
@@ -4094,19 +4110,116 @@ function renderRenewalRate(rows) {
   });
 }
 /**
- * Click handler for a "Month 13 retention" bar — opens the drill modal
- * with the specific accounts retained or cancelled as of
- * that month, from the cached Renewal Detail rows. If that tab isn't
- * configured yet (CSV_URLS.renewalDetail is blank), cachedRenewalDetail is
- * just empty and the modal shows "no firms match."
+ * Same metric as renderRenewalRate, but built client-side from the cached
+ * Renewal Detail rows with agency accounts filtered out — a firm is
+ * "agency" if either Customers.Agency Client Firm or Customers.Agency
+ * Firm is true (collapsed into the single 'Agency' column by
+ * buildMonth13Retention_ in the Apps Script). Uses whatever checkpoint
+ * months are present in the detail data, so it lines up with the "All
+ * firms" chart even where a checkpoint's non-agency cohort is smaller.
+ * No separate sheet tab needed — this never touches the network.
  */
-function drillRenewalMonth(ym) {
-  const filtered = cachedRenewalDetail.filter(function (r) {
+function renderRenewalRateExcludingAgency() {
+  const wrap = document.getElementById('renewalRateWrap');
+  // Only draw this when the "All firms" chart is actually showing — if
+  // the Renewal Rate tab isn't configured at all, renderRenewalRate
+  // already hid the whole two-chart area.
+  if (!wrap || wrap.style.display === 'none') return;
+  const canvas = document.getElementById('renewalRateExAgencyChart');
+  if (!canvas) return;
+
+  const months = Array.from(new Set(cachedRenewalDetail.map(function (r) { return String(r['Checkpoint Month']); })))
+    .sort(function (a, b) { return ymSortKey_(a) - ymSortKey_(b); });
+
+  const byMonth = {};
+  for (const r of cachedRenewalDetail) {
+    if (String(r['Agency'] || '').toLowerCase().trim() === 'true') continue; // exclude agency
+    const ym = String(r['Checkpoint Month']);
+    if (!byMonth[ym]) byMonth[ym] = { total: 0, retained: 0, cancelled: 0 };
+    byMonth[ym].total += 1;
+    if (r['Outcome'] === 'Retained') byMonth[ym].retained += 1;
+    else byMonth[ym].cancelled += 1;
+  }
+
+  const labels = months.map(monthLabel);
+  const sizes = months.map(function (ym) { return (byMonth[ym] || {}).total || 0; });
+  const retained = months.map(function (ym) { return (byMonth[ym] || {}).retained || 0; });
+  const cancelled = months.map(function (ym) { return (byMonth[ym] || {}).cancelled || 0; });
+  const rates = months.map(function (ym, i) { return sizes[i] ? (100 * retained[i] / sizes[i]) : 0; });
+
+  if (charts.renewalRateExAgency) charts.renewalRateExAgency.destroy();
+  const ctx = canvas.getContext('2d');
+  charts.renewalRateExAgency = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Retention rate % (excluding agency)',
+        data: rates,
+        backgroundColor: 'rgba(99,102,241,0.85)',
+        borderColor: '#6366f1',
+        borderWidth: 1,
+      }],
+    },
+    options: {
+      maintainAspectRatio: false,
+      onClick: function (evt, items) {
+        if (items.length === 0) return;
+        const idx = items[0].index;
+        if (idx == null || idx < 0 || idx >= months.length) return;
+        drillRenewalMonth(months[idx], true);
+      },
+      onHover: function (evt, items) {
+        evt.native.target.style.cursor = items.length ? 'pointer' : 'default';
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function (c) {
+              const i = c.dataIndex;
+              return [
+                c.parsed.y.toFixed(1) + '% retained',
+                retained[i] + ' retained, ' + cancelled[i] + ' cancelled, of ' + sizes[i] + ' non-agency signups',
+                'Click to see the firms',
+              ];
+            },
+          },
+        },
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: { callback: function (v) { return v + '%'; } },
+          grid: { color: '#f3f4f6' },
+        },
+        x: { grid: { display: false } },
+      },
+    },
+  });
+}
+/**
+ * Click handler for a "Month 13 retention" bar — opens the drill modal
+ * with the specific accounts retained or cancelled as of that month, from
+ * the cached Renewal Detail rows. If that tab isn't configured yet
+ * (CSV_URLS.renewalDetail is blank), cachedRenewalDetail is just empty and
+ * the modal shows "no firms match." Pass excludeAgency=true (from the
+ * excluding-agency chart) to also filter out agency accounts here.
+ */
+function drillRenewalMonth(ym, excludeAgency) {
+  let filtered = cachedRenewalDetail.filter(function (r) {
     return String(r['Checkpoint Month']) === ym;
   });
+  if (excludeAgency) {
+    filtered = filtered.filter(function (r) {
+      return String(r['Agency'] || '').toLowerCase().trim() !== 'true';
+    });
+  }
   openRenewalDrill(
-    'Month 13 retention — ' + monthLabel(ym),
-    'Firms that reached their 13-month signup anniversary in this month',
+    'Month 13 retention — ' + monthLabel(ym) + (excludeAgency ? ' (excluding agency)' : ''),
+    'Firms that reached their 13-month signup anniversary in this month'
+      + (excludeAgency ? ', excluding agency accounts' : ''),
     filtered
   );
 }
@@ -4130,8 +4243,22 @@ function renderRenewalDrillTable(rows) {
     footer.textContent = '';
     return;
   }
-  const items = rows.slice().sort(function (a, b) {
+  // Enrich cancelled rows with Salesforce churn data by Firm ID — same
+  // join the MRR-impact drill-down (renderDrillTable) already uses.
+  // Salesforce is the sole source here; there's no Chargebee fallback.
+  const items = rows.map(function (r) {
+    const firmId = normalizeFirmId(r['Customers.FirmID']);
+    const sf = (firmId && cachedSfById[firmId]) ? cachedSfById[firmId] : {};
+    return Object.assign({}, r, {
+      practiceArea: (sf['Primary Practice Area'] || '').trim(),
+      reason: (sf['Churn Reason'] || '').trim(),
+      details: (sf['Churn Details'] || '').trim(),
+    });
+  }).sort(function (a, b) {
     return String(a['Company'] || '').localeCompare(String(b['Company'] || ''));
+  });
+  const hasSfData = items.some(function (it) {
+    return it.practiceArea || it.details || (it.reason && it['Outcome'] !== 'Retained');
   });
   const retainedCount = items.filter(function (r) { return r['Outcome'] === 'Retained'; }).length;
   const cancelledCount = items.length - retainedCount;
@@ -4141,18 +4268,25 @@ function renderRenewalDrillTable(rows) {
     + '<th>Owner</th>'
     + '<th>Outcome</th>'
     + '<th>Cancelled Date</th>'
+    + (hasSfData ? '<th>Practice Area</th>' : '')
+    + (hasSfData ? '<th>Cancel Reason</th>' : '')
+    + (hasSfData ? '<th>Churn Details</th>' : '')
     + '<th class="numeric">MRR</th>'
     + '</tr></thead><tbody>';
-  for (const r of items) {
-    const outcome = r['Outcome'] || '';
+  for (const it of items) {
+    const outcome = it['Outcome'] || '';
     const cls = outcome === 'Retained' ? 'positive' : 'negative';
+    const detailsTitle = it.details ? ' title="' + escapeHtml(it.details) + '"' : '';
     html += '<tr>'
-      + '<td><strong>' + escapeHtml(r['Company'] || '') + '</strong></td>'
-      + '<td>' + escapeHtml(r['Customers.Account Manager'] || '—') + '</td>'
-      + '<td>' + escapeHtml(r['Customers.Owner'] || '—') + '</td>'
+      + '<td><strong>' + escapeHtml(it['Company'] || '') + '</strong></td>'
+      + '<td>' + escapeHtml(it['Customers.Account Manager'] || '—') + '</td>'
+      + '<td>' + escapeHtml(it['Customers.Owner'] || '—') + '</td>'
       + '<td class="' + cls + '">' + escapeHtml(outcome) + '</td>'
-      + '<td>' + escapeHtml(String(r['Event Date'] || '').slice(0, 10)) + '</td>'
-      + '<td class="numeric">' + escapeHtml(r['Current MRR'] || '') + '</td>'
+      + '<td>' + escapeHtml(String(it['Event Date'] || '').slice(0, 10)) + '</td>'
+      + (hasSfData ? '<td style="color:var(--text-muted);font-size:12px;">' + escapeHtml(it.practiceArea || '—') + '</td>' : '')
+      + (hasSfData ? '<td style="font-size:12px;">' + escapeHtml(it.reason || '—') + '</td>' : '')
+      + (hasSfData ? '<td style="max-width:240px;font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"' + detailsTitle + '>' + escapeHtml(it.details || '—') + '</td>' : '')
+      + '<td class="numeric">' + escapeHtml(it['Current MRR'] || '') + '</td>'
       + '</tr>';
   }
   html += '</tbody></table>';
